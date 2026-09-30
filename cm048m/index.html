@@ -97,6 +97,18 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Official parts list, CYMA CM.048 / CM.048M manual p16 (no, English name as printed, which model uses it)
 const MANUAL = [["1", "Gun body", "both"], ["2", "Side rail", "both"], ["3", "Rigger loop", "both"], ["4", "Magazine safety", "both"], ["5", "Gun body connector", "both"], ["6", "Gun stock connector", "both"], ["7", "Gear box", "both"], ["8", "Protect a box of line", "both"], ["9", "Located slice", "both"], ["10", "Semi/auto copper", "both"], ["11", "Semi/auto selector", "both"], ["12", "Spring of semi/auto selector", "both"], ["13", "Gun grip", "both"], ["14", "M4×5 TMHO", "both"], ["15", "Out gun barrel", "CM.048 (AK74)"], ["15M", "048M Out gun barrel", "CM.048M"], ["16", "Rear gun sight base", "both"], ["17", "Up gun guard located nail", "both"], ["18", "Staff guage panel", "both"], ["19", "Staff guage", "both"], ["20", "Staff guage release spring", "both"], ["21", "Staff guage release spring", "both"], ["22", "Staff guage release", "both"], ["23", "Ø4×24 Shaft", "both"], ["24", "Down gun guard front cap", "both"], ["25", "Down gun guard front cap button", "both"], ["26", "Pipe base", "CM.048 (AK74)"], ["26M", "048M Pipe base", "CM.048M"], ["27", "Ø3×12 Shaft", "CM.048 (AK74)"], ["27M", "Ø2×12.5 Shaft", "CM.048M"], ["28", "Front sight base", "CM.048 (AK74)"], ["28M", "048M Front sight base", "CM.048M"], ["29", "Front sight safety", "CM.048 (AK74)"], ["29M", "048M Front sight safety", "CM.048M"], ["30", "Front sight", "CM.048 (AK74)"], ["30M", "048M Front sight", "CM.048M"], ["31", "Decoration shaft", "both"], ["32", "Silencer fix stalk", "both"], ["33", "Spring", "both"], ["34", "Decoration", "both"], ["35", "Gear", "both"], ["36", "M3×3 Screw", "both"], ["37", "Silencer", "CM.048 (AK74)"], ["37M", "048M Silencer", "CM.048M"], ["38", "HOP-UP", "both"], ["39", "Rubber hop-up unit", "both"], ["40", "Inner barrel", "both"], ["41", "Copper", "both"], ["42", "Gun barrel connect link", "both"], ["43", "Rubber selector", "both"], ["44", "Hop-up cylinder rubber", "both"], ["45", "Selector", "both"], ["46", "Block", "both"], ["47", "M2×4 KMHO", "both"], ["48", "M2×4 PWMHO D=5.5", "both"], ["49", "Nail", "both"], ["50", "M3×8 PMHO", "both"], ["51", "Ø7×30 Shaft", "both"], ["52", "M4×4 Screw", "both"], ["53", "Down gun guard", "CM.048 (AK74)"], ["53M", "048M Down gun guard", "CM.048M"], ["54", "Down gun guard slice", "both"], ["55", "Up gun guard", "CM.048 (AK74)"], ["55M", "048M Up gun guard", "CM.048M"], ["56", "Lead windpipe", "both"], ["57", "Up gun guard back cap", "both"], ["58", "Down gun guard slice", "both"], ["59", "Cocking lever", "both"], ["60", "Spring", "both"], ["61", "Localized copper", "both"], ["62", "Lever cock", "both"], ["63", "Gun body cover", "both"], ["64", "M3×3 Screw", "both"], ["65", "Gun body cover", "both"], ["66", "Gunstock", "CM.048 (AK74)"], ["66M", "048M Gunstock", "CM.048M"], ["67", "Rear gallus ring", "CM.048 (AK74)"], ["67M", "048M Rear gallus ring", "CM.048M"], ["68", "M4×8 KMHO", "both"], ["69", "M5×13 TMHO Inner hexagon", "both"], ["70", "Power cable", "both"], ["71", "Stock rear cap", "both"], ["72", "M4×12 KMHO", "both"], ["73", "Magazine cover", "CM.048 (AK74)"], ["73M", "048M Magazine cover", "CM.048M"], ["74", "Magazine rear cover", "both"], ["75", "Ø2×25.5 Shaft", "both"], ["76", "Ø2×21.5 Shaft", "both"], ["77", "Right trajectory", "both"], ["78", "Left trajectory", "both"], ["79", "Gear", "both"], ["80", "Clockwork spring base +clockwork spring", "both"], ["81", "Clockwork spring cover gear", "both"], ["82", "Driver", "both"], ["83", "C nail", "both"], ["84", "Gear", "both"], ["85", "Gear spring", "both"], ["86", "Eccentricity gear", "both"], ["87", "Eccentricity gear", "both"], ["88", "3mm inner blocked ring", "both"], ["89", "Magazine cover", "both"], ["90", "Bullet block", "both"], ["91", "Ø2.6×10 PAHO", "both"], ["92", "Bullet block spring", "both"], ["93", "Magazine button", "both"]];
+// VFC AKM/AKMS AEG parts list (AKM-01 to AKM-30), the gun the CM048M copies. Matched by name and position in the VFC exploded view.
+const VFC_NAMES = { '01': 'Flash hider', '02': 'Front sight set', '03': 'Gas chamber', '04': 'Upper handguard', '05': 'Gas tube', '06': 'Upper handguard fasten base',
+  '07': 'Upper handguard spring', '08': 'Outer barrel', '09': 'Cleaning rod', '10': 'Lower handguard fasten base', '11': 'Lower handguard', '12': 'Lower handguard spring',
+  '13': 'Rear sight set', '14': 'Rear sight base', '15': 'Bolt carrier set', '16': 'Upper receiver', '17': 'Recoil rod set', '18': 'Inner barrel', '19': 'Inner barrel spring',
+  '20': 'Hop-up packing', '21': 'Hop-up set', '22': 'Gear box set', '23': 'Motor', '24': 'Motor holder set', '25': 'Magazine release lever', '26': 'Selector lever set',
+  '27': 'AKM lower receiver', '28': 'Grip', '29': 'AKM fixed stock', '30': 'Magazine' };
+const VFC = { brake: ['01'], fsb: ['02'], brakeDetent: ['01'], outerBarrel: ['08'], cleaningRod: ['09'], gasBlock: ['03'], gasTube: ['05'], upperHG: ['04', '06'], hgLever: ['07'],
+  lowerHG: ['11', '12'], hgRetainer: ['10'], rearSight: ['13', '14'], receiver: ['27'], frontTrunnion: ['27'], rearTrunnion: ['27'], sideRail: ['27'], trigGuard: ['27'],
+  dustCover: ['16'], recoilGuide: ['17'], cockLever: ['15'], selector: ['26'], magCatch: ['25'], hopChamber: ['21'], bucking: ['20'], innerBarrel: ['18', '19'],
+  gearbox: ['22'], cylinder: ['22'], piston: ['22'], mainSpring: ['22'], gears: ['22'], tappet: ['22'], trigger: ['22'], selPlate: ['22'], wiring: ['22'],
+  motor: ['23'], motorCage: ['24'], grip: ['28'], stock: ['29'], stockScrews: ['29'], buttPlate: ['29'], slingLoop: ['29'],
+  magShell: ['30'], magFloor: ['30'], magTracts: ['30'], magGears: ['30'], feedLips: ['30'] };
 
 // ---------- scene ----------
 const app = document.getElementById('app');
@@ -809,6 +821,7 @@ const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded 
 <a href="https://www.airsoftgi.com/product/CYMA-CM048M-AKM-AEG-Airsoft-Rifle-Wood-5151/">Airsoft GI</a>,
 <a href="https://airsoftstation.com/cyma-cm048m-ak47-full-metal-real-wood-airsoft-rifle/">Airsoft Station</a> (side photo used for tracing),
 <a href="https://robertforbus.com/ak-part-drawings/akm-receiver/">Robert Forbus AKM drawings</a>,
+<a href="https://get.vegaforce.com/downloads/AKM_AKMS_PARTS_LIST.pdf">VFC AKM/AKMS parts list</a> (the gun CYMA copies; AKM-xx cross-reference),
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
 <a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
@@ -816,6 +829,7 @@ function showOverview() {
   <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
   <p>Manual spec: 915mm long (with orange tip), 3310g with battery, 120 m/s (about 394 fps) on 0.20g, 700 to 850 rounds/min, 600-round hi-cap. Steel receiver and dust cover, zinc alloy barrel and sights, real wood stock and handguards, polymer grip.</p>
   <ul>
+    <li>The CM048M copies the VFC AKM AEG. Each part panel lists the matching VFC AKM-xx part. VFC sells the gearbox, motor holder and magazine as single sets (AKM-22, AKM-24, AKM-30), so the internals have no finer VFC numbers.</li>
     <li>CYMA numbering: CM.048 is the AK74-pattern gun and CM.048M the AKM. The manual covers both; "M" part numbers (15M, 26M to 30M, 37M, 53M, 55M, 66M, 67M, 73M) are the AKM versions. The receiver, dust cover, rear sight, grip, gearbox and hop-up are shared.</li>
     <li>Battery lives in the stock behind the butt plate (2 screws), mini Tamiya plug, 20A fuse.</li>
     <li>Hop-up: lock the cocking lever back or pop the dust cover and slide the adjuster.</li>
@@ -857,8 +871,9 @@ function select(p, focus = false) {
   const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
     .map(([no, name, note]) => `<tr><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`).join('');
   const note = d.nos.length ? '<p class="src">Names as printed in the CYMA manual.</p>' : '<p class="src">Not broken down in the CYMA manual (the gearbox is item 7); generic V3 / aftermarket name.</p>';
+  const vfc = (VFC[d.id] || []).map(n => `AKM-${n} ${VFC_NAMES[n]}`).join(', ');
   info.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}</div><p>${d.info}</p>
-    <table>${rows}</table>${note}${SOURCES}`;
+    <table>${rows}</table>${note}${vfc ? `<p class="src">VFC AKM equivalent: ${vfc}.</p>` : ''}${SOURCES}`;
   if (focus) {
     const w = new THREE.Vector3(); d.label.getWorldPosition(w);
     const dir = camera.position.clone().sub(controls.target).normalize();
