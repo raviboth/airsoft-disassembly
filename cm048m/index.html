@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CYMA CM048M (AKM) disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the CYMA CM048M AKM airsoft AEG, with every part from the CYMA manual, V3 gearbox internals and a Polarstar Kythera HPA build.">
+<meta property="og:title" content="CYMA CM048M (AKM) disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the CYMA CM048M AKM AEG with manual part numbers, V3 gearbox internals and a Kythera HPA build.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/cm048m/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .cat input { margin:0; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item.off { opacity:.35; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:12px; width:250px; padding:12px 14px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; padding:12px 14px; max-height:50vh; overflow:auto; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="side" class="panel">
+  <h1><a href="../" style="color:var(--dim);text-decoration:none">Airsoft disassembly</a> / CYMA CM048M (AKM)</h1>
+  <div class="sub">Part numbers from the CYMA CM.048/CM.048M manual exploded view. Shapes are approximate, dimensions in mm. Click a part to inspect. Tick a category to show or hide it.</div>
+  <div id="list"></div>
+</div>
+
+<div id="ctrl" class="panel">
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label><span>Owner build (Kythera HPA)</span><input id="hpa" type="checkbox"></label>
+  <div class="row">
+    <button id="bAsm">Assembled</button>
+    <button id="bExp">Exploded</button>
+    <button id="bReset">Reset view</button>
+    <button id="bList">Manual parts list</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+
+// Official parts list, CYMA CM.048 / CM.048M manual p16 (no, English name as printed, which model uses it)
+const MANUAL = [["1", "Gun body", "both"], ["2", "Side rail", "both"], ["3", "Rigger loop", "both"], ["4", "Magazine safety", "both"], ["5", "Gun body connector", "both"], ["6", "Gun stock connector", "both"], ["7", "Gear box", "both"], ["8", "Protect a box of line", "both"], ["9", "Located slice", "both"], ["10", "Semi/auto copper", "both"], ["11", "Semi/auto selector", "both"], ["12", "Spring of semi/auto selector", "both"], ["13", "Gun grip", "both"], ["14", "M4×5 TMHO", "both"], ["15", "Out gun barrel", "CM.048 (AK74)"], ["15M", "048M Out gun barrel", "CM.048M"], ["16", "Rear gun sight base", "both"], ["17", "Up gun guard located nail", "both"], ["18", "Staff guage panel", "both"], ["19", "Staff guage", "both"], ["20", "Staff guage release spring", "both"], ["21", "Staff guage release spring", "both"], ["22", "Staff guage release", "both"], ["23", "Ø4×24 Shaft", "both"], ["24", "Down gun guard front cap", "both"], ["25", "Down gun guard front cap button", "both"], ["26", "Pipe base", "CM.048 (AK74)"], ["26M", "048M Pipe base", "CM.048M"], ["27", "Ø3×12 Shaft", "CM.048 (AK74)"], ["27M", "Ø2×12.5 Shaft", "CM.048M"], ["28", "Front sight base", "CM.048 (AK74)"], ["28M", "048M Front sight base", "CM.048M"], ["29", "Front sight safety", "CM.048 (AK74)"], ["29M", "048M Front sight safety", "CM.048M"], ["30", "Front sight", "CM.048 (AK74)"], ["30M", "048M Front sight", "CM.048M"], ["31", "Decoration shaft", "both"], ["32", "Silencer fix stalk", "both"], ["33", "Spring", "both"], ["34", "Decoration", "both"], ["35", "Gear", "both"], ["36", "M3×3 Screw", "both"], ["37", "Silencer", "CM.048 (AK74)"], ["37M", "048M Silencer", "CM.048M"], ["38", "HOP-UP", "both"], ["39", "Rubber hop-up unit", "both"], ["40", "Inner barrel", "both"], ["41", "Copper", "both"], ["42", "Gun barrel connect link", "both"], ["43", "Rubber selector", "both"], ["44", "Hop-up cylinder rubber", "both"], ["45", "Selector", "both"], ["46", "Block", "both"], ["47", "M2×4 KMHO", "both"], ["48", "M2×4 PWMHO D=5.5", "both"], ["49", "Nail", "both"], ["50", "M3×8 PMHO", "both"], ["51", "Ø7×30 Shaft", "both"], ["52", "M4×4 Screw", "both"], ["53", "Down gun guard", "CM.048 (AK74)"], ["53M", "048M Down gun guard", "CM.048M"], ["54", "Down gun guard slice", "both"], ["55", "Up gun guard", "CM.048 (AK74)"], ["55M", "048M Up gun guard", "CM.048M"], ["56", "Lead windpipe", "both"], ["57", "Up gun guard back cap", "both"], ["58", "Down gun guard slice", "both"], ["59", "Cocking lever", "both"], ["60", "Spring", "both"], ["61", "Localized copper", "both"], ["62", "Lever cock", "both"], ["63", "Gun body cover", "both"], ["64", "M3×3 Screw", "both"], ["65", "Gun body cover", "both"], ["66", "Gunstock", "CM.048 (AK74)"], ["66M", "048M Gunstock", "CM.048M"], ["67", "Rear gallus ring", "CM.048 (AK74)"], ["67M", "048M Rear gallus ring", "CM.048M"], ["68", "M4×8 KMHO", "both"], ["69", "M5×13 TMHO Inner hexagon", "both"], ["70", "Power cable", "both"], ["71", "Stock rear cap", "both"], ["72", "M4×12 KMHO", "both"], ["73", "Magazine cover", "CM.048 (AK74)"], ["73M", "048M Magazine cover", "CM.048M"], ["74", "Magazine rear cover", "both"], ["75", "Ø2×25.5 Shaft", "both"], ["76", "Ø2×21.5 Shaft", "both"], ["77", "Right trajectory", "both"], ["78", "Left trajectory", "both"], ["79", "Gear", "both"], ["80", "Clockwork spring base +clockwork spring", "both"], ["81", "Clockwork spring cover gear", "both"], ["82", "Driver", "both"], ["83", "C nail", "both"], ["84", "Gear", "both"], ["85", "Gear spring", "both"], ["86", "Eccentricity gear", "both"], ["87", "Eccentricity gear", "both"], ["88", "3mm inner blocked ring", "both"], ["89", "Magazine cover", "both"], ["90", "Bullet block", "both"], ["91", "Ø2.6×10 PAHO", "both"], ["92", "Bullet block spring", "both"], ["93", "Magazine button", "both"]];
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_POS = new THREE.Vector3(130, 250, 950);
+const HOME_TGT = new THREE.Vector3(0, -70, 0);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(400, 900, 600);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -900, right: 900, top: 900, bottom: -900, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -620; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(4000, 80, 0x2a2f38, 0x1d2027);
+grid.position.y = -619; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x383b41, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
+  wood:   { color: 0xffffff, metalness: 0.0,  roughness: 0.34 },
+  blk:    { color: 0x26282c, metalness: 0.55, roughness: 0.45 },
+  green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w']) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  return [cx + ax * px, lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    pos.push(x, y, z + Math.sign(z) * lift); uv.push(x * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    pos.push((lv.xf + lv.xb) / 2, lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+// lacquered birch-ply wood grain (canvas), grain runs along u
+const WOOD = (() => {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+  const x = c.getContext('2d'); x.fillStyle = '#7b3a15'; x.fillRect(0, 0, 512, 128);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 70; k++) {
+    const y0 = rnd() * 128, amp = 1 + rnd() * 4, f = 0.001 + rnd() * 0.003, ph = rnd() * 6;
+    x.strokeStyle = rnd() < 0.5 ? `rgba(60,25,8,${0.15 + rnd() * 0.3})` : `rgba(210,130,60,${0.1 + rnd() * 0.25})`;
+    x.lineWidth = 0.6 + rnd() * 2.2; x.beginPath();
+    for (let u = 0; u <= 512; u += 8) { const v = y0 + amp * Math.sin(u * f * Math.PI * 2 + ph); u ? x.lineTo(u, v) : x.moveTo(u, v); }
+    x.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+
+// ---------- CM048M-specific helpers ----------
+// sweep along x through vertical sections: stations = [{ x, yt, yb, w }] (top, bottom, width). Superellipse sections, exponent n.
+function crResample(levels, keys, key, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b[key] - c[key]) / step));
+    for (let q = 0; q < steps; q++) { const t = q / steps, o = {}; for (const kk of keys) o[kk] = cr(a[kk], b[kk], c[kk], d[kk], t); L.push(o); }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function sweepX(stations, { n = 3, seg = 36, step = 3, uvScale = 0.0035 } = {}) {
+  const L = crResample([...stations].sort((a, b) => a.x - b.x), ['x', 'yt', 'yb', 'w'], 'x', step);
+  const pos = [], uv = [], idx = [];
+  const pt = (s, t) => { const c = Math.cos(t), sn = Math.sin(t);
+    return [s.x, (s.yt + s.yb) / 2 + (s.yt - s.yb) / 2 * Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n), s.w / 2 * Math.sign(c) * Math.pow(Math.abs(c), 2 / n)]; };
+  L.forEach(s => { for (let i = 0; i <= seg; i++) { const t = i / seg * Math.PI * 2; pos.push(...pt(s, t)); uv.push(s.x * uvScale, i / seg); } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * (seg + 1) + i, b = a + 1, c = a + seg + 1, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  for (const [s, first] of [[L[0], true], [L[L.length - 1], false]]) {
+    const base = pos.length / 3;
+    for (let i = 0; i < seg; i++) { pos.push(...pt(s, i / seg * Math.PI * 2)); uv.push(0, 0); }
+    pos.push(s.x, (s.yt + s.yb) / 2, 0); uv.push(0, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; first ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// spur gear in the xy plane, axis z
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z' } = {}) {
+  const s = new THREE.Shape(), n = teeth * 4;
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2, rr = (i % 4 < 2) ? r : r * (1 - Math.min(0.14, 2.4 / r));
+    i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+  }
+  if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
+  g.translate(0, 0, -th / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// clip a geometry so no vertex passes x = f(y) (used for the slant muzzle brake cut)
+function clipFront(g, f) {
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setX(i, Math.min(p.getX(i), f(p.getY(i))));
+  p.needsUpdate = true; g.computeVertexNormals();
+  return g;
+}
+function tubeAlong(pts3, r, radial = 8) {
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts3.map(p => new THREE.Vector3(...p))), Math.max(16, pts3.length * 12), r, radial, false);
+}
+// resample a 2D polyline to n points by arc length
+function resample(poly, n) {
+  const d = [0]; for (let i = 1; i < poly.length; i++) d.push(d[i - 1] + Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]));
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const s = d[d.length - 1] * k / (n - 1); let i = 1; while (i < d.length - 1 && d[i] < s) i++;
+    const t = (s - d[i - 1]) / (d[i] - d[i - 1] || 1);
+    out.push([poly[i - 1][0] + (poly[i][0] - poly[i - 1][0]) * t, poly[i - 1][1] + (poly[i][1] - poly[i - 1][1]) * t]);
+  }
+  return out;
+}
+const at = (g, x, y, z) => { g.translate(x, y, z); return g; };
+
+// ---------- part registry ----------
+const CATS = {
+  frt: 'Barrel, sights and front end',
+  rcv: 'Receiver and controls',
+  hop: 'Hop-up and inner barrel',
+  gbx: 'Gearbox and motor (stock AEG)',
+  stk: 'Grip, stock and power',
+  mag: 'Magazine (hi-cap)',
+  hpa: 'Owner build: Kythera HPA',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, variant: opts.variant || null, tag: opts.tag || '' };
+  for (const [geo, matKey] of pieces) {
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey], side: THREE.DoubleSide });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
+    if (matKey === 'wood') { mat.map = WOOD; }
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? '#' + nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout: model units are pixels of the 1152px Airsoft Station left-side product photo (muzzle left in the photo).
+// X = OX - px puts the muzzle at +x; Y = OY - py puts the bore axis at y = 0. z is the gun's right side.
+// Scale S = 0.823 mm/px: the photo spans 1069px from brake to butt (real AKM 880mm) and 1109px with the orange
+// tip (manual: 915mm). The whole model is scaled by S so world units are mm; widths are given in mm via mm().
+const S = 0.823, OX = 578, OY = 103.5;
+const X = px => OX - px, Y = py => OY - py;
+const P = pts => pts.map(([a, b]) => [OX - a, OY - b]);
+const mm = v => v / S;
+const RZ = mm(17.1);                     // receiver half-width (34.2mm, Forbus AKM receiver drawing)
+const GT_Y = Y(72), GT_R = mm(9.5);      // gas tube axis and radius
+
+// ================= BARREL, SIGHTS AND FRONT END =================
+part('brake', 'Slant muzzle brake + thread adaptor, screw', 'frt', ['37M', '35', '36'], [230, 0, 0],
+  'AKM-style slant brake (37M), orange on US-market guns. Threads onto the outer barrel through adaptor 35 (14mm CCW, same size as the real AKM M14x1 LH thread) and is locked by M3x3 grub screw 36. The slant cut is longer at the bottom so real muzzle gas pushes the muzzle down against climb.',
+  [[clipFront(latheX([[4.5, X(66)], [10, X(66)], [10, X(20)], [4.5, X(20)], [4.5, X(66)]], 40), y => X(24) - (y + 10) * 0.6), 'orange'],
+   [tube(5.2, 8.2, X(72), X(64), 24), 'blk'],
+   [cyl(1.2, 3, 'y', X(60), 10, 0, 8), 'dark']]);
+part('fsb', 'Front sight block + post, detent, pins', 'frt', ['28M', '29M', '30M', '27M', '31'], [200, 90, 0],
+  'Front sight block (28M) pinned to the outer barrel. Carries the threaded post (30M) with its detent (29M) and the lug that holds the cleaning rod. Real AKM: post 26mm long, M6x0.75 thread, screwed into a drum for elevation zeroing.',
+  [[tube(8.8, 12, X(93), X(66), 32), 'blk'],
+   [at(prof(P([[66, 92], [66, 50], [70, 42], [78, 41], [93, 84], [93, 92]]), mm(2.4), 0.4, [P([[74, 70], [84, 70], [84, 80], [74, 80]])]), 0, 0, mm(6.5)), 'blk'],
+   [at(prof(P([[66, 92], [66, 50], [70, 42], [78, 41], [93, 84], [93, 92]]), mm(2.4), 0.4, [P([[74, 70], [84, 70], [84, 80], [74, 80]])]), 0, 0, -mm(6.5)), 'blk'],
+   [prof(P([[70, 108], [92, 108], [90, 124], [72, 124]]), mm(11), 0.8), 'blk'],
+   [cyl(mm(1.6), Y(58) - Y(90), 'y', X(79), (Y(58) + Y(90)) / 2, 0, 10), 'dark'],
+   [cyl(mm(4.5), mm(11), 'z', X(79), Y(92), 0, 16), 'dark']]);
+part('brakeDetent', 'Brake detent pin + spring', 'frt', ['32', '33'], [230, 50, 40],
+  'Spring-loaded pin in the front sight block that clicks into the brake to stop it unscrewing (AKM style). Real AKM detent: 12.6mm long, 4mm diameter.',
+  [[cyl(mm(2), mm(12.6), 'x', X(70), Y(100), mm(9), 10), 'steel'], [spring(mm(1.6), mm(0.3), mm(10), 7, 'x', X(92), Y(100), mm(9)), 'spring']]);
+part('outerBarrel', 'Outer barrel', 'frt', ['15M'], [120, 0, 0],
+  'Zinc alloy outer barrel (15M, AKM length). The real AKM barrel is 415mm, stepping from about 18mm at the trunnion to 14.5mm under the front sight; this one is hollow for the 455mm inner barrel. 14mm CCW thread at the muzzle.',
+  [[latheX([[5.4, X(493)], [10.4, X(493)], [10.4, X(440)], [9.4, X(440)], [9.4, X(215)], [8.6, X(215)], [8.6, X(80)], [7.8, X(80)], [7.8, X(66)], [5.4, X(66)], [5.4, X(493)]], 36), 'blk']]);
+part('cleaningRod', 'Cleaning rod', 'frt', ['34'], [150, -95, 0],
+  'Steel cleaning rod under the barrel, held at the front sight block and running back under the handguard. Real AKM rod is about 400mm.',
+  [[cyl(mm(3), X(80) - X(470), 'x', (X(80) + X(470)) / 2, Y(119.5), 0, 12), 'steel'],
+   [cyl(mm(3.8), mm(6), 'x', X(80), Y(119.5), 0, 12), 'steel']]);
+part('gasBlock', 'Gas block + pins', 'frt', ['26M', '27M'], [160, 90, 0],
+  'AKM 45 degree gas block (26M), pinned to the barrel (27M, 2x12.5 shaft). Decorative on the airsoft gun. The lower tab holds the cleaning rod.',
+  [[tube(8.8, 12.5, X(214), X(180), 32), 'blk'],
+   [prof(P([[180, 92], [190, 92], [210, 62], [224, 62], [224, 86], [214, 86], [211, 96], [211, 112], [180, 112]]), mm(17), 1), 'blk'],
+   [prof(P([[180, 112], [192, 112], [192, 127], [182, 127]]), mm(9), 0.6), 'blk']]);
+part('gasTube', 'Gas tube (lead windpipe) + ring', 'frt', ['56', '58'], [110, 160, 0],
+  'Gas tube (56, "lead windpipe" in the manual). Real AKM tube is 176.7mm; the front section has the vent slots, the rear sits in the rear sight block under the upper handguard.',
+  [[tube(GT_R - 1.8, GT_R, X(430), X(214), 32, GT_Y), 'blk'],
+   ...[236, 250, 264, 278].map(px => [cyl(mm(1.8), mm(4), 'z', X(px), GT_Y, GT_R - 1, 8), 'black'])]);
+part('upperHG', 'Upper handguard + back cap', 'frt', ['55M', '57'], [110, 230, 0],
+  'Real wood upper handguard (55M, AKM profile, about 111mm on the real rifle) bonded around the gas tube, with the steel back cap (57). Released by the lever on the rear sight block.',
+  [[tube(GT_R + 0.5, GT_R + 5.4, X(429), X(305), 40, GT_Y), 'wood'],
+   [tube(GT_R + 0.3, GT_R + 3.2, X(443), X(429), 32, GT_Y), 'blk']], { shell: true });
+part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90, -165, 0],
+  'Real wood AKM lower handguard (53M) with the palm swells. The front sits in the retainer ferrule, the rear under the rear sight block. Real AKM part is about 170 x 45 x 47mm. Slice 54 is the spring plate that takes up play.',
+  [[sweepX([{ x: X(307), yt: Y(83), yb: Y(129), w: mm(40) }, { x: X(330), yt: Y(83), yb: Y(131), w: mm(44) }, { x: X(400), yt: Y(83), yb: Y(133), w: mm(46) },
+            { x: X(452), yt: Y(83), yb: Y(136), w: mm(47) }, { x: X(482), yt: Y(83), yb: Y(140), w: mm(45) }, { x: X(492), yt: Y(83), yb: Y(139), w: mm(41) }], { n: 3.2 }), 'wood'],
+   ...[[330, 360], [375, 410]].map(([a, b]) => [bx(X(b), X(a), Y(84.5), Y(82.5), -mm(6), mm(6)), 'black'])], { shell: true });
+part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [140, -60, 0],
+  'Handguard retainer ferrule (24) that clamps the front of the lower handguard to the barrel, with its lock button (25).',
+  [[prof(P([[293, 57], [307, 57], [307, 131], [293, 131]]), mm(34), 2.5), 'blk'],
+   [bx(X(306), X(294), Y(118), Y(110), mm(18), mm(21)), 'steel']]);
+part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
+  'Rear sight base (16) with the tangent leaf (19, "staff guage"), its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
+  [[prof(P([[440, 52], [447, 48], [500, 48], [521, 53], [521, 112], [440, 112]]), mm(26), 1.2, [P([[441, 60], [441, 84], [445, 84], [445, 60]])]), 'blk'],
+   [prof(P([[452, 46], [521, 39], [523, 43], [452, 49]]), mm(13), 0.4), 'dark'],
+   [bx(X(488), X(477), Y(49), Y(37), -mm(9), mm(9)), 'steel'],
+   [bx(X(519), X(514), Y(40), Y(35), -mm(4), mm(4)), 'dark']]);
+part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
+  'Cam lever (17) on the right side of the rear sight base. Rotate it up to release the gas tube and upper handguard.',
+  [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
+
+// ================= RECEIVER AND CONTROLS =================
+const RCV_SIDE = P([[493, 62], [800, 62], [818, 86], [818, 143], [545, 143], [493, 132]]);
+const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113], [798, 101], [805, 128]];
+part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
+  'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
+  [[at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
+   [bx(X(818), X(636), Y(143) - mm(1.2), Y(143), -RZ, RZ), 'blk'],
+   [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
+   ...[1, -1].map(s => [bx(X(818), X(521), Y(64), Y(62), s * (RZ - mm(4)), s * RZ), 'blk']),
+   ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
+   ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
+part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
+  'Front trunnion (5): receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it. Shaft 51 (7x30) and screw 52 tie it in. Real AKM trunnion block is 65mm long, flush with the receiver front.',
+  [[bx(X(572), X(496), Y(128), Y(66), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
+   [cyl(mm(3.5), mm(30), 'z', X(515), Y(122), 0, 12), 'steel']], { shell: true });
+part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
+  'Rear trunnion (6): the stock tang slots into it and the gearbox rear seats against it.',
+  [[bx(X(816), X(797), Y(146), Y(86), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'], [bx(X(830), X(818), Y(135), Y(100), -mm(10), mm(10)), 'dark']], { shell: true });
+part('dustCover', 'Gun body cover (dust cover) + latch, screw', 'rcv', ['65', '63', '64'], [0, 170, 0],
+  'Stamped steel AKM dust cover (65) with the three stiffening ribs, held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it. Real AKM cover is about 236mm.',
+  [[sweepX([{ x: X(521), yt: Y(55), yb: Y(93), w: 2 * RZ + mm(2.4) }, { x: X(798), yt: Y(55), yb: Y(93), w: 2 * RZ + mm(2.4) }, { x: X(809), yt: Y(61), yb: Y(93), w: 2 * RZ + mm(2.2) }, { x: X(814), yt: Y(76), yb: Y(93), w: 2 * RZ + mm(1.5) }], { n: 7, step: 2 }), 'blk'],
+   ...[555, 635, 717].map(px => [bx(X(px + 4), X(px - 4), Y(56), Y(53.6), -mm(12), mm(12)), 'blk']),
+   [bx(X(625), X(525), Y(89), Y(71), RZ + mm(1.25), RZ + mm(1.6)), 'black']], { shell: true });
+part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv', ['62', '60', '61'], [0, 235, 0],
+  'Recoil spring guide (62) with its spring (60) and bushing (61). On the real rifle it returns the bolt carrier; here it only springs the cocking lever back and locks the dust cover through the rear button.',
+  [[cyl(mm(1.6), X(525) - X(812), 'x', (X(525) + X(812)) / 2, Y(70), 0, 10), 'steel'],
+   [spring(mm(3.2), mm(0.5), X(560) - X(805), 30, 'x', X(805), Y(70), 0), 'spring'],
+   [cyl(mm(4), mm(6), 'x', X(812), Y(70), 0, 16), 'steel'], [bx(X(816), X(809), Y(72), Y(60), -mm(4), mm(4)), 'steel'],
+   [cyl(mm(4), mm(5), 'x', X(558), Y(70), 0, 16), 'brass']]);
+part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
+  'Right-side cocking lever (59). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
+  [[bx(X(622), X(505), Y(88), Y(73), RZ - mm(3.5), RZ - mm(1.8)), 'steel'],
+   [cyl(mm(3.5), mm(22), 'z', X(509), Y(80), RZ + mm(9), 14), 'steel'],
+   [new THREE.SphereGeometry(mm(5.2), 16, 12).translate(X(509), Y(80), RZ + mm(21)), 'steel']]);
+part('selector', 'Semi/auto selector + copper bushing, spring, located slice', 'rcv', ['11', '10', '12', '9'], [0, 0, 110],
+  'AK selector lever (11) on the right side. Top = safe (also covers the ejection port), middle = AB (full auto), bottom = OД (semi). Pivots on bushing 10; spring 12 and detent plate 9 give the click positions. The manual warns not to switch semi to full with the trigger held.',
+  [[at(prof(P([[738, 108], [622, 87], [613, 87], [613, 97], [626, 98], [738, 125]]), mm(1.5), 0.3), 0, 0, RZ + mm(2.4)), 'blk'],
+   [cyl(mm(6.5), mm(2.6), 'z', X(735), Y(116), RZ + mm(2.2), 24), 'blk'],
+   [cyl(mm(3), mm(3.5), 'z', X(735), Y(116), RZ + mm(3), 14), 'brass'],
+   [bx(X(620), X(612), Y(98), Y(86), RZ + mm(2), RZ + mm(7)), 'blk']]);
+part('sideRail', 'Side rail (optics mount)', 'rcv', ['2'], [0, 0, -110],
+  'Dovetail side mount (2) on the left of the receiver, for AK side-mount optics.',
+  [[at(prof(P([[612, 103], [760, 103], [760, 127], [612, 127]]), mm(3), 0.6), 0, 0, -RZ - mm(1.8)), 'blk'],
+   [bx(X(760), X(612), Y(103), Y(98), -RZ - mm(7), -RZ - mm(1.5)), 'blk'],
+   ...[[638, 127], [657, 125], [707, 132]].map(([a, b]) => [cyl(mm(2.8), mm(1.2), 'z', X(a), Y(b), -RZ - mm(0.6), 12), 'steel'])]);
+part('trigGuard', 'Rigger loop (trigger guard)', 'rcv', ['3'], [20, -100, 0],
+  'Stamped steel trigger guard (3), riveted under the receiver. Real AKM guard: 66mm hole span, 33.5mm wide at the ears.',
+  [[prof(P([[643, 143], [722, 143], [722, 148], [718, 187], [640, 188], [638, 150]]), mm(9), 0.5, [P([[648, 150], [713, 150], [710, 182], [648, 182]])]), 'blk'],
+   [bx(X(722), X(643), Y(145), Y(143), -mm(16), mm(16)), 'blk']]);
+part('magCatch', 'Magazine safety (magazine catch)', 'rcv', ['4'], [70, -130, 40],
+  'Paddle magazine catch (4) in front of the trigger guard. Push it forward and rock the magazine forward off the front lug.',
+  [[prof(P([[634, 143], [650, 143], [656, 170], [652, 195], [648, 195], [644, 172], [634, 158]]), mm(7), 0.6), 'blk']]);
+
+// ================= HOP-UP AND INNER BARREL =================
+part('hopChamber', 'Hop-up chamber + adjuster, block, screws', 'hop', ['38', '45', '46', '47', '48', '49', '50', '41', '42', '43'], [60, -60, 0],
+  'Hop-up chamber (38) seated in the front trunnion, fed from the top of the magazine. The adjuster (45, "selector") slides fore and aft on top; reach it by locking the cocking lever back or removing the dust cover. 46 is the adjuster block, 47 to 50 the screws and nail, 41 a brass barrel spacer, 42 the barrel clip, 43 the adjuster rubber. CYMA sells a one-piece die-cast chamber (SB-C03); some batches ship plastic.',
+  [[latheX([[5.2, X(598)], [11.5, X(598)], [11.5, X(545)], [8, X(545)], [8, X(538)], [5.2, X(538)], [5.2, X(598)]], 32), 'zinc'],
+   [bx(X(590), X(556), Y(95), Y(86), -mm(6), mm(6)), 'zinc'],
+   [bx(X(582), X(566), Y(86), Y(82), -mm(4), mm(4)), 'poly2'],
+   [bx(X(578), X(560), Y(125), Y(113), -mm(5), mm(5)), 'zinc'],
+   [torus(5.6, 0.8, 'x', X(540), 0, 0), 'brass']]);
+part('bucking', 'Rubber hop-up unit (bucking) + nub', 'hop', ['39', '44'], [20, -60, 0],
+  'Hop-up bucking (39) over the inner barrel window, pressed by the rubber nub (44). Stock bucking is about 60 shore.',
+  [[tube(mm(3.1), mm(4.9), X(596), X(566), 24), 'rubber'], [cyl(mm(2.2), mm(3), 'y', X(578), Y(96.5), 0, 12), 'rubber']], { variant: 'aeg' });
+part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
+  'Brass inner barrel (40): 455mm, about 6.03mm bore on the stock gun (retailers quote 425 to 469mm). Hop window at the rear, under the bucking.',
+  [[tube(mm(3.02), mm(4.25), X(594), X(37), 24), 'brass'], [bx(X(583), X(573), mm(4.4), mm(4.9), -mm(1.5), mm(1.5)), 'black']], { variant: 'aeg' });
+
+// ================= GEARBOX AND MOTOR (stock AEG) =================
+const GB_PTS = P([[588, 85], [795, 85], [797, 95], [797, 135], [788, 160], [735, 160], [722, 148], [682, 146], [665, 128], [600, 126], [588, 120]]);
+const GBZ = mm(12.5);
+part('gearbox', 'Gear box (Version 3 shell + combine plate)', 'gbx', ['7'], [0, 360, 0],
+  'CYMA Version 3 gearbox (7): two metal shell halves joined by a top combine plate and 4 screws, 7mm steel bushings. The manual lists the gearbox as one item and gives no internal part numbers, so the internals below use generic V3 names. V3 shells from other makers measure about 167 x 25 x 87mm.',
+  [[at(prof(GB_PTS, mm(1.6), 0.4), 0, 0, GBZ - mm(0.8)), 'zinc'], [at(prof(GB_PTS, mm(1.6), 0.4), 0, 0, -GBZ + mm(0.8)), 'zinc'],
+   [bx(X(790), X(600), Y(86), Y(83), -mm(7), mm(7)), 'zinc'],
+   ...[[748, 128], [712, 133], [772, 146]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.5), mm(1.6), 'z', X(a), Y(b), s * (GBZ + mm(0.4)), 16), 'brass']))], { shell: true });
+part('cylinder', 'Cylinder + cylinder head, nozzle', 'gbx', [], [250, 510, 0],
+  'Ported metal cylinder (standard bore 23.6mm) with the cylinder head and AK-length nozzle (aftermarket AK nozzles are 19.7 or 20.7mm). Some sources list a Type 0 copper cylinder; batches vary.',
+  [[tube(mm(11.8), mm(13), X(705), X(600), 32), 'brass'], [tube(0, mm(13.2), X(603), X(598), 32), 'dark'],
+   [tube(mm(2.2), mm(3.2), X(598), X(572), 16), 'poly2'], [bx(X(660), X(640), mm(11.8), mm(13.3), -mm(2.5), mm(2.5)), 'black']], { tag: 'V3', variant: 'aeg' });
+part('piston', 'Piston + piston head', 'gbx', [], [120, 510, 0],
+  'Polymer piston with metal rack teeth and an aluminium bearing head (per Taiwangun; Airsoft GI lists all plastic).',
+  [[tube(mm(9), mm(11.2), X(690), X(608), 24), 'poly'], [cyl(mm(11.6), mm(4), 'x', X(606), 0, 0, 32), 'alu'],
+   [torus(mm(11), mm(0.9), 'x', X(605), 0, 0), 'black'],
+   ...Array.from({ length: 10 }, (_, i) => [bx(X(615 + i * 7.5) - 1.8, X(615 + i * 7.5) + 1.8, -mm(14), -mm(11), -mm(3), mm(3)), 'steel'])], { tag: 'V3', variant: 'aeg' });
+part('mainSpring', 'Spring + spring guide', 'gbx', [], [-40, 510, 0],
+  'M120 spring (Airsoft GI) on a plastic or bearing spring guide.',
+  [[spring(mm(8), mm(0.8), X(610) - X(790), 26, 'x', X(790), 0, 0), 'spring'],
+   [cyl(mm(5), X(740) - X(795), 'x', (X(740) + X(795)) / 2, 0, 0, 16), 'poly'], [cyl(mm(9), mm(3), 'x', X(792), 0, 0, 24), 'poly']], { tag: 'V3', variant: 'aeg' });
+part('gears', 'Gear set (spur, sector, bevel)', 'gbx', [], [-200, 360, 0],
+  'Steel gear set, about 18:1 (Airsoft GI). The sector gear drives the piston rack, the bevel gear takes power from the motor pinion. Tooth counts are not published.',
+  [[gear(mm(14), 30, mm(4), X(748), Y(128), 0, { hole: mm(2) }), 'steel'],
+   [gear(mm(16), 30, mm(4), X(712), Y(135), 0, { hole: mm(2) }), 'steel'],
+   [gear(mm(13), 28, mm(4), X(772), Y(146), 0, { hole: mm(2), axis: 'y' }), 'steel'],
+   ...[[748, 128], [712, 135]].map(([a, b]) => [cyl(mm(2), 2 * GBZ, 'z', X(a), Y(b), 0, 10), 'steel'])], { tag: 'V3', variant: 'aeg' });
+part('tappet', 'Tappet plate + cut-off lever, anti-reversal latch', 'gbx', [], [200, 440, 0],
+  'Tappet plate pulls the nozzle back to feed a BB; the cut-off lever stops the sector gear in semi; the metal anti-reversal latch stops the gears spinning backwards.',
+  [[bx(X(682), X(600), Y(124), Y(120), -mm(3), mm(3)), 'poly'], [bx(X(605), X(598), Y(124), Y(96), -mm(3), mm(3)), 'poly'],
+   [bx(X(705), X(688), Y(152), Y(140), -mm(2), mm(2)), 'steel'], [bx(X(768), X(758), Y(152), Y(136), -mm(2), mm(2)), 'steel']], { tag: 'V3', variant: 'aeg' });
+part('trigger', 'Trigger + trigger contacts', 'gbx', [], [150, 360, 0],
+  'Gearbox trigger and its copper contact assembly (2 screws plus a separation spring). No MOSFET on the stock gun.',
+  [[prof(P([[693, 143], [703, 146], [713, 162], [710, 177], [705, 177], [706, 163], [697, 150]]), mm(5), 0.8), 'steel'],
+   [bx(X(700), X(680), Y(146), Y(128), -mm(5), mm(5)), 'poly'], [bx(X(696), X(684), Y(128), Y(122), -mm(3), mm(3)), 'brass']], { tag: 'V3', variant: 'aeg' });
+part('selPlate', 'Selector plate', 'gbx', [], [-150, 440, 0],
+  'Gearbox selector plate, driven by the external lever through the receiver. Debris under the dust cover can jam its teeth. Kept in the Kythera build.',
+  [[at(prof(P([[615, 124], [742, 124], [745, 140], [615, 134]]), mm(1), 0.2), 0, 0, GBZ + mm(1)), 'steel']], { tag: 'V3' });
+const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();   // along the grip axis, downwards
+const motorAt = (d) => new THREE.Vector3(X(772), Y(165), 0).addScaledVector(MOTOR_DIR, d);
+function alongGrip(g, d0) { g.rotateZ(Math.atan2(MOTOR_DIR.y, MOTOR_DIR.x) + Math.PI / 2); const c = motorAt(d0); g.translate(c.x, c.y, c.z); return g; }
+part('motor', 'Motor (short type, high torque)', 'gbx', [], [-160, -260, 0],
+  'Short-type high-torque motor with neodymium magnets, hanging under the gearbox inside the pistol grip. Mesh is set with an M3 hex screw through the grip bottom (manual p13): only adjust if the motor gets loud.',
+  [[alongGrip(new THREE.CylinderGeometry(mm(12.4), mm(12.4), mm(52), 28), 40), 'steel'],
+   [alongGrip(new THREE.CylinderGeometry(mm(1.2), mm(1.2), mm(14), 8), 8), 'steel'],
+   [alongGrip(new THREE.CylinderGeometry(mm(3), mm(3), mm(6), 12), 2), 'brass']], { variant: 'aeg' });
+part('motorCage', 'Motor cage (CY-0029)', 'gbx', [], [-100, -200, 0],
+  'Two-piece metal motor cage bolted under the gearbox (CYMA CY-0029, about 85g), with the motor height screw at the bottom.',
+  [[alongGrip(new THREE.BoxGeometry(mm(29), mm(58), mm(29)), 42), 'zinc'],
+   [alongGrip(new THREE.CylinderGeometry(mm(2), mm(2), mm(8), 10), 78), 'steel']], { shell: true, variant: 'aeg' });
+part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8'], [0, 360, 0],
+  'Wire guard (8) on the gearbox rear with the motor and trigger leads running back to the stock.',
+  [[bx(X(800), X(795), Y(130), Y(90), -mm(6), mm(6)), 'poly'],
+   [tubeAlong([[X(797), Y(128), mm(3)], [X(790), Y(155), mm(3)], [X(785), Y(170), mm(3)]], mm(1.1)), 'red'],
+   [tubeAlong([[X(797), Y(128), -mm(3)], [X(790), Y(155), -mm(3)], [X(785), Y(170), -mm(3)]], mm(1.1)), 'black']], { variant: 'aeg' });
+
+// ================= GRIP, STOCK AND POWER =================
+const GL = [{ y: Y(144), xf: X(722), xb: X(790), w: mm(30) }, { y: Y(180), xf: X(734), xb: X(794), w: mm(31) },
+            { y: Y(220), xf: X(749), xb: X(808), w: mm(31) }, { y: Y(255), xf: X(760), xb: X(818), w: mm(30) },
+            { y: Y(269), xf: X(763), xb: X(821), w: mm(29) }, { y: Y(279), xf: X(776), xb: X(812), w: mm(24) }];
+part('grip', 'Gun grip + grip screw', 'stk', ['13', '14'], [-40, -150, 0],
+  'Polymer AK pistol grip (13) with checkered sides; it covers the motor. Screw 14 (M4x5) holds it; the bottom screw also sets motor height. On the real AKM it was laminate or bakelite.',
+  [[loft(GL, { n: 2.6, frontTaper: 0.75, step: 2 }), 'poly'],
+   [loftPatch(GL, { t0: 1.35, t1: 2.45, y0: Y(185), y1: Y(262), n: 2.6, frontTaper: 0.75, lift: 0.4, uvScale: 0.6 }), 'checker'],
+   [loftPatch(GL, { t0: -2.45, t1: -1.35, y0: Y(185), y1: Y(262), n: 2.6, frontTaper: 0.75, lift: 0.4, uvScale: 0.6 }), 'checker'],
+   [alongGrip(new THREE.CylinderGeometry(mm(3), mm(3), mm(4), 16), 121), 'steel']], { shell: true });
+const STOCK_ST = [[818, 91, 152, 34], [853, 99, 159, 35], [890, 106, 170, 36], [913, 102, 176, 37], [943, 98, 186, 38], [1003, 99, 203, 39], [1053, 100, 214, 40], [1083, 101, 221, 40], [1122, 103, 225, 40]]
+  .map(([px, t, b, w]) => ({ x: X(px), yt: Y(t), yb: Y(b), w: mm(w) }));
+part('stock', 'Gunstock (fixed AKM stock)', 'stk', ['66M'], [-160, 0, 0],
+  'Real wood fixed AKM stock (66M), plain sides (the AK74 stock 66 has a lightening slot). Hollow: the battery lives inside, behind the butt plate. Real AKM stocks run 270 to 280 x 100 x 37mm.',
+  [[sweepX(STOCK_ST, { n: 3.4 }), 'wood']], { shell: true });
+part('stockScrews', 'Stock screws M5x13 (hex)', 'stk', ['69'], [-120, 70, 0],
+  'Hex screws (69) through the receiver and rear trunnion into the stock tang.',
+  [1, -1].flatMap(s => [[cyl(mm(4.2), mm(2), 'z', X(806), Y(100), s * (RZ + mm(1)), 14), 'steel'], [cyl(mm(4.2), mm(2), 'z', X(806), Y(132), s * (RZ + mm(1)), 14), 'steel']]));
+part('buttPlate', 'Stock rear cap (butt plate) + screws', 'stk', ['71', '72'], [-240, 0, 0],
+  'Steel butt plate (71) held by two Phillips M4x12 screws (72). Remove it to reach the battery.',
+  [[sweepX([{ x: X(1132), yt: Y(102), yb: Y(226), w: mm(42) }, { x: X(1122), yt: Y(102), yb: Y(226), w: mm(42) }], { n: 4, step: 20 }), 'blk'],
+   [cyl(mm(3.4), mm(2), 'x', X(1133), Y(114), 0, 12), 'steel'], [cyl(mm(3.4), mm(2), 'x', X(1133), Y(214), 0, 12), 'steel']]);
+part('slingLoop', 'Rear gallus ring (sling loop) + screws', 'stk', ['67M', '68'], [-160, -90, 0],
+  'AKM-style wire sling loop (67M) under the stock toe, on a plate with two M4x8 screws (68). The AK74 version (67) is a side plate.',
+  [[torus(mm(6), mm(1.1), 'z', X(1055), Y(229), 0).scale(1, 1, 1), 'steel'], [bx(X(1068), X(1042), Y(216), Y(212), -mm(6), mm(6)), 'steel'],
+   [cyl(mm(2), mm(4), 'y', X(1064), Y(213), 0, 8), 'steel'], [cyl(mm(2), mm(4), 'y', X(1046), Y(213), 0, 8), 'steel']]);
+part('battery', 'Battery (9.6V NiMH stick, placeholder)', 'stk', [], [-200, -150, 0],
+  'Battery goes in the stock cavity behind the butt plate: a small 9.6V NiMH stick or nunchuck with a mini Tamiya plug. The cavity is tight; its size is not published, so this block is a placeholder.',
+  [[bx(X(1110), X(930), Y(158), Y(134), -mm(8.5), mm(8.5)), 'poly2'], [bx(X(1110), X(1100), Y(158), Y(134), -mm(8.7), mm(8.7)), 'red']], { tag: 'batt', variant: 'aeg' });
+part('powerCable', 'Power cable + fuse (20A)', 'stk', ['70'], [-120, -110, 0],
+  'Power cable (70) from the gearbox through the stock tang to a mini Tamiya plug, with an inline 20A fuse.',
+  [[tubeAlong([[X(800), Y(120), 0], [X(840), Y(128), 0], [X(900), Y(140), 0], [X(925), Y(146), 0]], mm(2.2)), 'black'],
+   [bx(X(880), X(860), Y(139), Y(129), -mm(4), mm(4)), 'poly2'], [bx(X(930), X(922), Y(150), Y(140), -mm(5), mm(5)), 'lever']], { variant: 'aeg' });
+
+// ================= MAGAZINE =================
+const MAG_FRONT = [[556, 143], [553, 150], [543, 181], [533, 203], [523, 220], [513, 234], [503, 246], [493, 257], [483, 267], [473, 275], [463, 283], [455, 289]];
+const MAG_BACK = [[636, 143], [633, 170], [623, 198], [613, 223], [603, 243], [593, 260], [583, 275], [573, 288], [563, 300], [553, 311], [543, 321], [533, 330], [523, 339], [513, 347], [505, 352]];
+const MAG_POLY = [[558, 126], ...MAG_FRONT, [452, 295], [499, 355], ...[...MAG_BACK].reverse(), [636, 126]];
+const MZ = mm(13.5);
+const magF = resample(MAG_FRONT, 22), magB = resample(MAG_BACK, 22);
+const ribs = [0.42, 0.58, 0.74].flatMap(f => [1, -1].map(s => [tubeAlong(magF.slice(2, 19).map((p, k) => { const q = magB[k + 2]; return [X(p[0] + (q[0] - p[0]) * f), Y(p[1] + (q[1] - p[1]) * f), s * (MZ + mm(0.4))]; }), mm(1.5), 6), 'blk']));
+part('magShell', 'Magazine cover (AKM ribbed shell) + button', 'mag', ['73M', '93'], [60, -240, 0],
+  'Steel AKM-pattern hi-cap shell (73M) with the stamped ribs. 600 rounds per the manual (retailers list 400 to 600). The front lug hooks the trunnion; the rear engages the catch. Button 93 sits at the top. Real AKM mag: about 225 x 65 x 25mm.',
+  [[prof(P(MAG_POLY), 2 * MZ, 1.2), 'blk'], ...ribs], { shell: true });
+part('magFloor', 'Magazine rear cover (floor plate)', 'mag', ['74'], [110, -300, 0],
+  'Floor plate (74) at the bottom of the shell.',
+  [[prof(P([[449, 293], [455, 288], [505, 350], [499, 359]]), 2 * MZ + mm(2), 0.8), 'blk']]);
+part('magTracts', 'Right / left trajectory (feed tract halves) + shafts', 'mag', ['77', '78', '75', '76'], [290, -240, 0],
+  'Plastic inner body in two halves (77 right, 78 left) that holds the BB channel and the winding gear train, pinned by shafts 75 and 76 (2x25.5 and 2x21.5).',
+  [[prof(P([[560, 127], ...resample(MAG_FRONT, 12).map(([a, b]) => [a + 10, b]), [470, 300], [500, 340], [520, 332], [545, 300], ...resample(MAG_FRONT, 12).reverse().map(([a, b]) => [a + 26, b]).slice(0, 10), [600, 127]]), 2 * MZ - mm(4), 0.5), 'poly2']], { variant: null });
+part('magGears', 'Winding gear train (gears, clock spring, driver)', 'mag', ['79', '80', '81', '82', '83', '84', '85', '86', '87', '88'], [330, -330, 60],
+  'Wind-up feed: the big gear (79) and clock spring (80) with its cover gear (81) push BBs up the tract through the driver (82) and small gears (84, 86, 87), held by C-nail 83 and ring 88; gear spring 85 is the ratchet. Wind it with the wheel at the bottom.',
+  [[gear(mm(22), 44, mm(2.5), X(492), Y(300), 0, { hole: mm(2) }), 'poly2'],
+   [cyl(mm(12), mm(5), 'z', X(492), Y(300), mm(4), 32), 'steel'], [gear(mm(13), 30, mm(2.5), X(492), Y(300), -mm(4), { hole: mm(2) }), 'poly'],
+   [gear(mm(8), 16, mm(2.5), X(510), Y(270), 0), 'poly'], [gear(mm(5), 12, mm(2.5), X(522), Y(255), 0), 'poly'],
+   [cyl(mm(1.5), 2 * MZ, 'z', X(492), Y(300), 0, 8), 'steel']]);
+part('feedLips', 'Magazine cover (feed plate) + bullet block, spring, screw', 'mag', ['89', '90', '92', '91'], [60, -170, 0],
+  'Feed plate (89) at the top of the magazine with the spring-loaded bullet block (90, 92, screw 91) that stops BBs spilling out when the mag is out of the gun.',
+  [[bx(X(620), X(560), Y(128), Y(124), -mm(8), mm(8)), 'poly2'], [bx(X(572), X(562), Y(126), Y(120), -mm(3), mm(3)), 'steel'],
+   [spring(mm(1.2), mm(0.25), mm(8), 6, 'x', X(585), Y(122), 0), 'spring']]);
+
+// ================= OWNER BUILD: POLARSTAR KYTHERA HPA =================
+const KY_X0 = X(588), KY_X1 = KY_X0 - mm(115);
+part('kythera', 'Kythera V3 engine (front/rear cylinder, sleeve)', 'hpa', [], [250, 510, 0],
+  'Polarstar Kythera for V3 (SKU 10001002): fully mechanical HPA engine, semi-auto only, no FCU or battery. About 115 x 21 x 21mm, 147g. Front cylinder 10000763, rear cylinder 10000764, sleeve 10000765. It sits where the AEG cylinder was, inside the retained V3 shell.',
+  [[latheX([[0, KY_X1], [mm(10.5), KY_X1], [mm(10.5), KY_X0 - mm(55)], [mm(11.5), KY_X0 - mm(55)], [mm(11.5), KY_X0 - mm(8)], [mm(9), KY_X0], [0, KY_X0]], 32), 'alu'],
+   [tube(mm(10.6), mm(11), KY_X0 - mm(60), KY_X0 - mm(52), 32), 'red']], { variant: 'hpa' });
+part('kyNozzle', 'Kythera nozzle #2 + spool, spool spring', 'hpa', [], [380, 510, 0],
+  'Nozzle #2 for AK (tip 0.882in / 22.4mm), driven by the air spool (front 10000767, tail 10000992) and spool spring 10000389; fit the heavy spring above about 130 PSI.',
+  [[tube(mm(2.2), mm(3.2), KY_X0 + mm(22.4), KY_X0 - mm(10), 16), 'poly2'], [spring(mm(4), mm(0.5), mm(22), 8, 'x', KY_X0 - mm(70), 0, 0), 'spring']], { variant: 'hpa' });
+part('kyMeter', 'Input fitting + metering screw', 'hpa', [], [100, 510, 0],
+  'Input fitting (10000834) at the engine rear and the metering screw (10001020, 0.029in orifice by default). The metering screw sets nozzle return speed; a loose one is a common cause of misfeeds.',
+  [[cyl(mm(4), mm(10), 'y', KY_X1 + mm(8), -mm(13), 0, 14), 'brass'], [cyl(mm(2), mm(4), 'y', KY_X1 + mm(22), mm(11.5), 0, 10), 'steel']], { variant: 'hpa' });
+part('kySear', 'Sear assembly + trigger link, reset cable', 'hpa', [], [150, 360, 0],
+  'Mechanical sear, disconnector and trigger link (Fig. 2 of the Kythera manual, #4-40 set screws), plus the steel reset cable that runs down the grip beside the air line. Retained V3 parts: trigger, safety, selector plate and a shortened spring guide.',
+  [[bx(X(700), X(660), Y(128), Y(118), -mm(3), mm(3)), 'steel'], [prof(P([[693, 143], [703, 146], [713, 162], [710, 177], [705, 177], [706, 163], [697, 150]]), mm(5), 0.8), 'steel'],
+   [tubeAlong([[X(690), Y(125), mm(6)], [X(740), Y(150), mm(6)], [X(775), Y(200), mm(6)], [X(795), Y(270), mm(6)]], mm(0.7), 5), 'spring']], { variant: 'hpa' });
+part('airLine', 'Air line (through the grip)', 'hpa', [], [-60, -160, 0],
+  'Braided air line from the input fitting down through the pistol grip and out the bottom to the tank regulator. Pressure is set at the tank (60 to 180 PSI); nothing regulates inside the gun.',
+  [[tubeAlong([[KY_X1 + mm(8), -mm(18), 0], [X(760), Y(150), 0], [X(785), Y(210), 0], [X(800), Y(275), 0], [X(805), Y(310), 0], [X(830), Y(345), 0], [X(900), Y(360), 0]], mm(3), 10), 'black']], { variant: 'hpa' });
+part('zciBarrel', 'ZCI 455mm 6.02 barrel + R-hop patch, G&G green bucking', 'hpa', [], [60, -60, 0],
+  'Owner build: ZCI 455mm 6.02 stainless inner barrel with a square window cut for an R-hop patch (about 2.15mm deep x 6mm long), under a G&G green bucking with its nub removed.',
+  [[tube(mm(3.01), mm(4.25), X(594), X(37), 24), 'steel'], [bx(X(583), X(573), mm(4.25), mm(5.6), -mm(1.6), mm(1.6)), 'rubber'],
+   [tube(mm(4.3), mm(4.95), X(596), X(566), 24), 'green']], { variant: 'hpa' });
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+let build = 'aeg';
+function updateVis() {
+  for (const p of parts) {
+    const d = p.userData;
+    const ok = !d.variant || d.variant === build;
+    p.visible = catOn[d.cat] && ok;
+    itemEls.get(p).classList.toggle('off', !ok);
+  }
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('label'); head.className = 'cat';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  head.append(cb, label + ` (${byCat[key].length})`);
+  list.append(head);
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    const d = p.userData;
+    it.innerHTML = `<span>${d.name}</span><span class="pn">${d.nos.length ? '#' + d.nos[0] : d.tag}</span>`;
+    it.onclick = () => select(p, true);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+const hpaCb = document.getElementById('hpa');
+hpaCb.onchange = () => { build = hpaCb.checked ? 'hpa' : 'aeg'; updateVis(); if (!selected) showOverview(); };
+updateVis();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+document.getElementById('bAsm').onclick = () => { exTarget = 0; exSlider.value = 0; };
+const EXP_POS = new THREE.Vector3(120, 260, 1750), EXP_TGT = new THREE.Vector3(0, 20, 0);
+document.getElementById('bExp').onclick = () => { exTarget = 1; exSlider.value = 1; camTween = { pos: EXP_POS.clone(), tgt: EXP_TGT.clone() }; };
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- info panel ----------
+const info = document.getElementById('info');
+const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded view and parts list p14 to p16; scan via <a href="https://www.manualshelf.com/">manualshelf</a>),
+<a href="https://www.redwolfairsoft.com/cyma-akm-airsoft-aeg-rifle-metal-hi-power-wood-version-cm048m.html">RedWolf</a>,
+<a href="https://www.taiwangun.com/assault-rifle-aeg/cm-048m-cyma">Taiwangun</a>,
+<a href="https://www.airsoftgi.com/product/CYMA-CM048M-AKM-AEG-Airsoft-Rifle-Wood-5151/">Airsoft GI</a>,
+<a href="https://airsoftstation.com/cyma-cm048m-ak47-full-metal-real-wood-airsoft-rifle/">Airsoft Station</a> (side photo used for tracing),
+<a href="https://robertforbus.com/ak-part-drawings/akm-receiver/">Robert Forbus AKM drawings</a>,
+<a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
+<a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
+function showOverview() {
+  info.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
+  <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
+  <p>Manual spec: 915mm long (with orange tip), 3310g with battery, 120 m/s (about 394 fps) on 0.20g, 700 to 850 rounds/min, 600-round hi-cap. Steel receiver and dust cover, zinc alloy barrel and sights, real wood stock and handguards, polymer grip.</p>
+  <ul>
+    <li>CYMA numbering: CM.048 is the AK74-pattern gun and CM.048M the AKM. The manual covers both; "M" part numbers (15M, 26M to 30M, 37M, 53M, 55M, 66M, 67M, 73M) are the AKM versions. The receiver, dust cover, rear sight, grip, gearbox and hop-up are shared.</li>
+    <li>Battery lives in the stock behind the butt plate (2 screws), mini Tamiya plug, 20A fuse.</li>
+    <li>Hop-up: lock the cocking lever back or pop the dust cover and slide the adjuster.</li>
+    <li>Motor mesh: M3 hex screw through the grip bottom. Hold the grip while adjusting.</li>
+    <li>Weak points reported by owners: loose selector lever screw, BBs or debris jamming the selector plate, front sight play, motor whine until the height is set, air seal.</li>
+    <li>Scale: traced from a side product photo at 0.823 mm/px (real AKM 880mm without tip, 915mm with it). Widths come from the Forbus AKM drawings and retail listings. The traced receiver is about 267mm against 259mm on the real AKM.</li>
+    <li>Owner build (tick "Owner build" in the controls): ZCI 455mm 6.02 barrel, R-hop, G&amp;G green bucking and a Polarstar Kythera V3 HPA engine in place of the AEG cylinder, gears and motor.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan.</p>${SOURCES}`;
+}
+function showList(hitNos = []) {
+  const rows = MANUAL.map(([no, name, note]) => {
+    const mod = byNo.has(no);
+    return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`;
+  }).join('');
+  info.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Names as printed in the CYMA manual (English column, original spelling). Blue rows are modeled, click to find them. Unmarked numbers are the AK74 (CM.048) versions where an "M" version exists.</div><table>${rows}</table>`;
+  info.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+}
+document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { showOverview(); return; }
+  setGlow(p, true);
+  itemEls.get(p).classList.add('sel');
+  itemEls.get(p).scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
+    .map(([no, name, note]) => `<tr><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`).join('');
+  const note = d.nos.length ? '<p class="src">Names as printed in the CYMA manual.</p>' : '<p class="src">Not broken down in the CYMA manual (the gearbox is item 7); generic V3 / aftermarket name.</p>';
+  info.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}</div><p>${d.info}</p>
+    <table>${rows}</table>${note}${SOURCES}`;
+  if (focus) {
+    const w = new THREE.Vector3(); d.label.getWorldPosition(w);
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    camTween = { tgt: w, pos: w.clone().add(dir.multiplyScalar(700)) };
+  }
+}
+showOverview();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let hovered = null, downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { const d = p.userData; tip.textContent = `${d.nos.length ? '#' + d.nos[0] + ' ' : ''}${d.name}`; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+root.scale.setScalar(S);
+const exv = document.getElementById('exv');
+renderer.setAnimationLoop(() => {
+  exCur += (exTarget - exCur) * 0.12;
+  if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
+  exv.textContent = Math.round(exCur * 100) + '%';
+  const e = exCur * exCur * (3 - 2 * exCur);
+  for (const p of parts) {
+    p.position.copy(p.userData.explode).multiplyScalar(e);
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {
+    controls.target.lerp(camTween.tgt, 0.1); camera.position.lerp(camTween.pos, 0.1);
+    if (camera.position.distanceTo(camTween.pos) < 2) camTween = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+
+const fromHash = () => {
+  if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EXP_POS.clone(), tgt: EXP_TGT.clone() }; }
+  if (location.hash.includes('hpa')) { hpaCb.checked = true; hpaCb.onchange(); }
+};
+fromHash(); addEventListener('hashchange', fromHash);
+window.__cm = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, S, OX, OY };
+</script>
+</body>
+</html>
