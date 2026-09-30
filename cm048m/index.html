@@ -475,6 +475,75 @@ const mm = v => v / S;
 const RZ = mm(17.1);                     // receiver half-width (34.2mm, Forbus AKM receiver drawing)
 const GT_Y = Y(72), GT_R = mm(9.5);      // gas tube axis and radius
 
+// annular sector around an x-axis line at height cy: angles in the (z, y) plane from +z toward +y
+function sectorX(rIn, rOut, a0, a1, xA, xB, cy, seg = 40) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i <= seg; i++) { const a = a0 + (a1 - a0) * i / seg, v = [rOut * Math.cos(a), rOut * Math.sin(a)]; i ? sh.lineTo(...v) : sh.moveTo(...v); }
+  for (let i = seg; i >= 0; i--) { const a = a0 + (a1 - a0) * i / seg; sh.lineTo(rIn * Math.cos(a), rIn * Math.sin(a)); }
+  const g = new THREE.ExtrudeGeometry(sh, { depth: Math.abs(xB - xA), bevelEnabled: false, curveSegments: 4 });
+  g.rotateY(-Math.PI / 2); g.translate(Math.max(xA, xB), cy, 0);
+  const P = g.attributes.position, uv = g.attributes.uv;          // grain runs along x
+  for (let i = 0; i < P.count; i++) uv.setXY(i, P.getX(i) * 0.0035, Math.atan2(P.getY(i) - cy, P.getZ(i)) / Math.PI);
+  return g;
+}
+// AKM lower handguard: superellipse section swept along x (photo px), with the vent notches in the top edge, the recessed
+// side panel that ends in the rear palm swell (RedWolf CM048M right side, Atlantic/Apex AKM side views) and a front tenon
+function lowerHGGeo(px0, px1, grow = 0, notches = true) {
+  const K = (a, b, e, x) => Math.min(1, Math.max(0, (x - a) / e)) * Math.min(1, Math.max(0, (b - x) / e));
+  const lerpT = (tab, x) => { for (let i = 0; i < tab.length - 1; i++) if (x <= tab[i + 1][0]) { const t = (x - tab[i][0]) / (tab[i + 1][0] - tab[i][0]), u = t * t * (3 - 2 * t); return tab[i][1] + (tab[i + 1][1] - tab[i][1]) * u; } return tab[tab.length - 1][1]; };
+  const YB = [[307, 129], [325, 132], [345, 133], [440, 133], [460, 139], [476, 142], [484, 141.5], [492, 138.5]];
+  const W = [[307, 35], [330, 37.5], [400, 40], [440, 42.5], [470, 43], [486, 42], [492, 40]];
+  const n = 3.2, seg = 160, pos = [], idx = [], xs = [];
+  for (let px = px0; px <= px1 + 1e-6; px += 0.5) xs.push(px);
+  const sec = px => {
+    const ten = 1 - Math.min(1, Math.max(0, (px - 311) / 1.5));                    // front tenon into the retainer cup
+    const notch = notches ? 2.6 * (K(325, 352, 2, px) + K(387, 417, 2, px)) : 0;
+    const yt = Y(83 + notch + ten * 1.2) + grow, yb = Y(lerpT(YB, px) - ten * 1.5) - grow;
+    const hw = mm(lerpT(W, px) - ten * 3.5) / 2 + grow, yc = (yt + yb) / 2, hh = (yt - yb) / 2;
+    const out = [];
+    for (let i = 0; i < seg; i++) {
+      const t = i / seg * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+      const y = yc + hh * Math.sign(sn) * Math.abs(sn) ** (2 / n);
+      let z = hw * Math.sign(c) * Math.abs(c) ** (2 / n);
+      // recessed side panel: flat-bottomed oval pocket, rounded rear end, open toward the front cap
+      const qx = Math.max(0, (px - 395) / 24), qy = (Y(103.5) - y) / mm(12.5);
+      const inPanel = px > 309 ? Math.min(1, Math.max(0, (1 - (qx * qx + qy * qy)) / 0.18)) : 0;
+      z -= Math.sign(c) * mm(2.2) * inPanel * Math.min(1, Math.abs(c) ** 2 * 1.6);
+      out.push([y, z]);
+    }
+    return out;
+  };
+  xs.forEach(px => sec(px).forEach(([y, z]) => pos.push(X(px), y, z)));
+  for (let k = 0; k < xs.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg; idx.push(a, c, b, b, c, d);
+  }
+  for (const [k, flip] of [[0, false], [xs.length - 1, true]]) {
+    const base = pos.length / 3, ring = sec(xs[k]);
+    pos.push(X(xs[k]), ring.reduce((m, [y]) => m + y / seg, 0), 0);
+    for (let i = 0; i < seg; i++) { const a = k * seg + i, b = k * seg + (i + 1) % seg; flip ? idx.push(base, a, b) : idx.push(base, b, a); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  const uv = []; for (let i = 0; i < pos.length; i += 3) uv.push(pos[i] * 0.0035, (pos[i + 1] + pos[i + 2]) * 0.01);
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
+// retainer (front cap): D-shaped plate, section in (z, y) mm about the bore
+function retainerShape(grow = 0, hole = true) {
+  const s = new THREE.Shape(), hw = mm(17.5 + grow), top = mm(16 + grow), cy = mm(-2.5), r = hw;
+  s.moveTo(-hw, top); s.lineTo(hw, top); s.lineTo(hw, cy); s.absarc(0, cy, r, 0, -Math.PI, true); s.lineTo(-hw, top);
+  if (hole) {
+    const b = new THREE.Path(); b.absarc(0, 0, mm(8.6), 0, Math.PI * 2, true); s.holes.push(b);
+    const rd = new THREE.Path(); rd.absarc(0, Y(119.5), mm(3.4), 0, Math.PI * 2, true); s.holes.push(rd);
+  }
+  return s;
+}
+function extrudeX(shape, xA, xB, bevel = 0) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth: Math.abs(xB - xA), bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 2, curveSegments: 24 });
+  g.rotateY(-Math.PI / 2); g.translate(Math.max(xA, xB), 0, 0);
+  return g;
+}
+
 // ================= BARREL, SIGHTS AND FRONT END =================
 part('brake', 'Slant muzzle brake + thread adaptor, screw', 'frt', ['37M', '35', '36'], [230, 0, 0],
   'AKM-style slant brake (37M), orange on US-market guns. Threads onto the outer barrel through adaptor 35 (14mm CCW, same size as the real AKM M14x1 LH thread) and is locked by M3x3 grub screw 36. The slant cut is longer at the bottom so real muzzle gas pushes the muzzle down against climb.',
@@ -509,18 +578,21 @@ part('gasTube', 'Gas tube (lead windpipe) + ring', 'frt', ['56', '58'], [110, 16
   [[tube(GT_R - 1.8, GT_R, X(430), X(214), 32, GT_Y), 'blk'],
    ...[236, 250, 264, 278].map(px => [cyl(mm(1.8), mm(4), 'z', X(px), GT_Y, GT_R - 1, 8), 'black'])]);
 part('upperHG', 'Upper handguard + back cap', 'frt', ['55M', '57'], [110, 230, 0],
-  'Real wood upper handguard (55M, AKM profile, about 111mm on the real rifle) bonded around the gas tube, with the steel back cap (57). Released by the lever on the rear sight block.',
-  [[tube(GT_R + 0.5, GT_R + 5.4, X(429), X(305), 40, GT_Y), 'wood'],
-   [tube(GT_R + 0.3, GT_R + 3.2, X(443), X(429), 32, GT_Y), 'blk']], { shell: true });
+  'Real wood upper handguard (55M, AKM profile, about 111mm on the real rifle) that wraps over the gas tube from above: a C section open along the bottom, so the tube shows between the handguards. Its collars sit in steel cups at both ends (back cap 57 at the rear sight block, front cup on the tube). Released by the lever on the rear sight block.',
+  [[sectorX(GT_R + 0.5, GT_R + 6.4, -Math.PI / 2 + 0.85, 1.5 * Math.PI - 0.85, X(429), X(307), GT_Y, 48), 'wood'],
+   [sectorX(GT_R + 0.3, GT_R + 3.2, -Math.PI / 2 + 0.6, 1.5 * Math.PI - 0.6, X(443), X(429), GT_Y, 32), 'blk'],
+   [sectorX(GT_R + 0.3, GT_R + 6.6, -Math.PI / 2 + 0.75, 1.5 * Math.PI - 0.75, X(307), X(298), GT_Y, 40), 'blk']], { shell: true });
 part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90, -165, 0],
-  'Real wood AKM lower handguard (53M) with the palm swells. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
-  [[sweepX([{ x: X(307), yt: Y(83), yb: Y(129), w: mm(35) }, { x: X(330), yt: Y(83), yb: Y(131), w: mm(38) }, { x: X(400), yt: Y(83), yb: Y(133), w: mm(41) },
-            { x: X(452), yt: Y(83), yb: Y(136), w: mm(43) }, { x: X(482), yt: Y(83), yb: Y(140), w: mm(42) }, { x: X(492), yt: Y(83), yb: Y(139), w: mm(39) }], { n: 3.2 }), 'wood'],
-   ...[[330, 360], [375, 410]].map(([a, b]) => [bx(X(b), X(a), Y(84.5), Y(82.5), -mm(6), mm(6)), 'black'])], { shell: true });
+  'Real wood AKM lower handguard (53M): two vent notches in the top edge, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
+  [[lowerHGGeo(307, 486), 'wood'], [lowerHGGeo(486, 492, mm(0.6), false), 'blk']], { shell: true });
 part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [140, -60, 0],
-  'Handguard retainer ferrule (24) that clamps the front of the lower handguard to the barrel, with its lock button (25).',
-  [[prof(P([[293, 57], [307, 57], [307, 131], [293, 131]]), mm(34), 2.5), 'blk'],
-   [bx(X(306), X(294), Y(118), Y(110), mm(18), mm(21)), 'steel']]);
+  'Handguard retainer (24): a D-shaped steel plate on the barrel with a collar in front, a hole for the cleaning rod below the bore, and a cup rim behind it that holds the front tenon of the lower handguard. The lock button (25) sits on top at the right. Real AKM retainers use a lever in the same spot and some carry a sling slot on the left.',
+  [[extrudeX(retainerShape(), X(301), X(297.5), 0.4), 'blk'],
+   [(() => { const s = retainerShape(0, false), h = new THREE.Path(), hw = mm(16), cy = mm(-2.5);
+      h.moveTo(-hw, mm(17)); h.lineTo(-hw, cy); h.absarc(0, cy, hw, -Math.PI, 0, false); h.lineTo(hw, mm(17)); h.lineTo(-hw, mm(17)); s.holes.push(h);
+      return extrudeX(s, X(310), X(301)); })(), 'blk'],
+   [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk'],
+   [cyl(mm(1.6), mm(5), 'y', X(304), mm(18), mm(10), 12), 'steel']]);
 part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
   'Rear sight base (16) with the tangent leaf (19, "staff guage"), its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
   [[prof(P([[440, 52], [447, 48], [500, 48], [521, 53], [521, 112], [440, 112]]), mm(26), 1.2, [P([[441, 60], [441, 84], [445, 84], [445, 60]])]), 'blk'],
