@@ -532,33 +532,91 @@ part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
   [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
 
 // ================= RECEIVER AND CONTROLS =================
-const RCV_SIDE = P([[493, 62], [800, 62], [818, 86], [818, 143], [545, 143], [493, 132]]);
+const RCV_SIDE = P([[493, 77], [806, 77], [818, 91], [818, 143], [545, 143], [493, 132]]);
 const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113], [798, 101], [805, 128]];
 part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
   [[at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
    [bx(X(818), X(636), Y(143) - mm(1.2), Y(143), -RZ, RZ), 'blk'],
    [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
-   ...[1, -1].map(s => [bx(X(818), X(521), Y(64), Y(62), s * (RZ - mm(4)), s * RZ), 'blk']),
+   ...[1, -1].map(s => [bx(X(806), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
    ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
 part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
   'Front trunnion (5): receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it. Shaft 51 (7x30) and screw 52 tie it in. Real AKM trunnion block is 65mm long, flush with the receiver front.',
-  [[bx(X(572), X(496), Y(128), Y(66), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
+  [[bx(X(572), X(496), Y(128), Y(76), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
    [cyl(mm(3.5), mm(30), 'z', X(515), Y(122), 0, 12), 'steel']], { shell: true });
 part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
   'Rear trunnion (6): the stock tang slots into it and the gearbox rear seats against it.',
   [[bx(X(816), X(797), Y(146), Y(86), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'], [bx(X(830), X(818), Y(135), Y(100), -mm(10), mm(10)), 'dark']], { shell: true });
+// AKM stamped dust cover: sheet (outer + inner skin) swept along x. Section from the end-on photos (K-Var Arsenal cover):
+// half-round crown over the recoil spring, flared shoulders, straight skirts. Skirt heights, ribs, flutes and the raked rear
+// traced from the CM048M side photo (left) and the RedWolf right-side close-up.
+function akmCover() {
+  const H = mm(31.5), Wh = RZ + mm(1.2), rc = mm(9.4), T = mm(0.9), top = Y(56);
+  const ramp = (px, a, b) => Math.min(1, Math.max(0, (px - a) / (b - a)));
+  // skirt bottom depth per side (0 = top), by photo px
+  const botL = px => H - mm(6) * (1 - ramp(px, 565, 587));
+  const botR = px => H - (H * 0.45) * (1 - ramp(px, 610, 628));
+  const rib = px => [555, 635, 717].reduce((a, r) => a + mm(1) * Math.exp(-(((px - r) / 2.3) ** 2)), 0);
+  const flute = (px, u, a, b) => (u > 0.45 && u < 0.72) ? -mm(0.7) * ramp(px, a, a + 4) * (1 - ramp(px, b - 4, b)) * Math.sin((u - 0.45) / 0.27 * Math.PI) : 0;
+  // half profile, top centre outwards: [z, d, ribWeight, skirtU or -1]
+  const half = (bot) => {
+    const pts = [];
+    for (let i = 0; i <= 10; i++) { const a = Math.PI / 2 * (1 - i / 10); pts.push([rc * Math.cos(a), rc - rc * Math.sin(a), 1, -1]); }
+    pts.push([rc, 0.36 * H, 1, -1]);
+    for (let i = 1; i <= 7; i++) { const t = i / 7, sm = t * t * (3 - 2 * t); pts.push([rc + (Wh - rc) * sm, 0.36 * H + 0.14 * H * t, 1 - t, -1]); }
+    const d0 = 0.5 * H, d1 = Math.max(bot, d0 + mm(1.5));
+    for (let i = 1; i <= 10; i++) pts.push([Wh, d0 + (d1 - d0) * i / 10, 0, i / 10 * (d1 - d0) / (H - d0)]);
+    return pts;
+  };
+  const section = px => {
+    const R = half(botR(px)), L = half(botL(px));
+    const pts = [...L.slice(1).reverse().map(([z, d, w, u]) => [-z, d, w, u, -1]), ...R.map(([z, d, w, u]) => [z, d, w, u, 1])];
+    // outward normals in (z, y = -d)
+    const n = pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      let nz = -(b[1] - a[1]), ny = -(b[0] - a[0]); const l = Math.hypot(nz, ny) || 1; nz /= l; ny /= l;
+      if (nz * p[0] + ny * (0.6 * H - p[1]) < 0) { nz = -nz; ny = -ny; } return [nz, ny]; });
+    const rake = Math.max(0, (px - 777) / 35 * mm(29 * S));
+    return pts.map((p, i) => {
+      const [z, d, w, u, side] = p, [nz, ny] = n[i];
+      const off = rib(px) * w + (u >= 0 ? flute(px, u, side < 0 ? 590 : 630, 805) : 0);
+      const o = [z + nz * off, d - ny * off], iN = [o[0] - nz * T, o[1] + ny * T];
+      const cl = q => [q[0], Math.max(q[1], rake)];
+      return [cl(o), cl(iN)];
+    });
+  };
+  const pos = [], idx = [], xs = [];
+  for (let px = 519; px <= 814.001; px += px < 775 ? 1 : 0.2) xs.push(Math.min(px, 814));
+  const secs = xs.map(section), N = secs[0].length;
+  const vid = (k, i, inner) => (k * N + i) * 2 + inner;
+  xs.forEach((px, k) => secs[k].forEach(([o, iN]) => { pos.push(X(px), top - o[1], o[0], X(px), top - iN[1], iN[0]); }));
+  for (let k = 0; k < xs.length - 1; k++) for (let i = 0; i < N - 1; i++) {
+    const a = vid(k, i, 0), b = vid(k, i + 1, 0), c = vid(k + 1, i, 0), d = vid(k + 1, i + 1, 0);
+    idx.push(a, b, c, b, d, c); idx.push(a + 1, c + 1, b + 1, b + 1, c + 1, d + 1);
+  }
+  for (let k = 0; k < xs.length - 1; k++) for (const i of [0, N - 1]) {      // bottom edges of the skirts
+    const a = vid(k, i, 0), b = vid(k, i, 1), c = vid(k + 1, i, 0), d = vid(k + 1, i, 1); idx.push(a, b, c, b, d, c);
+  }
+  for (let i = 0; i < N - 1; i++) { const a = vid(0, i, 0), b = vid(0, i + 1, 0); idx.push(a, a + 1, b, b, a + 1, b + 1); }   // open front rim
+  const last = xs.length - 1, base = pos.length / 3;                          // closed rear wall
+  const ctr = secs[last].reduce((m, [o]) => [m[0] + o[0] / N, m[1] + o[1] / N], [0, 0]);
+  pos.push(X(xs[last]), top - ctr[1], ctr[0]);
+  for (let i = 0; i < N - 1; i++) idx.push(base, vid(last, i, 0), vid(last, i + 1, 0));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
 part('dustCover', 'Gun body cover (dust cover) + latch, screw', 'rcv', ['65', '63', '64'], [0, 170, 0],
-  'Stamped steel AKM dust cover (65) with the three stiffening ribs, held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it. Real AKM cover is about 236mm.',
-  [[sweepX([{ x: X(521), yt: Y(55), yb: Y(93), w: 2 * RZ + mm(2.4) }, { x: X(798), yt: Y(55), yb: Y(93), w: 2 * RZ + mm(2.4) }, { x: X(809), yt: Y(61), yb: Y(93), w: 2 * RZ + mm(2.2) }, { x: X(814), yt: Y(76), yb: Y(93), w: 2 * RZ + mm(1.5) }], { n: 7, step: 2 }), 'blk'],
-   ...[555, 635, 717].map(px => [bx(X(px + 4), X(px - 4), Y(56), Y(53.6), -mm(12), mm(12)), 'blk']),
-   [bx(X(625), X(525), Y(89), Y(71), RZ + mm(1.25), RZ + mm(1.6)), 'black']], { shell: true });
+  'Stamped steel AKM dust cover (65): half-round crown over the recoil spring, flared shoulders and straight skirts, three stiffening ribs across the crown and a long flute on each skirt. The rear end is raked with a square window for the recoil spring guide button; the right skirt stops short at the front to clear the cocking lever. Real AKM cover is about 240 x 39mm. Held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it.',
+  [[akmCover(), 'blk']], { shell: true });
 part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv', ['62', '60', '61'], [0, 235, 0],
   'Recoil spring guide (62) with its spring (60) and bushing (61). On the real rifle it returns the bolt carrier; here it only springs the cocking lever back and locks the dust cover through the rear button.',
-  [[cyl(mm(1.6), X(525) - X(812), 'x', (X(525) + X(812)) / 2, Y(70), 0, 10), 'steel'],
-   [spring(mm(3.2), mm(0.5), X(560) - X(805), 30, 'x', X(805), Y(70), 0), 'spring'],
-   [cyl(mm(4), mm(6), 'x', X(812), Y(70), 0, 16), 'steel'], [bx(X(816), X(809), Y(72), Y(60), -mm(4), mm(4)), 'steel'],
+  [[cyl(mm(1.6), X(525) - X(786), 'x', (X(525) + X(786)) / 2, Y(70), 0, 10), 'steel'],
+   [spring(mm(3.2), mm(0.5), X(560) - X(783), 30, 'x', X(783), Y(70), 0), 'spring'],
+   [cyl(mm(4), mm(3), 'x', X(785), Y(70), 0, 16), 'steel'], [bx(X(795), X(785), Y(80), Y(70), -mm(4), mm(4)), 'steel'],
+   [bx(X(803), X(794), Y(84), Y(78), -mm(3.3), mm(3.3)), 'steel'], [bx(X(809), X(802), Y(84), Y(76.5), -mm(3.3), mm(3.3)), 'steel'],
    [cyl(mm(4), mm(5), 'x', X(558), Y(70), 0, 16), 'brass']]);
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
   'Right-side cocking lever (59). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
