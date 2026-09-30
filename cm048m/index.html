@@ -539,7 +539,7 @@ part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   [[at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
    [bx(X(818), X(636), Y(143) - mm(1.2), Y(143), -RZ, RZ), 'blk'],
    [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
-   ...[1, -1].map(s => [bx(X(806), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
+   ...[1, -1].map(s => [bx(X(794), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
    ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
 part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
@@ -555,67 +555,79 @@ part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, 
 function akmCover() {
   const H = mm(31.5), Wh = RZ + mm(1.2), rc = mm(9.4), T = mm(0.9), top = Y(56);
   const ramp = (px, a, b) => Math.min(1, Math.max(0, (px - a) / (b - a)));
+  const bump = (px, a, b, e) => ramp(px, a, a + e) * (1 - ramp(px, b - e, b));
   // skirt bottom depth per side (0 = top), by photo px
   const botL = px => H - mm(6) * (1 - ramp(px, 565, 587));
   const botR = px => H - (H * 0.45) * (1 - ramp(px, 610, 628));
   const rib = px => [555, 635, 717].reduce((a, r) => a + mm(1) * Math.exp(-(((px - r) / 2.3) ** 2)), 0);
-  const flute = (px, u, a, b) => (u > 0.45 && u < 0.72) ? -mm(0.7) * ramp(px, a, a + 4) * (1 - ramp(px, b - 4, b)) * Math.sin((u - 0.45) / 0.27 * Math.PI) : 0;
-  // half profile, top centre outwards: [z, d, ribWeight, skirtU or -1]
+  const flute = (px, u, a, b) => (u > 0.45 && u < 0.72) ? -mm(0.7) * bump(px, a, b, 4) * Math.sin((u - 0.45) / 0.27 * Math.PI) : 0;
+  // short grooves along the crown top, one per bay between the ribs (K-Var and Apex side views)
+  const groove = px => -mm(0.8) * [[563, 625], [649, 714], [725, 773]].reduce((a, [s, e]) => a + bump(px, s, e, 3), 0);
+  // raked rear face: a plane through photo (777, 56) and (812, 85); column end x for a point at depth d
+  const RK = 35 / 29, xEnd = d => Math.min(814, 777 + d * RK);
+  // half profile, top centre outwards: [z, d, ribWeight, skirtU or -1, topWeight]
   const half = (bot) => {
     const pts = [];
-    for (let i = 0; i <= 10; i++) { const a = Math.PI / 2 * (1 - i / 10); pts.push([rc * Math.cos(a), rc - rc * Math.sin(a), 1, -1]); }
-    pts.push([rc, 0.36 * H, 1, -1]);
-    for (let i = 1; i <= 7; i++) { const t = i / 7, sm = t * t * (3 - 2 * t); pts.push([rc + (Wh - rc) * sm, 0.36 * H + 0.14 * H * t, 1 - t, -1]); }
+    for (let i = 0; i <= 20; i++) { const a = Math.PI / 2 * (1 - i / 20); pts.push([rc * Math.cos(a), rc - rc * Math.sin(a), 1, -1, Math.exp(-(((Math.PI / 2 - a) / 0.26) ** 2))]); }
+    pts.push([rc, 0.36 * H, 1, -1, 0]);
+    for (let i = 1; i <= 7; i++) { const t = i / 7, sm = t * t * (3 - 2 * t); pts.push([rc + (Wh - rc) * sm, 0.36 * H + 0.14 * H * t, 1 - t, -1, 0]); }
     const d0 = 0.5 * H, d1 = Math.max(bot, d0 + mm(1.5));
-    for (let i = 1; i <= 10; i++) pts.push([Wh, d0 + (d1 - d0) * i / 10, 0, i / 10 * (d1 - d0) / (H - d0)]);
+    for (let i = 1; i <= 10; i++) pts.push([Wh, d0 + (d1 - d0) * i / 10, 0, i / 10 * (d1 - d0) / (H - d0), 0]);
     return pts;
   };
-  const section = px => {
+  const profile = px => {
     const R = half(botR(px)), L = half(botL(px));
-    const pts = [...L.slice(1).reverse().map(([z, d, w, u]) => [-z, d, w, u, -1]), ...R.map(([z, d, w, u]) => [z, d, w, u, 1])];
-    // outward normals in (z, y = -d)
-    const n = pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const pts = [...L.slice(1).reverse().map(([z, ...r]) => [-z, ...r, -1]), ...R.map(([z, ...r]) => [z, ...r, 1])];
+    return pts.map((p, i) => {   // outward normal in (z, y = -d)
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
       let nz = -(b[1] - a[1]), ny = -(b[0] - a[0]); const l = Math.hypot(nz, ny) || 1; nz /= l; ny /= l;
-      if (nz * p[0] + ny * (0.6 * H - p[1]) < 0) { nz = -nz; ny = -ny; } return [nz, ny]; });
-    const rake = Math.max(0, (px - 777) / 35 * mm(29 * S));
-    return pts.map((p, i) => {
-      const [z, d, w, u, side] = p, [nz, ny] = n[i];
-      const off = rib(px) * w + (u >= 0 ? flute(px, u, side < 0 ? 590 : 630, 805) : 0);
-      const o = [z + nz * off, d - ny * off], iN = [o[0] - nz * T, o[1] + ny * T];
-      const cl = q => [q[0], Math.max(q[1], rake)];
-      return [cl(o), cl(iN)];
+      if (nz * p[0] + ny * (0.6 * H - p[1]) < 0) { nz = -nz; ny = -ny; }
+      return { z: p[0], d: p[1], w: p[2], u: p[3], tw: p[4], side: p[5], nz, ny };
     });
   };
-  const pos = [], idx = [], xs = [];
-  for (let px = 519; px <= 814.001; px += px < 775 ? 1 : 0.2) xs.push(Math.min(px, 814));
-  const secs = xs.map(section), N = secs[0].length;
+  const outer = (q, px, inner) => {
+    const off = rib(px) * q.w + groove(px) * q.tw + (q.u >= 0 ? flute(px, q.u, q.side < 0 ? 590 : 630, 805) : 0) - (inner ? T : 0);
+    return [q.z + q.nz * off, q.d - q.ny * off];
+  };
+  // every profile column runs from the front edge to where it meets the rake (or the rear edge), so the rake edge is exact
+  const M0 = 258, M1 = 70, prof0 = profile(519), N = prof0.length;
+  const colX = (i, k, inner) => {
+    const q = prof0[i], dEnd = inner ? q.d + q.ny * T : q.d, xe = xEnd(Math.max(0, dEnd));
+    return k <= M0 ? 519 + (777 - 519) * k / M0 : 777 + (xe - 777) * (k - M0) / M1;
+  };
+  const pos = [], idx = [], K = M0 + M1 + 1;
   const vid = (k, i, inner) => (k * N + i) * 2 + inner;
-  xs.forEach((px, k) => secs[k].forEach(([o, iN]) => { pos.push(X(px), top - o[1], o[0], X(px), top - iN[1], iN[0]); }));
-  for (let k = 0; k < xs.length - 1; k++) for (let i = 0; i < N - 1; i++) {
+  const cache = new Map(), profAt = px => { const key = px.toFixed(3); if (!cache.has(key)) cache.set(key, profile(px)); return cache.get(key); };
+  for (let k = 0; k < K; k++) for (let i = 0; i < N; i++) for (const inner of [0, 1]) {
+    const px = colX(i, k, inner), [z, d] = outer(profAt(px)[i], px, inner);
+    pos.push(X(px), top - d, z);
+  }
+  for (let k = 0; k < K - 1; k++) for (let i = 0; i < N - 1; i++) {
     const a = vid(k, i, 0), b = vid(k, i + 1, 0), c = vid(k + 1, i, 0), d = vid(k + 1, i + 1, 0);
     idx.push(a, b, c, b, d, c); idx.push(a + 1, c + 1, b + 1, b + 1, c + 1, d + 1);
   }
-  for (let k = 0; k < xs.length - 1; k++) for (const i of [0, N - 1]) {      // bottom edges of the skirts
+  for (let k = 0; k < K - 1; k++) for (const i of [0, N - 1]) {      // bottom edges of the skirts
     const a = vid(k, i, 0), b = vid(k, i, 1), c = vid(k + 1, i, 0), d = vid(k + 1, i, 1); idx.push(a, b, c, b, d, c);
   }
   for (let i = 0; i < N - 1; i++) { const a = vid(0, i, 0), b = vid(0, i + 1, 0); idx.push(a, a + 1, b, b, a + 1, b + 1); }   // open front rim
-  const last = xs.length - 1, base = pos.length / 3;                          // closed rear wall
-  const ctr = secs[last].reduce((m, [o]) => [m[0] + o[0] / N, m[1] + o[1] / N], [0, 0]);
-  pos.push(X(xs[last]), top - ctr[1], ctr[0]);
-  for (let i = 0; i < N - 1; i++) idx.push(base, vid(last, i, 0), vid(last, i + 1, 0));
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx); g.computeVertexNormals();
-  return g;
+  const shell = new THREE.BufferGeometry();
+  shell.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  shell.setIndex(idx); shell.computeVertexNormals();
+  // rear wall: the outer column ends, triangulated in (z, d) and flat shaded so the rake edge stays crisp
+  const ends = Array.from({ length: N }, (_, i) => pos.slice(vid(K - 1, i, 0) * 3, vid(K - 1, i, 0) * 3 + 3));
+  const tris = THREE.ShapeUtils.triangulateShape(ends.map(([, y, z]) => new THREE.Vector2(z, y)), []);
+  const cp = []; for (const t of tris) for (const j of t) cp.push(...ends[j]);
+  const cap = new THREE.BufferGeometry(); cap.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3)); cap.computeVertexNormals();
+  return [shell, cap];
 }
 part('dustCover', 'Gun body cover (dust cover) + latch, screw', 'rcv', ['65', '63', '64'], [0, 170, 0],
   'Stamped steel AKM dust cover (65): half-round crown over the recoil spring, flared shoulders and straight skirts, three stiffening ribs across the crown and a long flute on each skirt. The rear end is raked with a square window for the recoil spring guide button; the right skirt stops short at the front to clear the cocking lever. Real AKM cover is about 240 x 39mm. Held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it.',
-  [[akmCover(), 'blk']], { shell: true });
+  akmCover().map(g => [g, 'blk']), { shell: true });
 part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv', ['62', '60', '61'], [0, 235, 0],
   'Recoil spring guide (62) with its spring (60) and bushing (61). On the real rifle it returns the bolt carrier; here it only springs the cocking lever back and locks the dust cover through the rear button.',
   [[cyl(mm(1.6), X(525) - X(786), 'x', (X(525) + X(786)) / 2, Y(70), 0, 10), 'steel'],
    [spring(mm(3.2), mm(0.5), X(560) - X(783), 30, 'x', X(783), Y(70), 0), 'spring'],
-   [cyl(mm(4), mm(3), 'x', X(785), Y(70), 0, 16), 'steel'], [bx(X(795), X(785), Y(80), Y(70), -mm(4), mm(4)), 'steel'],
+   [cyl(mm(4), mm(3), 'x', X(785), Y(70), 0, 16), 'steel'], [bx(X(793), X(785), Y(80), Y(72.5), -mm(4), mm(4)), 'steel'],
    [bx(X(803), X(794), Y(84), Y(78), -mm(3.3), mm(3.3)), 'steel'], [bx(X(809), X(802), Y(84), Y(76.5), -mm(3.3), mm(3.3)), 'steel'],
    [cyl(mm(4), mm(5), 'x', X(558), Y(70), 0, 16), 'brass']]);
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
@@ -664,14 +676,14 @@ part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
 const GX = xm => X(610) + mm(xm - 99.6), GY = ym => mm(ym - 24.8);
 const G = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const GBZ = mm(12.5);
-const GB_OUT = G([[-67, 36], [-64, 41], [-58, 43], [-40, 43], [-40, 40.5], [97, 43], [99, 41], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
+const GB_OUT = G([[-67, 28], [-63, 33], [-56, 39], [-48, 42], [-40, 43], [-40, 40.5], [97, 43], [99, 41], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
   [-5, -40], [-10, -45], [-31, -36], [-37, -31], [-42, -24], [-48, -12], [-48, 10], [-62, 10], [-66, 14]]);
 const GB_WIN = G([[12, 21], [80, 21], [80, 37.5], [12, 37.5]]).reverse();
 const BUSH = [[0, 0], [-21, -5.7], [-16.6, -25.8]];
 part('gearbox', 'Gear box (Version 3 shell + combine plate)', 'gbx', ['7'], [0, 360, 0],
   'CYMA Version 3 gearbox (7): two metal shell halves (7mm bushings) held by screws and the slide-on top combine plate; the spring guide seats at the rear, the cylinder window is on top. Outline and bushing positions are traced from a flat SHS V3 shell photo scaled to 167mm long (Retro Arms lists 167 x 86 x 25mm): sector gear 21.8mm from the spur, spur 20.5mm from the bevel, cylinder axis 24.8mm above the sector axle. The manual gives no internal part numbers, so the internals use generic V3 names.',
   [[at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, GBZ - mm(1.1)), 'zinc'], [at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, -GBZ + mm(1.1)), 'zinc'],
-   [bx(GX(-40), GX(-58), GY(40.5), GY(43.5), -GBZ, GBZ), 'zinc'],
+   [bx(GX(-40), GX(-54), GY(40), GY(42.5), -GBZ, GBZ), 'zinc'],
    [cyl(mm(2.2), mm(2), 'z', GX(101.3), GY(40.1), 0, 10), 'zinc'],
    ...BUSH.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.8), mm(1.4), 'z', GX(a), GY(b), s * (GBZ + mm(0.3)), 20), 'brass'])),
    ...[[-9.9, -41.5], [-1.7, -33.4], [1.5, 17.4], [-42.4, -5.7], [82, 0], [-62, 30]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (GBZ + mm(0.2)), 12), 'dark']))], { shell: true });
