@@ -586,11 +586,17 @@ part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90,
   'Real wood AKM lower handguard (53M): two vent notches in the top edge, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
   [[lowerHGGeo(307, 486), 'wood'], [lowerHGGeo(486, 492, mm(0.6), false), 'blk']], { shell: true });
 part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [140, -60, 0],
-  'Handguard retainer (24): a D-shaped steel plate on the barrel with a collar in front, a hole for the cleaning rod below the bore, and a cup rim behind it that holds the front tenon of the lower handguard. The lock button (25) sits on top at the right. Real AKM retainers use a lever in the same spot and some carry a sling slot on the left.',
+  'Handguard retainer (24): a D-shaped steel plate on the barrel with a collar in front, a hole for the cleaning rod below the bore, and a cup rim behind it that holds the front tenon of the lower handguard. The lock button (25) sits on top at the right (real AKM retainers use a lever there), and an ear on the left carries the front sling slot.',
   [[extrudeX(retainerShape(), X(301), X(297.5), 0.4), 'blk'],
    [(() => { const s = retainerShape(0, false), h = new THREE.Path(), hw = mm(16), cy = mm(-2.5);
       h.moveTo(-hw, mm(17)); h.lineTo(-hw, cy); h.absarc(0, cy, hw, -Math.PI, 0, false); h.lineTo(hw, mm(17)); h.lineTo(-hw, mm(17)); s.holes.push(h);
       return extrudeX(s, X(310), X(301)); })(), 'blk'],
+   [(() => { const e = new THREE.Shape(), z0 = mm(-13), z1 = mm(-27), y0 = mm(-8), y1 = mm(15), r = mm(4);   // sling ear on the left
+      e.moveTo(z0, y1); e.lineTo(z1 + r, y1); e.absarc(z1 + r, y1 - r, r, Math.PI / 2, Math.PI, false); e.lineTo(z1, y0 + r);
+      e.absarc(z1 + r, y0 + r, r, Math.PI, 1.5 * Math.PI, false); e.lineTo(z0, y0); e.lineTo(z0, y1);
+      const h = new THREE.Path(), zc = mm(-20), hw = mm(3.5), hh = mm(3.6);
+      h.absarc(zc, mm(1.6) + hh, hw, 0, Math.PI, false); h.absarc(zc, mm(1.6) - hh, hw, Math.PI, 2 * Math.PI, false); e.holes.push(h);
+      return extrudeX(e, X(300.8), X(297.8), 0.3); })(), 'blk'],
    [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk'],
    [cyl(mm(1.6), mm(5), 'y', X(304), mm(18), mm(10), 12), 'steel']]);
 part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
