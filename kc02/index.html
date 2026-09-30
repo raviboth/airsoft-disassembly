@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KJW KC-02 disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the KJW KC-02 (Ruger 10/22 GBB) airsoft rifle, with every part from the KJW manual, part numbers and upgrade notes.">
+<meta property="og:title" content="KJW KC-02 disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the KJW KC-02 with manual part numbers, specs and known weak points.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/kc02/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .cat input { margin:0; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:12px; width:250px; padding:12px 14px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; padding:12px 14px; max-height:50vh; overflow:auto; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="side" class="panel">
+  <h1><a href="../" style="color:var(--dim);text-decoration:none">Airsoft disassembly</a> / KJW KC-02 V2</h1>
+  <div class="sub">Part numbers from the KJW KC-02 V2 manual exploded drawing. Shapes are approximate, dimensions in mm. Click a part to inspect. Tick a category to show or hide it.</div>
+  <div id="list"></div>
+</div>
+
+<div id="ctrl" class="panel">
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label>Stock position <span id="spv">1</span></label>
+  <input id="stockpos" type="range" min="1" max="5" step="1" value="1">
+  <div class="row">
+    <button id="bAsm">Assembled</button>
+    <button id="bExp">Exploded</button>
+    <button id="bReset">Reset view</button>
+    <button id="bList">Manual parts list</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"></div>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// Official parts list, KJW KC-02 V2 manual (no, name as printed, list price as printed; currency not stated)
+const MANUAL = [["1", "MUZZLE", 200], ["2", "ADAPTOR", 240], ["3", "OUTTER BARREL", 700], ["4", "RAIL 1", 100], ["5", "RAIL 1 SCREW", 10], ["6", "INNER BARREL SLEEVE", 100], ["7", "INNER BARREL CONNECTION", 200], ["8", "INNER BARREL", 420], ["9", "INNER BARREL NUT", 200], ["10", "RUBBER CHAMBER", 180], ["11", "CHAMBER", 200], ["18", "TRAJECTORY ADJUST DIAL", 120], ["19", "RAIL 2 SCREW", 10], ["20", "RAIL 2", 150], ["21", "TRAJECTORY ADJUST DIAL DETENT", 40], ["22", "TRAJECTORY ADJUST DIAL DETENT SP", 10], ["23", "RECEIVER SCREW (REAR)", 20], ["24", "BARREL RETAINER SCREW", 10], ["25", "BARREL RETAINER", 200], ["26", "RECEIVER", 1500], ["27", "RECEIVER CROSS PIN", 20], ["28", "BOLT STOP PIN", 20], ["29", "RECEIVER CROSS PIN", 20], ["30", "BOLT STOP SPRING", 20], ["31", "BOLT STOP", 160], ["32", "RECEIVER SCREW (FRONT)", 20], ["33", "BOLT HANDEL", 160], ["34", "RECOIL SPRING", 60], ["35", "GUIDE ROD", 60], ["36", "GUIDE ROD E-RING", 10], ["37", "CYLINDER", 160], ["38", "CYLINDER PIN", 20], ["39", "CYLINDER VALVE SPRING", 30], ["40", "CYLINDER VALVE", 60], ["41", "CYLINDER VALVE O-RING", 10], ["42", "CYLINDER SP", 20], ["43", "PISTON O-RING", 20], ["44", "PISTON", 200], ["45", "PISTON PIN", 20], ["46", "BOLT", 400], ["47", "BOLT PIN", 50], ["48", "MAG CATCH", 280], ["49", "VALVE KNOCKER", 160], ["50", "VALVE KNOCKER SP", 20], ["51", "TRIGGER GUARD", 800], ["52", "VALVE KNOCKER LOCK", 140], ["53", "VALVE KNOCKER SP", 20], ["54", "HAMMER", 160], ["55", "HAMMER PIN", 20], ["56", "HAMMER STURT", 120], ["57", "HAMMER STURT SP", 30], ["58", "SAFETY O-RING(BLACK)", 20], ["59", "SAFETY O-RING(RED)", 30], ["60", "SAFETY", 120], ["61", "SAFETY DETENT SP", 10], ["62", "SAFETY DETENT", 10], ["63", "TRIGGER PLUGER SCREW", 10], ["64", "TRIGGER PLUGER SP", 10], ["65", "TRIGGER PLUGER", 30], ["66", "MAG RELEASE LEVER PIN", 20], ["67", "TRIGGER PIVOT PIN", 20], ["68", "SEAR", 120], ["69", "DISCONNECTOR PIN", 20], ["70", "TRIGGER", 140], ["71", "DISCONNECTOR", 100], ["72", "DISCONNECTOR PIN", 20], ["73", "MAG RELEASE LEVER SP", 20], ["74", "MAG RELEASE LEVER", 160], ["95", "SWIVEL SCREW", 100], ["96", "SWIVEL SCREW PIN", 20], ["97", "SWIVEL", 200], ["98", "FRONT STOCK", 1800], ["99", "RAIL 3 NUT", 20], ["100", "SWIVEL NUT", 20], ["101", "RAIL GUARD SP", 80], ["102", "RAIL GUARD", 120], ["104", "RAIL 3", 100], ["105", "GRIP NUT", 120], ["106", "GRIP", 600], ["107", "GRIP WASHER", 20], ["108", "GRIP SCREW", 20], ["109", "FRONT STOCK END PLATE", 210], ["110", "STOCK EXTENSION INNER TUBE", 400], ["111", "STOCK EXTENSION", 800], ["112", "STOCK EXTENSION CAP", 240], ["113", "REAR STOCK", 600], ["114", "STOCK LOCKING PIN", 100], ["115", "STOCK LOCKING PIN SP", 30], ["116", "RELEASE LEVER", 150], ["117", "STOCK LOCKING NUT", 100], ["119", "SWIVEL SCREW SLEEVE", 30], ["120", "STOCK SWIVEL SCREW", 60], ["121", "STOCK SWIVEL", 200], ["122", "MAG GASKET", 120], ["125", "MAG SP", 80], ["126", "MAG UPPER BODY O-RING", 30], ["127", "EX-VALVE", 180], ["129", "CHARGE VALVE", 70], ["130", "MAG SCREW WASHER", 10], ["131", "MAG SCREW O-RING", 10], ["132", "MAG SCREW", 30], ["133", "LOADING STICK", 30], ["136", "SPRING WASHER", 20], ["138", "ADAPTOR O-RING", 20], ["140", "BB LIP", 120], ["141", "FOLLOWER", 80], ["142", "MAG BODY", 500], ["142C", "CO2 MAG BODY", 500], ["144", "MAG BASE", 180], ["144C", "CO2 MAG BOTTOM", 100], ["145", "BB LIP PIN", 20], ["146", "MAG BASE O-RING", 30], ["160", "FRONT SIGHT BASE 1", 120], ["161", "FRONT SIGHT BASE SPRING", 20], ["162", "FRONT SIGHT BASE 2", 120], ["163", "DETENT SCREW", 15], ["164", "DETENT SPRING", 15], ["165", "FRONT SIGHT DETENT", 15], ["166", "ADJUST DIAL", 100], ["168", "FRONT SIGHT", 80], ["169", "FRONT SIGHT OPTICAL FIBER", 20], ["170", "FRONT SIGHT SCREW", 20], ["171", "FRONT SIGHT NUT", 20], ["172", "FRONT SIGHT FIXER", 80], ["173", "FRONT SIGHT FIXER SP", 20], ["174", "FRONT SIGHT BASE PIN", 10], ["175", "FRONT SIGHT FIXER PIN", 10], ["176", "REAR SIGHT BASE 1", 120], ["177", "REAR SIGHT SP", 20], ["178", "REAR SIGHT BASE 2", 120], ["179", "REAR SIGHT", 80], ["180", "ADJUST SCREW", 120], ["181", "ADJUST SCREW SLEEVE", 40], ["182", "ADJUST SCREW E RING", 10], ["183", "DETENT SP", 20], ["184", "DETENT", 10], ["185", "REAR SIGHT PIN", 10], ["186", "LOADING TUBE", 60], ["187", "CO2 EX-VALVE", 200], ["188", "CO2 CARTRIDGE STAB O RING", 20], ["189", "CO2 CARTRIDGE STAB", 150], ["190", "CO2 CARTRIDGE SCREW NUT", 100], ["191", "CO2 MAG BOTTOM", 100]];
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_POS = new THREE.Vector3(170, 360, 1300);
+const HOME_TGT = new THREE.Vector3(0, -40, 0);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(400, 900, 600);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -900, right: 900, top: 900, bottom: -900, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -620; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(4000, 80, 0x2a2f38, 0x1d2027);
+grid.position.y = -619; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x383b41, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w']) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  return [cx + ax * px, lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    pos.push(x, y, z + Math.sign(z) * lift); uv.push(x * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    pos.push((lv.xf + lv.xb) / 2, lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// ---------- part registry ----------
+const CATS = {
+  ext: 'Furniture and stock',
+  sgt: 'Rails and sights',
+  rcv: 'Receiver and bolt',
+  bar: 'Barrel and hop-up',
+  trg: 'Trigger group',
+  mag: 'Magazine',
+  acc: 'Loading tools',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, slide: !!opts.slide };
+  for (const [geo, matKey] of pieces) {
+    if (opts.dx) geo.translate(opts.dx, 0, 0);
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? '#' + nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout in render units: bore axis y = 0, muzzle x = +400. Profiles traced from the manual cover render at 0.512 units/px.
+// The whole model is then scaled by S so world units are real mm. S comes from two independent anchors that agree:
+// the 0.920" (23.4mm) bull barrel (Rogueworx) and the retail 780/865mm collapsed/extended lengths. The render shows the stock at position 3 of 5.
+const S = 1.057;
+root.scale.setScalar(S);
+const BORE_R = 23.4 / 2 / S;          // 0.920" bull barrel
+const STOCK_Z = 18;                   // front stock half-width (plus bevel)
+const TUBE_Y = -17, TUBE_R = 29.2 / 2 / S;   // mil-spec M4 tube OD 1.148" assumed (generic M4 stock)
+const STOCK_STEP = 85 / 4 / S;        // 780 -> 865mm over 5 positions = 21.25mm per step
+const RENDER_POS = 3;                 // stock position shown in the manual render
+
+// ================= FURNITURE AND STOCK =================
+part('frontStock', 'Front stock', 'ext', ['98'], [0, 0, 0],
+  'The KC-02-specific part: one-piece polymer tactical stock with the forend, ten slanted slots and the socket for the M4 tube. No source names a real product it copies. Swappable for real Ruger 10/22 stocks cut for a .920 in bull barrel: Rogueworx sells underlever kits for the Magpul Hunter X-22, Hogue OverMolded .920, Hera Arms H22 and Boyds At-One Thumbhole, and says the factory Ruger wood stock fits. Forum reports say real stocks need dremel/filing work. RA Tech sells an M1 Carbine conversion kit (wood stock, barrel). List price 1800, the most expensive part on the sheet.',
+  (() => {
+    // open-top U-channel (drawing #98): two side walls, a floor, and a solid neck with the tube socket
+    const outline = [[241, 5], [241, -26], [236, -29], [89, -29], [64, -31], [40, -39], [-98, -39], [-138, -31], [-143, -31], [-143, -2], [47, -2], [47, 7], [236, 7]];
+    const p = [];
+    for (const sd of [1, -1]) { const g = prof(outline, 3, 1); g.translate(0, 0, sd * (STOCK_Z + 0.5)); p.push([g, 'poly']); }
+    p.push([prof([[241, -16], [241, -26], [236, -29], [89, -29], [64, -31], [40, -39], [-98, -39], [-138, -31], [-143, -31], [-143, -2], [-126, -2], [-126, -20], [47, -20], [47, -16]], 2 * STOCK_Z - 4, 1), 'poly']);
+    p.push([tube(TUBE_R + 0.5, 16.5, -147, -130, 32, TUBE_Y), 'poly']);
+    return [...p, ...slots([41, 29, 17, 5, -7, -19, -31, -43, -55, -67], -31, -5, STOCK_Z + 2.6)];
+  })(), { shell: true });
+
+part('endPlate', 'Front stock end plate', 'ext', ['109'], [-90, 0, 0],
+  'Ring plate between the front stock and the stock extension.',
+  [[tube(TUBE_R, 16, -157, -143, 24, TUBE_Y), 'poly'],
+   ...[0, 1, 2, 3].map(k => { const a = Math.PI / 4 + k * Math.PI / 2; return [bx(-157, -151, -2, 2, -2, 2).translate(0, 17.5 * Math.sin(a) + TUBE_Y, 17.5 * Math.cos(a)), 'poly']; })]);
+
+part('grip', 'Grip + nut, washer, screw', 'ext', ['106', '105', '107', '108'], [-60, -40, -160],
+  'Generic A2-pattern AR/M4 pistol grip, not KC-02 specific (the manual drawing shows the A2 ribbed backstrap and single finger swell). A2 grips measure about 3.15 x 1.18 x 3.94 in with a 30 degree angle (Hogue).  retailers call it a gas/real-steel pattern M4 grip and owners swap in aftermarket AR grips (a PTS grip in one documented build). Held by grip screw #108 and washer #107 into grip nut #105. No motor in it (gas gun), so no AEG-grip quirks.',
+  (() => {
+    // A2 pattern (Hogue: 3.15 x 1.18 x 3.94 in, 30 deg; the manual render traces at 29 deg): boxy head block,
+    // rounded-rectangle body with one finger swell, ribbed backstrap, checkered side panels, flared bottom lip.
+    const GL = [
+      { y: -50, xf: -103, xb: -142, w: 28 }, { y: -58, xf: -104, xb: -146, w: 28.8 }, { y: -64, xf: -107, xb: -149, w: 29.5 },
+      { y: -72, xf: -111, xb: -153.5, w: 30 }, { y: -80, xf: -111, xb: -158, w: 30 }, { y: -86, xf: -108, xb: -161, w: 30 },
+      { y: -91, xf: -106.5, xb: -164, w: 30 }, { y: -97, xf: -111, xb: -167, w: 30 }, { y: -104, xf: -118, xb: -171, w: 30 },
+      { y: -112, xf: -124, xb: -175.5, w: 30 }, { y: -119, xf: -129, xb: -179, w: 30 }, { y: -124, xf: -131.5, xb: -181, w: 31.5 },
+      { y: -128, xf: -132, xb: -180.5, w: 31.5 }, { y: -131, xf: -134, xb: -177, w: 29 }];
+    const body = loft(GL);
+    const head = prof([[-99, -38], [-141, -38], [-143, -50], [-131, -55], [-106, -60], [-99, -56]], 24.4, 1.8);
+    const slot = bx(-137, -112, -38.6, -37.4, -6, 6);
+    // backstrap runs from (-146,-60) to (-178,-116): tilt the rib cylinders to match
+    const lean = -Math.atan2(178 - 146, 116 - 60);
+    const ribs = [-7, -3.5, 0, 3.5, 7].map(z => {
+      const g = new THREE.CylinderGeometry(0.8, 0.8, 58, 8); g.rotateZ(lean); g.translate(-161.8, -88, z); return [g, 'black'];
+    });
+    // checkered panels: curved patches on the flat of each side
+    const panels = [[Math.PI * 0.5 - 0.62, Math.PI * 0.5 + 0.55], [-Math.PI * 0.5 - 0.55, -Math.PI * 0.5 + 0.62]]
+      .map(([t0, t1]) => [loftPatch(GL, { t0, t1, y0: -64, y1: -116, lift: 0.4, uvScale: 0.5 }), 'checker']);
+    return [[body, 'poly'], [head, 'poly'], [slot, 'black'], ...ribs, ...panels,
+      [(() => { const g = new THREE.CylinderGeometry(2.2, 2.2, 88, 12); g.rotateZ(-0.33); g.translate(-138, -86, 0); return g; })(), 'steel']];
+  })(), { shell: true });
+
+part('stockExt', 'Stock extension (buffer tube)', 'ext', ['111'], [-150, 0, 0],
+  'Generic M4 buffer tube, the one part carrying the M4 furniture. Takes M4-compatible stocks (Booligan, RedWolf). One builder fitted a Magpul CTR with modification, and a MOE would not fit. Tube OD not published; drawn as mil-spec 1.148 in (assumption). Five lock holes underneath, 21.25mm apart: the 85mm between the retail collapsed (780mm) and extended (865mm) lengths over 4 steps.',
+  [[tube(12, TUBE_R, -318, -157, 32, TUBE_Y), 'alu'],
+   [tube(TUBE_R, TUBE_R + 1.6, -165, -157, 32, TUBE_Y), 'alu'],
+   [bx(-318, -168, TUBE_Y - TUBE_R - 3, TUBE_Y - TUBE_R + 1.5, -4, 4), 'alu'],
+   ...[1, 2, 3, 4, 5].map(k => -275 + (RENDER_POS - k) * STOCK_STEP).map(x => [cyl(2.3, 1, 'y', x, TUBE_Y - TUBE_R - 3, 0, 12), 'black'])], { shell: true });
+
+part('innerTube', 'Stock extension inner tube', 'ext', ['110'], [-150, -70, 0],
+  'Tube inside the stock extension.',
+  [[tube(8, 11.2, -314, -160, 24, TUBE_Y), 'alu']]);
+
+part('extCap', 'Stock extension cap', 'ext', ['112'], [-260, 0, 0],
+  'End cap at the rear of the stock extension.',
+  [[latheX([[0, -323], [TUBE_R, -323], [TUBE_R, -318], [12, -318]], 32, TUBE_Y), 'alu']]);
+
+part('rearStock', 'Rear stock', 'ext', ['113'], [-300, 0, 0],
+  'Generic M4 LE-style 5-position collapsible stock (two rows of side slots, lever under the front), not KC-02 specific: retailers say it takes any M4-compatible stock. Sized to a real mil-spec M4 stock: about 1.75 in (44mm) wide and 5.25 in (133mm) tall (NBS listing), about 167mm long (Combathunting lists 6.75 in). Rounded housing over the tube, flat-sided body and toe below. Overall gun length 780mm collapsed, 865mm extended (retail spec); use the stock position slider. Booligan noted slight wobble on the tube.',
+  [[latheX([[TUBE_R + 0.4, -221], [17.5, -221], [17.5, -366], [TUBE_R + 0.4, -366], [TUBE_R + 0.4, -221]], 40, TUBE_Y), 'poly'],
+   [prof([[-221, -17], [-366, -17], [-366, -118], [-360, -118], [-347, -90], [-249, -43], [-221, -40]], 39, 1.5), 'poly'],
+   [prof([[-221, -29], [-182, -29], [-190, -36], [-221, -39]], 10, 0.8), 'poly'],
+   [prof([[-366, -121], [-378, -121], [-378, 1], [-374, 3], [-366, 3]], 42, 0.8), 'black'],
+   [bx(-372, -358, -14, -4, -21.6, 21.6), 'black'],
+   ...[[-22, -27], [-29, -34]].flatMap(([y0, y1]) => [-233, -261, -287, -313, -339].flatMap(x =>
+     [1, -1].map(s => [bx(x - 25, x, y0, y1, s * 21.1 - 0.4, s * 21.1 + 0.4), 'black'])))], { shell: true, slide: true });
+
+part('stockLock', 'Stock locking pin + spring, nut', 'ext', ['114', '115', '117'], [-300, 70, 0],
+  'Per the drawing, locking pin #114 drops in through a hole in the top of the rear stock, with spring #115 on it, and is held by locking nut #117 and screw #63 under the stock where the release lever acts on it. It engages the lock holes in the rib under the stock extension.',
+  [[cyl(3.2, 2.5, 'y', -275, 4, 0, 16), 'steel'], [cyl(1.8, 64, 'y', -275, -28, 0, 12), 'steel'], [spring(3, 0.5, 12, 6, 'y', -275, -48, 0), 'spring'],
+   [cyl(4.5, 6, 'y', -275, -64, 0, 16), 'dark'], [cyl(1, 12, 'z', -275, -64, 0, 8), 'steel']], { slide: true });
+
+part('releaseLever', 'Release lever', 'ext', ['116'], [-300, -80, 0],
+  'Lever under the rear stock (light grey in the manual render). Pull it to lift the locking pin and slide the stock.',
+  [[prof([[-249, -45], [-286, -45], [-322, -83], [-318, -88], [-280, -60], [-249, -58]], 10, 0.8), 'lever']], { slide: true });
+
+part('stockSwivel', 'Stock swivel + screw, sleeve', 'ext', ['121', '120', '119'], [-300, -80, 0],
+  'Rear sling swivel #121 held by stock swivel screw #120 through sleeve #119 at the bottom of the butt.',
+  [[prof([[-354, -92], [-358, -92], [-345, -123], [-341, -123]], 3, 0.4), 'steel'], [bx(-350, -336, -126, -123, -4, 4), 'steel'],
+   [cyl(2.2, 44, 'z', -355, -94, 0, 12), 'steel']], { slide: true });
+
+part('frontSwivel', 'Swivel + swivel screw, pin, nut', 'ext', ['97', '95', '96', '100'], [60, -170, 0],
+  'Front sling swivel #97 on swivel screw #95 (with pin #96, nut #100), hanging off the front face of the forend.',
+  [[cyl(2.5, 16, 'x', 244, -16, 0, 12), 'steel'], [bx(246, 251, -34, -16, -2, 2), 'steel'], [torus(5, 1.5, 'x', 248.5, -39, 0), 'steel']]);
+
+// ================= RAILS AND SIGHTS =================
+part('rail3', 'Rail 3 (x3) + nuts', 'sgt', ['104', '99'], [0, -80, 0],
+  'Three polymer accessory rails on the forend at 3, 6 and 9 o\'clock, bolted on with rail 3 nuts #99. The bottom one is exposed in the manual render.',
+  [...rail(89, 231, 'down', 32, { halfW: 9, base: 5, tooth: 5 }),
+   ...rail(90, 216, 'right', STOCK_Z + 2.5, { halfW: 9, base: 3, tooth: 2.5, yc: -10.8 }),
+   ...rail(90, 216, 'left', STOCK_Z + 2.5, { halfW: 9, base: 3, tooth: 2.5, yc: -10.8 })].map(g => [g, 'poly2']));
+
+part('railGuard', 'Rail guards + springs', 'sgt', ['102', '101'], [0, -150, 0],
+  'Ribbed rail guards slide over the side rails; the C-shaped rail guard springs #101 clip over the front end of each guard and rail. Manual: remove the rail guard to use the rail. The drawing shows three; the cover render has the two sides fitted and the bottom rail bare.',
+  [...[...guard(89, 219, 'right', STOCK_Z + 2.5, { yc: -10.8, halfW: 16 }), ...guard(89, 219, 'left', STOCK_Z + 2.5, { yc: -10.8, halfW: 16 })].map(g => [g, 'poly']),
+   ...[1, -1].flatMap(sd => [[bx(219, 226, -27, 5, -2, 2).translate(0, 0, sd * (STOCK_Z + 2.5 + 10.5)), 'lever'],
+     [bx(219, 226, 3, 6, -3.5, 3.5).translate(0, 0, sd * (STOCK_Z + 2.5 + 8)), 'lever'], [bx(219, 226, -28, -25, -3.5, 3.5).translate(0, 0, sd * (STOCK_Z + 2.5 + 8)), 'lever']])]);
+
+part('rail1', 'Rail 1 + screws', 'sgt', ['4', '5'], [70, 250, 0],
+  'Front top rail, screwed to the top of the outer barrel with three rail 1 screws #5. Carries the front sight.',
+  [...rail(51, 232, 'up', 7, { base: 10, tooth: 5 }).map(g => [g, 'alu']), ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+
+part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 250, 0],
+  'Rear top rail on the receiver, fixed with rail 2 screws #19. The hop-up (trajectory) adjust dial sits in its front end. Scope mounts here.',
+  [...rail(-61, 49, 'up', 12, { base: 5, tooth: 5 }).map(g => [g, 'alu']), ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+
+part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 390, 0],
+  'Flip-up front sight: bases #160/#162, post #168 with a fiber optic #169, elevation dial #166 with detent #163 to #165, fixer latch #172/#173 (the small lever behind it), pins #174/#175, clamp screw #170 and nut #171. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
+  [[bx(174, 226, 22, 27, -10, 10), 'alu'], [cyl(4.5, 20, 'z', 215, 28, 0, 20), 'alu'],
+   [cyl(3, 3, 'z', 196, 24.5, 11.5, 16), 'steel'], [cyl(3.2, 3, 'z', 196, 24.5, -11.5, 6), 'steel'],
+   [bx(212, 218, 27, 50, -8, 8), 'alu'], [bx(212.5, 217.5, 38, 46, -5, 5).translate(0, 0, 0), 'black'],
+   [bx(214, 216, 50, 58, -1.3, 1.3), 'steel'], [cyl(0.9, 4, 'x', 215, 58.5, 0, 8), 'fiber'], [cyl(4, 3, 'z', 215, 42, 9.5, 16), 'steel'],
+   [prof([[176, 27], [187, 27], [187, 31], [183, 35], [177, 35]], 8, 0.5), 'alu']], { dx: -3 });
+
+part('rearSight', 'Rear sight assembly', 'sgt', ['176', '177', '178', '179', '180', '181', '182', '183', '184', '185'], [0, 390, 0],
+  'Flip-up rear aperture: bases #176/#178, aperture #179, spring #177, windage adjust screw #180 with sleeve #181 and E-ring #182, detent #183/#184, pin #185. Manual: turn the screw anticlockwise when impact is right, clockwise when impact is left.',
+  [[bx(-60, -8, 22, 27, -10, 10), 'alu'], [cyl(4.5, 20, 'z', -19, 28, 0, 20), 'alu'],
+   [cyl(3, 3, 'z', -40, 24.5, 11.5, 16), 'steel'], [cyl(3.2, 3, 'z', -40, 24.5, -11.5, 6), 'steel'],
+   [bx(-21, -17, 27, 47, -9, 9), 'alu'], [bx(-22, -16, 47, 55, -4.5, 4.5), 'alu'], [cyl(2, 7, 'x', -19, 51, 0, 16), 'black'],
+   [cyl(1.4, 24, 'z', -19, 42, 1, 8), 'steel'], [cyl(4.5, 5, 'z', -19, 42, 13.5, 20), 'steel'],
+   [prof([[-58, 27], [-47, 27], [-47, 31], [-51, 35], [-57, 35]], 8, 0.5), 'alu']], { dx: -3 });
+
+part('hopDial', 'Trajectory adjust dial + detent', 'sgt', ['18', '21', '22'], [0, 330, 0],
+  'Hop-up adjuster, called the trajectory adjust dial in the manual. Sits in the front of rail 2 with a detent #21 and spring #22: 36 clicks per turn, about 20 microns per click (Rogueworx). Manual: rotating it moves the impact point up or down. Forum reports say the stock hop arm can be too short to reach the bucking.',
+  [[cyl(6.5, 3, 'y', 42, 23.5, 0, 24), 'dark'], [cyl(2, 16, 'y', 42, 14, 0, 12), 'steel']]);
+
+// ================= RECEIVER AND BOLT =================
+part('receiver', 'Receiver', 'rcv', ['26'], [0, 140, 0],
+  'Metal receiver, close enough to real 10/22 geometry that real 10/22 stocks can be fitted. Drawn about 1.07 in (27mm) wide, the width that circulates for the real receiver (unconfirmed). Holds the bolt, cylinder and hop chamber; ejection port and handle slot on the right. List price 1500.',
+  [[prof([[50, -20], [50, 12], [-72, 12], [-100, 6], [-128, 0], [-128, -20]], 23.5, 1.2), 'dark'],
+   [bx(-60, -2, 1, 10, 12.5, 13.3), 'black'], [bx(-100, -60, 1, 5, 12.5, 13.3), 'black'],
+   [bx(30, 46, -36, -20, -9, 9), 'dark'], [bx(-128, -108, -30, -20, -9, 9), 'dark'], [cyl(5, 20, 'z', -118, -26, 0, 16), 'dark']], { shell: true });
+
+part('rcvScrews', 'Receiver screws + spring washers', 'rcv', ['23', '32', '136'], [0, 60, -180],
+  'Receiver screw (rear) #23 and (front) #32 with spring washers #136 fix the receiver into the front stock from below.',
+  [[cyl(2.2, 26, 'y', -104, -28, 0, 12), 'steel'], [cyl(3.5, 2, 'y', -104, -42, 0, 16), 'steel'],
+   [cyl(2.2, 26, 'y', 40, -28, 0, 12), 'steel'], [cyl(3.5, 2, 'y', 40, -42, 0, 16), 'steel']]);
+
+part('crossPins', 'Receiver cross pins', 'rcv', ['27', '29'], [0, -40, -200],
+  'Two cross pins hold the trigger guard assembly in the receiver. Push both out to drop the trigger group.',
+  [[cyl(2, 2 * STOCK_Z + 6, 'z', -22, -30, 0), 'steel'], [cyl(2, 2 * STOCK_Z + 6, 'z', -92, -30, 0), 'steel']]);
+
+part('boltStop', 'Bolt stop + pin, spring', 'rcv', ['31', '28', '30'], [0, 70, -150],
+  'Bolt stop #31 on pin #28 with spring #30. Manual: when the mag runs out of BBs, the bolt stops in the back position. Known weak point: pot metal that bends or snaps; Rogueworx sells a hardened steel replacement kit.',
+  [[prof([[-44, -24], [0, -24], [3, -18], [-2, -19], [-42, -20]], 2, 0.3).translate(0, 0, -6), 'steel'], [cyl(1.2, 12, 'z', -38, -22, -6, 8), 'steel'],
+   [prof([[-24, -21], [-8, -26], [-7, -25], [-23, -20]], 1, 0.2).translate(0, 0, -3), 'spring']]);
+
+part('barrelRetainer', 'Barrel retainer + screw', 'bar', ['25', '24'], [130, -110, 0],
+  'Barrel retainer (Ruger V-block style) and screw. Booligan: the factory screws are short and strip, swap in longer ones.',
+  [[bx(30, 46, -19, -12, -9, 9), 'steel'], [cyl(2, 14, 'y', 38, -19, 0, 12), 'steel'], [cyl(3.6, 3, 'y', 38, -27, 0, 16), 'steel']]);
+
+part('bolt', 'Bolt', 'rcv', ['46'], [0, 110, 200],
+  'Reciprocating bolt carrier, about 80g stock (Rogueworx). Holds the piston (#44, fixed by piston pin #45) and rides on the guide rod. A cam on its underside releases the hammer lock, timed to the carrier length. Aftermarket: Rogueworx V14 aluminium (40g) and stainless (120g), RGW aluminium.',
+  [[bx(-104, -18, -11, -3, -9.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, 5.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, -9.5, -5.5), 'dark'],
+   [bx(-104, -88, -3, 12, -9.5, 9.5), 'dark'], [bx(-30, -18, -3, 6, -5.5, 5.5), 'dark']]);
+
+part('boltPin', 'Bolt pin', 'rcv', ['47'], [0, 190, 200],
+  'Pin through the bolt. Evike sells it as part #47 (P-GR-6802-47).',
+  [[cyl(2, 24, 'y', -92, 0, 0, 12), 'steel']]);
+
+part('boltHandle', 'Bolt handle', 'rcv', ['33'], [0, 110, 330],
+  'Charging handle on the right. Manual: pull the handle back to load. It reciprocates with every shot. Known weak point: stock handles snap at the neck (Rogueworx Talon is made to fix this).',
+  [[bx(-78, -66, 0, 7, 9.5, 20), 'steel'], [bx(-80, -60, -1, 9, 20, 26), 'steel'], [bx(-82, -74, -1, 9, 26, 38), 'steel']]);
+
+part('cylinder', 'Cylinder (loading nozzle) + pin', 'rcv', ['37', '38'], [80, 110, 270],
+  'Floating cylinder (the loading nozzle), plastic on the stock gun. Its rear bore slides over the piston head (the 10.5mm O-ring spec puts the bore near 13.5mm), the front is the loading tube, with cylinder pin #38 retaining the return spring. Pushes a BB into the rubber chamber and seals gas behind it. Stock cylinders are known to crack; the Rogueworx Genesis kit replaces it with a 7075 aluminium cylinder-nozzle. Evike lists the OEM part as Noz-KJW-P-GR-6802-37.',
+  [[latheX([[6.4, -66], [7.6, -66], [7.6, -6], [5, -2], [5, 12], [4.4, 16], [3.2, 16], [3.2, -8], [6.4, -8], [6.4, -66]], 32), 'poly'],
+   [cyl(1.2, 18, 'z', -60, 0, 0, 8), 'steel']]);
+
+part('cylValve', 'Cylinder valve + spring, O-ring', 'rcv', ['40', '39', '41'], [60, 170, 270],
+  'Valve inside the cylinder (#40) with valve spring #39 and O-ring #41. Routes gas forward to the BB, then back to the piston. The Rogueworx Apollo NPAS valve replaces #39/#40 for power adjustment (about 0.6 to 2.5 J).',
+  [[latheX([[0, -16], [3, -16], [3, -10], [2, -9], [2, -4], [0, -4]], 16), 'brass'], [spring(2, 0.4, 7, 5, 'x', -4, 0, 0), 'spring'], [torus(2.8, 0.5, 'x', -12, 0, 0), 'black']]);
+
+part('cylSpring', 'Cylinder spring', 'rcv', ['42'], [130, 110, 270],
+  'Returns the cylinder forward after each shot.',
+  [[spring(3.2, 0.45, 26, 8, 'x', -44, 0, 0), 'spring']]);
+
+part('piston', 'Piston + piston pin', 'rcv', ['44', '45'], [-60, 110, 270],
+  'Gas piston fixed in the bolt by piston pin #45, about 22g stock. Gas from the mag pushes the cylinder and bolt back over it. Rogueworx pistons use two O-rings instead of one. Evike lists the piston as parts #44/#45.',
+  [[latheX([[0, -62], [6.25, -62], [6.25, -46], [3, -46], [3, -24], [0, -24]], 28), 'dark'], [cyl(1.2, 18, 'z', -34, 0, 0, 8), 'steel']]);
+
+part('pistonOring', 'Piston O-ring', 'rcv', ['43'], [-120, 110, 270],
+  'Seal on the piston head (Evike #43). Rogueworx gives the O-ring size as 10.5mm ID by 1.5mm cross-section. Common wear item when the bolt short-strokes.',
+  [[torus(5.68, 0.71, 'x', -54, 0, 0), 'black']]);
+
+part('guideRod', 'Guide rod + E-ring', 'rcv', ['35', '36'], [0, 60, 400],
+  'Guide rod #35 retained by E-ring #36. The bolt and recoil spring ride on it. Evike part #35.',
+  [[cyl(2.5, 136, 'x', -58, -7, 0, 12), 'steel'], [torus(2.8, 0.7, 'x', 9, -7, 0), 'steel']]);
+
+part('recoilSpring', 'Recoil spring', 'rcv', ['34'], [0, 60, 440],
+  'Returns the bolt forward after blowback.',
+  [[spring(4.5, 0.8, 84, 16, 'x', -104, -7, 0), 'spring']]);
+
+// ================= BARREL AND HOP-UP =================
+part('outerBarrel', 'Outer barrel', 'bar', ['3'], [220, 0, 0],
+  'Metal bull barrel with the real Ruger 10/22 profile: 0.920 in (23.4mm) OD, and 380mm (15 in) long including the adaptor (Rogueworx, whose replacement barrels match it). That profile is why .920 bull-barrel 10/22 stocks fit. Clamped into the receiver by the barrel retainer. Rail 1 screws to its top.',
+  [[tube(9.5, BORE_R, 20, 388, 40), 'alu']], { shell: true });
+
+part('adaptor', 'Adaptor + O-ring', 'bar', ['2', '138'], [300, 0, 0],
+  'Threaded muzzle adaptor (14mm CCW) at the front of the outer barrel, with adaptor O-ring #138. Takes standard airsoft muzzle devices.',
+  [[latheX([[4.8, 378], [9.4, 378], [9.4, 388], [BORE_R, 388], [BORE_R, 391], [6.8, 391], [6.8, 399], [4.8, 399], [4.8, 378]], 32), 'alu'],
+   [torus(7.2, 0.9, 'x', 392, 0, 0), 'black']]);
+
+part('muzzle', 'Muzzle (thread cap)', 'bar', ['1'], [380, 0, 0],
+  'Cap over the muzzle thread; the slightly fatter ring at the very front in the render. Open in the middle so the BB exits (9mm bore hole here).',
+  [[latheX([[7, 390], [BORE_R + 0.6, 390], [BORE_R + 0.6, 400], [4.5, 400], [4.5, 397], [7, 397], [7, 390]], 32), 'alu']]);
+
+part('chamber', 'Chamber (hop-up unit)', 'bar', ['11'], [110, 110, 0],
+  'Proprietary hop-up chamber at the rear of the barrel, in the front of the receiver. Slides out once the outer barrel and rail are off. KJW later revised it ("Gen2" hop, per A+ Airsoft bucking listings). Aftermarket: Rogueworx Genesis V5 hop unit (6061 aluminium) for VSR/GBB barrels and buckings.',
+  [[tube(6, 8.8, 30, 52, 32), 'zinc'], [bx(14, 31, -8.8, 8.8, -8.8, 8.8), 'zinc'], [bx(18, 28, 8.8, 10, -3, 3), 'black'],
+   [bx(38, 46, 7, 11, -3, 3), 'zinc']]);
+
+part('rubberChamber', 'Rubber chamber (bucking)', 'bar', ['10'], [110, 170, 0],
+  'Hop-up bucking. A+ Airsoft sells KC-02 buckings for the original and the "Gen2 new hop system" chambers, described as GBB/VSR inner-barrel pattern. With the Genesis kit any VSR/GBB bucking fits (50 to 70 degree advised).',
+  [[tube(3, 5.5, 20, 48, 28), 'rubber']]);
+
+part('barrelNut', 'Inner barrel nut', 'bar', ['9'], [150, 150, 0],
+  'Locks the inner barrel into the chamber.',
+  [[latheX([[4.6, 52], [8, 52], [8, 58], [4.6, 58], [4.6, 52]], 6), 'brass'], [tube(4.6, 6.5, 58, 66, 20), 'brass']]);
+
+part('innerBarrel', 'Inner barrel', 'bar', ['8'], [170, 110, 0],
+  'Smoothbore inner barrel. Stock length is not reliably published (sources disagree); Booligan says it stops short of the muzzle, so the drawn length is a guess. Full-length replacements: 380mm (Maple Leaf) for the standard barrel, 510mm with a long outer barrel. The Genesis kit makes VSR barrels drop in.',
+  [[tube(3, 4.5, 24, 376, 24), 'brass']]);
+
+part('barrelSleeve', 'Inner barrel sleeve', 'bar', ['6'], [170, 160, 0],
+  'Sleeve that centers the front half of the inner barrel in the outer barrel. Aftermarket option: Rogueworx nylon barrel spacers with inner and outer O-rings (a design that started with Tim Stalford).',
+  [[tube(4.6, 8.8, 200, 362, 24), 'poly2']]);
+
+part('barrelConn', 'Inner barrel connection', 'bar', ['7'], [240, 160, 0],
+  'Front bushing that joins the inner barrel to the adaptor.',
+  [[tube(4.6, 8.8, 362, 376, 24), 'alu']]);
+
+// ================= TRIGGER GROUP =================
+const TG = [0, -210, 0];
+const tg = (dx, dy = 0) => [TG[0] + dx, TG[1] + dy, 40];
+part('trigGuard', 'Trigger guard (housing)', 'trg', ['51'], TG,
+  'Metal trigger guard: the housing, the guard loop and the rear tang are one part (list price 800). Holds the hammer, trigger, sear, disconnector, safety, valve knocker and mag release.',
+  [...[1, -1].map(sd => [prof([[-4, -16], [-96, -16], [-96, -39], [-4, -39]], 2, 0.5).translate(0, 0, sd * 8.5), 'zinc']),
+   [bx(-96, -4, -39, -36.5, -9.5, 9.5), 'zinc'], [bx(-6, -3, -39, -16, -9.5, 9.5), 'zinc'], [bx(-97, -94, -39, -16, -9.5, 9.5), 'zinc'],
+   [prof([[-40, -39], [-100, -39], [-100, -68], [-86, -68], [-82, -64], [-66, -68], [-52, -64], [-44, -54]], 10, 1,
+     [[[-50, -43], [-84, -43], [-82, -58], [-67, -63], [-55, -59], [-50, -52]]]), 'zinc']], { shell: true });
+
+part('trigger', 'Trigger + pivot pin', 'trg', ['70', '67'], tg(-110),
+  'Single-action trigger on pivot pin #67. Rogueworx puts the stock pull at 5 to 6 lb with about 5mm of travel to fire plus over-travel; Booligan called it short and crisp (3 to 4mm). Upgrade: Rogueworx FANG trigger + JUDGEMENT sear, 2 to 2.5 lb.',
+  [[prof([[-62, -27], [-69, -30], [-70, -38], [-77, -38], [-81, -48], [-81, -57], [-77, -59], [-76, -50], [-72, -41], [-64, -36], [-58, -33]], 5, 0.8), 'steel'], [cyl(1.2, 19, 'z', -69, -33, 0, 8), 'steel']]);
+
+part('trigPlunger', 'Trigger plunger + spring, screw', 'trg', ['65', '64', '63'], tg(-110, -60),
+  'Trigger return plunger #65 with spring #64 and screw #63.',
+  [[cyl(1.5, 8, 'x', -62, -34, 0, 8), 'steel'], [spring(1.8, 0.35, 6, 4, 'x', -58, -34, 0), 'spring']]);
+
+part('hammer', 'Hammer + pin', 'trg', ['54', '55'], tg(-160),
+  'Hammer #54 on hammer pin #55. Strikes the valve knocker, which hits the mag ex-valve.',
+  [[prof([[-95, -33], [-83, -34], [-79, -28], [-78, -20], [-81, -15], [-86, -14], [-85, -18], [-89, -20], [-93, -25]], 6, 0.8), 'steel'], [cyl(4, 7, 'z', -88, -28, 0, 16), 'steel'], [cyl(1.2, 19, 'z', -88, -28, 0, 8), 'steel']]);
+
+part('hammerStrut', 'Hammer strut + spring', 'trg', ['56', '57'], tg(-215),
+  'Hammer strut and spring. Spring strength sets how hard the valve gets knocked, so it affects gas per shot and fps.',
+  [[cyl(1.2, 18, 'x', -80, -35, 0, 8), 'steel'], [spring(3, 0.6, 12, 5, 'x', -86, -35, 0), 'spring']]);
+
+part('sear', 'Sear', 'trg', ['68'], tg(-255),
+  'Holds the hammer cocked until the trigger releases it.',
+  [[prof([[-80, -36], [-70, -36], [-68, -31], [-79, -29]], 5, 0.6), 'steel']]);
+
+part('disconnector', 'Disconnector + pins', 'trg', ['71', '69', '72'], tg(-295),
+  'Resets the sear between shots so the gun is semi-auto only.',
+  [[prof([[-68, -31], [-60, -31], [-58, -22], [-66, -22]], 4, 0.6), 'steel']]);
+
+part('valveKnocker', 'Valve knocker + springs, lock', 'trg', ['49', '50', '53', '52'], tg(60, 40),
+  'Valve knocker #49 with springs #50/#53 and knocker lock #52. A lever along the top of the trigger guard: the hammer hits its rear end and the front end strikes the mag ex-valve.',
+  [[bx(-78, -4, -22, -18, -2, 2), 'steel'], [bx(-6, -1, -24, -16, -2.5, 2.5), 'steel'], [bx(-30, -24, -28, -22, -2, 2), 'steel']]);
+
+part('safety', 'Safety + O-rings, detent', 'trg', ['60', '58', '59', '61', '62'], tg(100),
+  'Crossbolt safety #60 with black (#58) and red (#59) O-rings and detent #61/#62; the round button in front of the trigger guard loop. Manual: push to SAFETY OFF to shoot, press to SAFETY ON when not in use.',
+  [[cyl(3, 30, 'z', -41, -46, 0, 16), 'steel'], [torus(3.1, 0.9, 'z', -41, -46, 12), 'red'], [torus(3.1, 0.9, 'z', -41, -46, -12), 'black']]);
+
+part('magCatch', 'Mag catch', 'trg', ['48'], tg(140, 40),
+  'Catch that holds the magazine up in the gun. Manual: press the mag catch lever and remove the mag.',
+  [[bx(-4, 2, -24, -12, -5, 5), 'steel']]);
+
+part('magRelease', 'Mag release lever + spring, pin', 'trg', ['74', '73', '66'], tg(140),
+  'Curved lever just behind the magazine, in front of the trigger guard (#74), with spring #73 on pin #66.',
+  [[prof([[-8, -39], [-18, -39], [-24, -46], [-22, -52], [-17, -50], [-14, -44]], 8, 0.6), 'steel']]);
+
+// ================= MAGAZINE =================
+const MG = [0, -330, 0];
+const mg = (dx, dy = 0) => [MG[0] + dx, MG[1] + dy, 40];
+part('magBody', 'Mag body', 'mag', ['142', '126'], MG,
+  'Metal gas magazine (V2 long type, 29 to 30 rounds): a wider head block holding the valve and lips, a narrower body with a column of witness holes, and mag upper body O-ring #126. A CO2 body (#142C) and CO2 parts #187 to #191 are listed too. Manual: fill it upside-down, vertical, for about 5 seconds.',
+  [[bx(-3, 29, -124, -34, -9, 9), 'dark'], [bx(-4, 30, -34, -14, -10.5, 10.5), 'dark'], [bx(4, 16, -30, -18, 10.4, 10.8), 'black'],
+   ...[-52, -64, -76, -88, -100, -112].flatMap(y => [1, -1].map(s => [cyl(2.2, 0.8, 'z', 7, y, s * 9.1, 12), 'black']))], { shell: true });
+
+part('bbLip', 'BB lip + pin', 'mag', ['140', '145'], mg(0, 60),
+  'Feed lips at the top front of the mag, held by BB lip pin #145.',
+  [[bx(18, 30, -14, -6, -5, 5), 'dark']]);
+
+part('follower', 'Follower', 'mag', ['141'], mg(70),
+  'Pushes the BB stack up to the lips.',
+  [[bx(20, 28, -32, -24, -4, 4), 'orange']]);
+
+part('magSpring', 'Mag spring', 'mag', ['125'], mg(110),
+  'Follower spring in the BB channel.',
+  [[spring(3.4, 0.5, 86, 22, 'y', 24, -118, 0), 'spring']]);
+
+part('exValve', 'Ex-valve', 'mag', ['127'], mg(-80),
+  'Outlet (exhaust) valve. The drawing shows it screwed into the side of the mag head, near the rear. The valve knocker strikes its stem and it releases gas up through the gasket to the cylinder.',
+  [[cyl(4, 8, 'z', 2, -22, 11, 20), 'brass'], [cyl(5, 2, 'z', 2, -22, 15.5, 6), 'brass'], [cyl(2.2, 4, 'x', -5, -20, 0, 12), 'steel']]);
+
+part('magGasket', 'Mag gasket', 'mag', ['122'], mg(-120, 20),
+  'Rubber gasket on top of the mag where the gas port seals against the receiver. Evike sells the KJW factory part.',
+  [[bx(4, 14, -14, -10, -5, 5), 'black']]);
+
+part('magBase', 'Mag base + O-ring', 'mag', ['144', '146'], mg(0, -60),
+  'Mag base with O-ring #146. Per the drawing it carries a tall rectangular core that plugs up into the mag body, with the charge valve in the base and the long mag screw running up through it.',
+  [[bx(-5, 31, -131, -124, -10.5, 10.5), 'dark'], [bx(2, 12, -124, -62, -5, 5), 'dark'], [torus(5.5, 0.8, 'y', 7, -62, 0), 'black']]);
+
+part('chargeValve', 'Charge valve', 'mag', ['129'], mg(-80, -60),
+  'Gas fill valve in the mag base.',
+  [[cyl(3, 6, 'y', 16, -132, 0, 16), 'brass']]);
+
+part('magScrew', 'Mag screw + washer, O-ring', 'mag', ['132', '130', '131'], mg(-140, -60),
+  'Long screw that clamps the mag base to the body, with washer #130 and O-ring #131.',
+  [[cyl(1.3, 100, 'y', 10, -78, 0, 10), 'steel']]);
+
+// ================= LOADING TOOLS =================
+part('loadingStick', 'Loading stick', 'acc', ['133'], [0, 0, 0],
+  'Push rod for the loading tube. Shown beside the gun.',
+  [[cyl(1.8, 200, 'x', 230, -330, -260, 12), 'steel'], [torus(5, 1.5, 'x', 331, -330, -260), 'steel']]);
+
+part('loadingTube', 'Loading tube', 'acc', ['186'], [0, 0, 0],
+  'BB loading tube supplied with the gun. Shown beside the gun.',
+  [[tube(3.2, 4.5, -120, 70, 16), 'poly2']].map(([g, m]) => { g.translate(250, -350, -260); return [g, m]; }));
+
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+for (const [key, label] of Object.entries(CATS)) {
+  const head = document.createElement('label'); head.className = 'cat';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+  cb.onchange = () => byCat[key].forEach(p => p.visible = cb.checked);
+  head.append(cb, label + ` (${byCat[key].length})`);
+  list.append(head);
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span><span class="pn">#${p.userData.nos[0]}</span>`;
+    it.onclick = () => select(p, true);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+document.getElementById('bAsm').onclick = () => { exTarget = 0; exSlider.value = 0; };
+document.getElementById('bExp').onclick = () => { exTarget = 1; exSlider.value = 1; };
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- info panel ----------
+const info = document.getElementById('info');
+const SOURCES = `<p class="src">Sources: <a href="https://www.kjworks.com.tw/photo/13432700223.pdf">KJW KC-02 V2 manual (PDF)</a>, <a href="https://www.kjworks.com.tw/photo/12919005273.pdf">V1 manual (PDF)</a>, <a href="https://www.rogueworx.com/">Rogueworx product pages</a>, <a href="https://www.popularairsoft.com/news/ra-tech-m1-carbine-conversion-kit">RA Tech M1 kit</a>,
+<a href="https://www.booliganairsoft.com/2012/12/kjw-kc02-1022-gbbr.html">Booligan review</a>,
+<a href="https://www.replicaairguns.com/posts/2016/4/9/kjwork-kc-02-version-2-1022-gas-blowback-airsoft-carbine.html">ReplicaAirguns V2</a>,
+<a href="https://www.redwolfairsoft.com/gas-pistols-smgs-kj-works-kc-02-version-2-with-long-magazine.html">RedWolf</a>,
+<a href="https://www.evike.com/search/?keywords=KC02">Evike part listings</a>. Shapes and positions are approximate, traced from the manual drawing, not measured.</p>`;
+function showOverview() {
+  info.innerHTML = `<h2>KJW KC-02 V2 (KJ Works 10/22 tactical carbine)</h2>
+  <div class="meta">Gas blowback, semi-auto only. Green gas or CO2 (per mag).</div>
+  <p>Length 780 to 865mm (stock in/out). Weight 2.65 to 2.79kg. Nylon fiber, aluminum and zinc. 380 to 440 fps on 0.20g depending on gas. Mag 22 (V1 short) or 29 to 30 (V2 long).</p>
+  <ul>
+    <li>Manual limit: don't use gas above 12 kg/cm².</li>
+    <li>Fill the mag vertical for about 5 seconds. Bolt locks back on empty.</li>
+    <li>Front sight dial sets elevation, rear sight screw sets windage, rail 2 dial sets hop.</li>
+    <li>V1 vs V2 (both KJW manuals): same receiver, bolt, barrel, trigger group and stock. V1 had different sights (fixed front base #15, rear sight with windage/elevation knobs #75 to #94) and a two-piece 22-round mag (#123/#128). V2 has the flip-up sights and the long mag, plus a CO2 option.</li>
+    <li>Scale: traced from the manual render, then scaled so the barrel is 0.920 in and the gun measures 780/865mm collapsed/extended; both anchors agree within 1%. The render itself shows the stock at position 3.</li>
+    <li>Generic vs specific: the rear stock, tube and grip are generic M4 parts. The front stock, receiver and internals are KC-02 specific. The barrel copies the real 10/22 .920 in bull profile.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Drag to orbit, scroll to zoom, right-drag to pan.</p>${SOURCES}`;
+}
+function showList(hitNos = []) {
+  const rows = MANUAL.map(([no, name, price]) => {
+    const mod = byNo.has(no);
+    return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>#${no}</td><td>${name}</td><td>${price}</td></tr>`;
+  }).join('');
+  info.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Names and list prices as printed in the V2 manual (currency not stated). Blue rows are modeled, click to find them.</div><table>${rows}</table>`;
+  info.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+}
+document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { showOverview(); return; }
+  setGlow(p, true);
+  itemEls.get(p).classList.add('sel');
+  itemEls.get(p).scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
+    .map(([no, name, price]) => `<tr><td>#${no}</td><td>${name}</td><td>${price}</td></tr>`).join('');
+  info.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div><p>${d.info}</p>
+    <table>${rows}</table><p class="src">Names and list prices as printed in the V2 manual.</p>${SOURCES}`;
+  if (focus) {
+    const w = new THREE.Vector3(); d.label.getWorldPosition(w);
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    camTween = { tgt: w, pos: w.clone().add(dir.multiplyScalar(700)) };
+  }
+}
+showOverview();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let hovered = null, downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = `#${p.userData.nos[0]} ${p.userData.name}`; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+const stockCtl = document.getElementById('stockpos'), spv = document.getElementById('spv');
+const STOCK = { pos: 1, cur: (RENDER_POS - 1) * STOCK_STEP };
+const showLen = () => { const p = +stockCtl.value; STOCK.pos = p; spv.textContent = `${p} (${Math.round((778 - (RENDER_POS - p) * STOCK_STEP) * S)} mm overall)`; };
+stockCtl.oninput = showLen; showLen();
+let stockOff = STOCK.cur;
+renderer.setAnimationLoop(() => {
+  exCur += (exTarget - exCur) * 0.12;
+  if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
+  exv.textContent = Math.round(exCur * 100) + '%';
+  stockOff += ((RENDER_POS - STOCK.pos) * STOCK_STEP - stockOff) * 0.15;
+  const e = exCur * exCur * (3 - 2 * exCur);
+  for (const p of parts) {
+    p.position.copy(p.userData.explode).multiplyScalar(e);
+    if (p.userData.slide) p.position.x += stockOff;
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {
+    controls.target.lerp(camTween.tgt, 0.1); camera.position.lerp(camTween.pos, 0.1);
+    if (camera.position.distanceTo(camTween.pos) < 2) camTween = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+});
+
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__kc02 = { parts, select, showList, THREE, scene, renderer, camera, floor, grid, labelRenderer, root, STOCK, STOCK_STEP, RENDER_POS };
+</script>
+</body>
+</html>
