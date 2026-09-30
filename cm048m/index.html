@@ -501,9 +501,9 @@ part('upperHG', 'Upper handguard + back cap', 'frt', ['55M', '57'], [110, 230, 0
   [[tube(GT_R + 0.5, GT_R + 5.4, X(429), X(305), 40, GT_Y), 'wood'],
    [tube(GT_R + 0.3, GT_R + 3.2, X(443), X(429), 32, GT_Y), 'blk']], { shell: true });
 part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90, -165, 0],
-  'Real wood AKM lower handguard (53M) with the palm swells. The front sits in the retainer ferrule, the rear under the rear sight block. Real AKM part is about 170 x 45 x 47mm. Slice 54 is the spring plate that takes up play.',
-  [[sweepX([{ x: X(307), yt: Y(83), yb: Y(129), w: mm(40) }, { x: X(330), yt: Y(83), yb: Y(131), w: mm(44) }, { x: X(400), yt: Y(83), yb: Y(133), w: mm(46) },
-            { x: X(452), yt: Y(83), yb: Y(136), w: mm(47) }, { x: X(482), yt: Y(83), yb: Y(140), w: mm(45) }, { x: X(492), yt: Y(83), yb: Y(139), w: mm(41) }], { n: 3.2 }), 'wood'],
+  'Real wood AKM lower handguard (53M) with the palm swells. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
+  [[sweepX([{ x: X(307), yt: Y(83), yb: Y(129), w: mm(35) }, { x: X(330), yt: Y(83), yb: Y(131), w: mm(38) }, { x: X(400), yt: Y(83), yb: Y(133), w: mm(41) },
+            { x: X(452), yt: Y(83), yb: Y(136), w: mm(43) }, { x: X(482), yt: Y(83), yb: Y(140), w: mm(42) }, { x: X(492), yt: Y(83), yb: Y(139), w: mm(39) }], { n: 3.2 }), 'wood'],
    ...[[330, 360], [375, 410]].map(([a, b]) => [bx(X(b), X(a), Y(84.5), Y(82.5), -mm(6), mm(6)), 'black'])], { shell: true });
 part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [140, -60, 0],
   'Handguard retainer ferrule (24) that clamps the front of the lower handguard to the barrel, with its lock button (25).',
@@ -588,71 +588,88 @@ part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
   [[tube(mm(3.02), mm(4.25), X(594), X(37), 24), 'brass'], [bx(X(583), X(573), mm(4.4), mm(4.9), -mm(1.5), mm(1.5)), 'black']], { variant: 'aeg' });
 
 // ================= GEARBOX AND MOTOR (stock AEG) =================
-const GB_PTS = P([[588, 85], [795, 85], [797, 95], [797, 135], [788, 160], [735, 160], [722, 148], [682, 146], [665, 128], [600, 126], [588, 120]]);
+// Gearbox frame (mm): origin = sector gear axle, +x toward the muzzle, +y up. Positions measured from a flat SHS V3 shell
+// photo scaled to the 167mm shell length (UNVERIFIED, about +-1.5mm). The cylinder axis sits 24.8mm above the sector axle and is
+// put on the bore; the shell front (x = 99.6) lands at photo px 610, which puts the trigger pivot holes over the photographed trigger.
+const GX = xm => X(610) + mm(xm - 99.6), GY = ym => mm(ym - 24.8);
+const G = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const GBZ = mm(12.5);
+const GB_OUT = G([[-67, 36], [-64, 41], [-58, 43], [-40, 43], [-40, 40.5], [97, 43], [99, 41], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
+  [-5, -40], [-10, -45], [-31, -36], [-37, -31], [-42, -24], [-48, -12], [-48, 10], [-62, 10], [-66, 14]]);
+const GB_WIN = G([[12, 21], [80, 21], [80, 37.5], [12, 37.5]]).reverse();
+const BUSH = [[0, 0], [-21, -5.7], [-16.6, -25.8]];
 part('gearbox', 'Gear box (Version 3 shell + combine plate)', 'gbx', ['7'], [0, 360, 0],
-  'CYMA Version 3 gearbox (7): two metal shell halves joined by a top combine plate and 4 screws, 7mm steel bushings. The manual lists the gearbox as one item and gives no internal part numbers, so the internals below use generic V3 names. V3 shells from other makers measure about 167 x 25 x 87mm.',
-  [[at(prof(GB_PTS, mm(1.6), 0.4), 0, 0, GBZ - mm(0.8)), 'zinc'], [at(prof(GB_PTS, mm(1.6), 0.4), 0, 0, -GBZ + mm(0.8)), 'zinc'],
-   [bx(X(790), X(600), Y(86), Y(83), -mm(7), mm(7)), 'zinc'],
-   ...[[748, 128], [712, 133], [772, 146]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.5), mm(1.6), 'z', X(a), Y(b), s * (GBZ + mm(0.4)), 16), 'brass']))], { shell: true });
+  'CYMA Version 3 gearbox (7): two metal shell halves (7mm bushings) held by screws and the slide-on top combine plate; the spring guide seats at the rear, the cylinder window is on top. Outline and bushing positions are traced from a flat SHS V3 shell photo scaled to 167mm long (Retro Arms lists 167 x 86 x 25mm): sector gear 21.8mm from the spur, spur 20.5mm from the bevel, cylinder axis 24.8mm above the sector axle. The manual gives no internal part numbers, so the internals use generic V3 names.',
+  [[at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, GBZ - mm(1.1)), 'zinc'], [at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, -GBZ + mm(1.1)), 'zinc'],
+   [bx(GX(-40), GX(-58), GY(40.5), GY(43.5), -GBZ, GBZ), 'zinc'],
+   [cyl(mm(2.2), mm(2), 'z', GX(101.3), GY(40.1), 0, 10), 'zinc'],
+   ...BUSH.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.8), mm(1.4), 'z', GX(a), GY(b), s * (GBZ + mm(0.3)), 20), 'brass'])),
+   ...[[-9.9, -41.5], [-1.7, -33.4], [1.5, 17.4], [-42.4, -5.7], [82, 0], [-62, 30]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (GBZ + mm(0.2)), 12), 'dark']))], { shell: true });
 part('cylinder', 'Cylinder + cylinder head, nozzle', 'gbx', [], [250, 510, 0],
-  'Ported metal cylinder (standard bore 23.6mm) with the cylinder head and AK-length nozzle (aftermarket AK nozzles are 19.7 or 20.7mm). Some sources list a Type 0 copper cylinder; batches vary.',
-  [[tube(mm(11.8), mm(13), X(705), X(600), 32), 'brass'], [tube(0, mm(13.2), X(603), X(598), 32), 'dark'],
-   [tube(mm(2.2), mm(3.2), X(598), X(572), 16), 'poly2'], [bx(X(660), X(640), mm(11.8), mm(13.3), -mm(2.5), mm(2.5)), 'black']], { tag: 'V3', variant: 'aeg' });
+  'Ported metal cylinder (standard bore 23.6 to 23.8mm; AK AEGs use a full, type 0 cylinder) with the cylinder head and AK-length nozzle (aftermarket AK nozzles are 19.6 to 20.7mm).',
+  [[tube(mm(11.9), mm(13), GX(-10), GX(97), 32), 'brass'], [tube(mm(3), mm(12.8), GX(97), GX(100), 32), 'dark'],
+   [tube(mm(2.2), mm(3.2), GX(98), GX(113.5), 16), 'poly2'], [bx(GX(60), GX(75), GY(11.9), GY(13.2), -mm(2.5), mm(2.5)), 'black']], { tag: 'V3', variant: 'aeg' });
 part('piston', 'Piston + piston head', 'gbx', [], [120, 510, 0],
-  'Polymer piston with metal rack teeth and an aluminium bearing head (per Taiwangun; Airsoft GI lists all plastic).',
-  [[tube(mm(9), mm(11.2), X(690), X(608), 24), 'poly'], [cyl(mm(11.6), mm(4), 'x', X(606), 0, 0, 32), 'alu'],
-   [torus(mm(11), mm(0.9), 'x', X(605), 0, 0), 'black'],
-   ...Array.from({ length: 10 }, (_, i) => [bx(X(615 + i * 7.5) - 1.8, X(615 + i * 7.5) + 1.8, -mm(14), -mm(11), -mm(3), mm(3)), 'steel'])], { tag: 'V3', variant: 'aeg' });
+  'Polymer piston with metal rack teeth and an aluminium bearing head (per Taiwangun; Airsoft GI lists all plastic). Standard AEG pistons are about 71mm; shown forward, as after a shot.',
+  [[tube(mm(9), mm(11.3), GX(23), GX(92), 24), 'poly'], [cyl(mm(11.7), mm(4), 'x', GX(94), 0, 0, 32), 'alu'],
+   [torus(mm(11.2), mm(0.9), 'x', GX(95.2), 0, 0), 'black'],
+   ...Array.from({ length: 14 }, (_, i) => [bx(GX(28 + i * 4.2) - mm(1), GX(28 + i * 4.2) + mm(1), GY(11.2), GY(13.8), -mm(2.5), mm(2.5)), 'steel'])], { tag: 'V3', variant: 'aeg' });
 part('mainSpring', 'Spring + spring guide', 'gbx', [], [-40, 510, 0],
-  'M120 spring (Airsoft GI) on a plastic or bearing spring guide.',
-  [[spring(mm(8), mm(0.8), X(610) - X(790), 26, 'x', X(790), 0, 0), 'spring'],
-   [cyl(mm(5), X(740) - X(795), 'x', (X(740) + X(795)) / 2, 0, 0, 16), 'poly'], [cyl(mm(9), mm(3), 'x', X(792), 0, 0, 24), 'poly']], { tag: 'V3', variant: 'aeg' });
-part('gears', 'Gear set (spur, sector, bevel)', 'gbx', [], [-200, 360, 0],
-  'Steel gear set, about 18:1 (Airsoft GI). The sector gear drives the piston rack, the bevel gear takes power from the motor pinion. Tooth counts are not published.',
-  [[gear(mm(14), 30, mm(4), X(748), Y(128), 0, { hole: mm(2) }), 'steel'],
-   [gear(mm(16), 30, mm(4), X(712), Y(135), 0, { hole: mm(2) }), 'steel'],
-   [gear(mm(13), 28, mm(4), X(772), Y(146), 0, { hole: mm(2), axis: 'y' }), 'steel'],
-   ...[[748, 128], [712, 135]].map(([a, b]) => [cyl(mm(2), 2 * GBZ, 'z', X(a), Y(b), 0, 10), 'steel'])], { tag: 'V3', variant: 'aeg' });
+  'M110 to M120 spring (listings differ) on the spring guide that seats in the rear of the shell.',
+  [[spring(mm(8), mm(0.8), mm(152), 26, 'x', GX(-64), 0, 0), 'spring'],
+   [cyl(mm(4.8), mm(42), 'x', GX(-46), 0, 0, 16), 'poly'], [cyl(mm(9.5), mm(3), 'x', GX(-65), 0, 0, 24), 'poly']], { tag: 'V3', variant: 'aeg' });
+part('gears', 'Gear set (sector, spur, bevel)', 'gbx', [], [-200, 360, 0],
+  'Steel 18:1 gear set: motor pinion to bevel, bevel pinion to spur, spur pinion to sector, sector (16 teeth, about 31 to 32mm tip) to the piston rack. Axles 3mm.',
+  [[gear(mm(16), 32, mm(3.5), GX(0), GY(0), mm(4), { hole: mm(1.5) }), 'steel'],
+   [gear(mm(15), 30, mm(3.5), GX(-21), GY(-5.7), -mm(4), { hole: mm(1.5) }), 'steel'], [gear(mm(5.5), 11, mm(4), GX(-21), GY(-5.7), mm(4)), 'steel'],
+   [gear(mm(14.5), 30, mm(3), GX(-16.6), GY(-25.8), mm(5.5), { hole: mm(1.5) }), 'steel'], [gear(mm(5), 10, mm(4), GX(-16.6), GY(-25.8), -mm(4)), 'steel'],
+   ...BUSH.map(([a, b]) => [cyl(mm(1.5), 2 * GBZ, 'z', GX(a), GY(b), 0, 10), 'steel'])], { tag: 'V3', variant: 'aeg' });
 part('tappet', 'Tappet plate + cut-off lever, anti-reversal latch', 'gbx', [], [200, 440, 0],
-  'Tappet plate pulls the nozzle back to feed a BB; the cut-off lever stops the sector gear in semi; the metal anti-reversal latch stops the gears spinning backwards.',
-  [[bx(X(682), X(600), Y(124), Y(120), -mm(3), mm(3)), 'poly'], [bx(X(605), X(598), Y(124), Y(96), -mm(3), mm(3)), 'poly'],
-   [bx(X(705), X(688), Y(152), Y(140), -mm(2), mm(2)), 'steel'], [bx(X(768), X(758), Y(152), Y(136), -mm(2), mm(2)), 'steel']], { tag: 'V3', variant: 'aeg' });
+  'V3 tappet plate (about 110 x 25mm) pulls the nozzle back to feed a BB; the cut-off lever stops the sector gear in semi; the metal anti-reversal latch stops the gears spinning backwards.',
+  [[bx(GX(-8), GX(100), GY(7.5), GY(10), mm(5.5), mm(8)), 'poly'], [bx(GX(100), GX(104), GY(7.5), GY(30), mm(3), mm(8)), 'poly'],
+   [bx(GX(8), GX(22), GY(-6), GY(3), mm(6), mm(7.5)), 'steel'], [bx(GX(-38), GX(-26), GY(-34), GY(-26), -mm(9), -mm(7.5)), 'steel']], { tag: 'V3', variant: 'aeg' });
+const TRIG = P([[693, 143], [703, 146], [713, 162], [710, 177], [705, 177], [706, 163], [697, 150]]);
 part('trigger', 'Trigger + trigger contacts', 'gbx', [], [150, 360, 0],
-  'Gearbox trigger and its copper contact assembly (2 screws plus a separation spring). No MOSFET on the stock gun.',
-  [[prof(P([[693, 143], [703, 146], [713, 162], [710, 177], [705, 177], [706, 163], [697, 150]]), mm(5), 0.8), 'steel'],
-   [bx(X(700), X(680), Y(146), Y(128), -mm(5), mm(5)), 'poly'], [bx(X(696), X(684), Y(128), Y(122), -mm(3), mm(3)), 'brass']], { tag: 'V3', variant: 'aeg' });
+  'Gearbox trigger (pivot pin near the front bottom of the shell) and its copper contact assembly (2 screws plus a separation spring). No MOSFET on the stock gun.',
+  [[prof([...TRIG, [GX(28), GY(-5)], [GX(33), GY(-2)]], mm(5), 0.8), 'steel'], [cyl(mm(1.5), mm(8), 'z', GX(30), GY(-3), 0, 10), 'steel'],
+   [bx(GX(40), GX(62), GY(-6), GY(4), -mm(5), mm(5)), 'poly'], [bx(GX(44), GX(58), GY(4), GY(6), -mm(3), mm(3)), 'brass']], { tag: 'V3', variant: 'aeg' });
 part('selPlate', 'Selector plate', 'gbx', [], [-150, 440, 0],
-  'Gearbox selector plate, driven by the external lever through the receiver. Debris under the dust cover can jam its teeth. Kept in the Kythera build.',
-  [[at(prof(P([[615, 124], [742, 124], [745, 140], [615, 134]]), mm(1), 0.2), 0, 0, GBZ + mm(1)), 'steel']], { tag: 'V3' });
-const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();   // along the grip axis, downwards
-const motorAt = (d) => new THREE.Vector3(X(772), Y(165), 0).addScaledVector(MOTOR_DIR, d);
+  'V3 selector plate (about 87 x 13mm) on the right of the shell, with the rack teeth that the external lever turns. Debris under the dust cover can jam it. Kept in the Kythera build.',
+  [[at(prof(G([[-6, -6], [80, -6], [80, 7], [-6, 7]]), mm(1.2), 0.2), 0, 0, GBZ + mm(1)), 'steel'],
+   ...Array.from({ length: 5 }, (_, i) => [bx(GX(-5 + i * 2.6), GX(-3.8 + i * 2.6), GY(7), GY(9), GBZ + mm(0.5), GBZ + mm(1.7)), 'steel'])], { tag: 'V3' });
+// motor axis: down the grip from under the bevel gear
+const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();
+const motorAt = (d) => new THREE.Vector3(GX(-16.6), GY(-33), 0).addScaledVector(MOTOR_DIR, d);
 function alongGrip(g, d0) { g.rotateZ(Math.atan2(MOTOR_DIR.y, MOTOR_DIR.x) + Math.PI / 2); const c = motorAt(d0); g.translate(c.x, c.y, c.z); return g; }
 part('motor', 'Motor (short type, high torque)', 'gbx', [], [-160, -260, 0],
-  'Short-type high-torque motor with neodymium magnets, hanging under the gearbox inside the pistol grip. Mesh is set with an M3 hex screw through the grip bottom (manual p13): only adjust if the motor gets loud.',
-  [[alongGrip(new THREE.CylinderGeometry(mm(12.4), mm(12.4), mm(52), 28), 40), 'steel'],
-   [alongGrip(new THREE.CylinderGeometry(mm(1.2), mm(1.2), mm(14), 8), 8), 'steel'],
-   [alongGrip(new THREE.CylinderGeometry(mm(3), mm(3), mm(6), 12), 2), 'brass']], { variant: 'aeg' });
+  'Short-type high-torque motor with neodymium magnets, hanging under the gearbox inside the pistol grip, pinion up into the bevel gear. Mesh is set with an M3 hex screw through the grip bottom (manual p13): only adjust if the motor gets loud.',
+  [[alongGrip(new THREE.CylinderGeometry(mm(12.2), mm(12.2), mm(50), 28), 42), 'steel'],
+   [alongGrip(new THREE.CylinderGeometry(mm(1.2), mm(1.2), mm(14), 8), 10), 'steel'],
+   [alongGrip(new THREE.CylinderGeometry(mm(3), mm(3), mm(6), 12), 3), 'brass'],
+   [alongGrip(new THREE.CylinderGeometry(mm(9), mm(12.2), mm(4), 28), 69), 'poly']], { variant: 'aeg' });
 part('motorCage', 'Motor cage (CY-0029)', 'gbx', [], [-100, -200, 0],
-  'Two-piece metal motor cage bolted under the gearbox (CYMA CY-0029, about 85g), with the motor height screw at the bottom.',
-  [[alongGrip(new THREE.BoxGeometry(mm(29), mm(58), mm(29)), 42), 'zinc'],
+  'Two-piece metal motor cage bolted to the two screw eyes under the gearbox (CYMA CY-0029, about 85g), with the motor height screw at the bottom.',
+  [[alongGrip(new THREE.BoxGeometry(mm(28), mm(64), mm(27)), 42), 'zinc'],
    [alongGrip(new THREE.CylinderGeometry(mm(2), mm(2), mm(8), 10), 78), 'steel']], { shell: true, variant: 'aeg' });
 part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8'], [0, 360, 0],
   'Wire guard (8) on the gearbox rear with the motor and trigger leads running back to the stock.',
-  [[bx(X(800), X(795), Y(130), Y(90), -mm(6), mm(6)), 'poly'],
-   [tubeAlong([[X(797), Y(128), mm(3)], [X(790), Y(155), mm(3)], [X(785), Y(170), mm(3)]], mm(1.1)), 'red'],
-   [tubeAlong([[X(797), Y(128), -mm(3)], [X(790), Y(155), -mm(3)], [X(785), Y(170), -mm(3)]], mm(1.1)), 'black']], { variant: 'aeg' });
+  [[bx(GX(-70), GX(-66), GY(14), GY(38), -mm(6), mm(6)), 'poly'],
+   [tubeAlong([[GX(-68), GY(20), mm(3)], [GX(-60), GY(-5), mm(3)], [GX(-40), GY(-30), mm(3)]], mm(1.1)), 'red'],
+   [tubeAlong([[GX(-68), GY(20), -mm(3)], [GX(-60), GY(-5), -mm(3)], [GX(-40), GY(-30), -mm(3)]], mm(1.1)), 'black']], { variant: 'aeg' });
 
 // ================= GRIP, STOCK AND POWER =================
-const GL = [{ y: Y(144), xf: X(722), xb: X(790), w: mm(30) }, { y: Y(180), xf: X(734), xb: X(794), w: mm(31) },
-            { y: Y(220), xf: X(749), xb: X(808), w: mm(31) }, { y: Y(255), xf: X(760), xb: X(818), w: mm(30) },
-            { y: Y(269), xf: X(763), xb: X(821), w: mm(29) }, { y: Y(279), xf: X(776), xb: X(812), w: mm(24) }];
+const GL = [{ y: Y(147), xf: X(722), xb: X(790), w: mm(30.5) }, { y: Y(180), xf: X(734), xb: X(794), w: mm(31) },
+            { y: Y(220), xf: X(749), xb: X(808), w: mm(31) }, { y: Y(255), xf: X(760), xb: X(818), w: mm(30.5) },
+            { y: Y(269), xf: X(763), xb: X(821), w: mm(29.5) }, { y: Y(279), xf: X(776), xb: X(812), w: mm(25) }];
+const GRIP_OPT = { n: 3.4, frontTaper: 0.88, step: 2 };
 part('grip', 'Gun grip + grip screw', 'stk', ['13', '14'], [-40, -150, 0],
-  'Polymer AK pistol grip (13) with checkered sides; it covers the motor. Screw 14 (M4x5) holds it; the bottom screw also sets motor height. On the real AKM it was laminate or bakelite.',
-  [[loft(GL, { n: 2.6, frontTaper: 0.75, step: 2 }), 'poly'],
-   [loftPatch(GL, { t0: 1.35, t1: 2.45, y0: Y(185), y1: Y(262), n: 2.6, frontTaper: 0.75, lift: 0.4, uvScale: 0.6 }), 'checker'],
-   [loftPatch(GL, { t0: -2.45, t1: -1.35, y0: Y(185), y1: Y(262), n: 2.6, frontTaper: 0.75, lift: 0.4, uvScale: 0.6 }), 'checker'],
-   [alongGrip(new THREE.CylinderGeometry(mm(3), mm(3), mm(4), 16), 121), 'steel']], { shell: true });
+  'Polymer AKM-pattern motor grip (13). Hollow shell around the motor, about 30mm wide (the real AKM grip is 24 x 40mm in section, 20 degrees from vertical, 106mm long; airsoft motor grips run 30 to 31mm wide to clear the motor). Top flange with rounded ends sits under the receiver; checkered field on the rear half of each side with a smooth front band. Screw 14 holds it; the M3 hex screw in the bottom plate sets motor height.',
+  [[loft(GL, GRIP_OPT), 'poly'],
+   [loftPatch(GL, { t0: 1.3, t1: 2.5, y0: Y(172), y1: Y(265), ...GRIP_OPT, lift: 0.35, uvScale: 0.6 }), 'checker'],
+   [loftPatch(GL, { t0: -2.5, t1: -1.3, y0: Y(172), y1: Y(265), ...GRIP_OPT, lift: 0.35, uvScale: 0.6 }), 'checker'],
+   [loft([{ y: Y(143), xf: X(717), xb: X(797), w: mm(32) }, { y: Y(147.5), xf: X(719), xb: X(795), w: mm(32) }], { n: 2.3, frontTaper: 1, step: 2 }), 'poly'],
+   [loft([{ y: Y(279), xf: X(778), xb: X(811), w: mm(23.5) }, { y: Y(282), xf: X(779), xb: X(810), w: mm(22.5) }], { n: 2.6, frontTaper: 1, step: 1 }), 'dark'],
+   [cyl(mm(3), mm(1.2), 'y', X(794), Y(282.4), 0, 6), 'black']], { shell: true });
 const STOCK_ST = [[818, 91, 152, 34], [853, 99, 159, 35], [890, 106, 170, 36], [913, 102, 176, 37], [943, 98, 186, 38], [1003, 99, 203, 39], [1053, 100, 214, 40], [1083, 101, 221, 40], [1122, 103, 225, 40]]
   .map(([px, t, b, w]) => ({ x: X(px), yt: Y(t), yb: Y(b), w: mm(w) }));
 part('stock', 'Gunstock (fixed AKM stock)', 'stk', ['66M'], [-160, 0, 0],
@@ -681,11 +698,11 @@ part('powerCable', 'Power cable + fuse (20A)', 'stk', ['70'], [-120, -110, 0],
 const MAG_FRONT = [[556, 143], [553, 150], [543, 181], [533, 203], [523, 220], [513, 234], [503, 246], [493, 257], [483, 267], [473, 275], [463, 283], [455, 289]];
 const MAG_BACK = [[636, 143], [633, 170], [623, 198], [613, 223], [603, 243], [593, 260], [583, 275], [573, 288], [563, 300], [553, 311], [543, 321], [533, 330], [523, 339], [513, 347], [505, 352]];
 const MAG_POLY = [[558, 126], ...MAG_FRONT, [452, 295], [499, 355], ...[...MAG_BACK].reverse(), [636, 126]];
-const MZ = mm(13.5);
+const MZ = mm(12.4);
 const magF = resample(MAG_FRONT, 22), magB = resample(MAG_BACK, 22);
-const ribs = [0.42, 0.58, 0.74].flatMap(f => [1, -1].map(s => [tubeAlong(magF.slice(2, 19).map((p, k) => { const q = magB[k + 2]; return [X(p[0] + (q[0] - p[0]) * f), Y(p[1] + (q[1] - p[1]) * f), s * (MZ + mm(0.4))]; }), mm(1.5), 6), 'blk']));
+const ribs = [0.42, 0.58, 0.74].flatMap(f => [1, -1].map(s => [tubeAlong(magF.slice(2, 19).map((p, k) => { const q = magB[k + 2]; return [X(p[0] + (q[0] - p[0]) * f), Y(p[1] + (q[1] - p[1]) * f), s * MZ]; }), mm(1), 6), 'blk']));
 part('magShell', 'Magazine cover (AKM ribbed shell) + button', 'mag', ['73M', '93'], [60, -240, 0],
-  'Steel AKM-pattern hi-cap shell (73M) with the stamped ribs. 600 rounds per the manual (retailers list 400 to 600). The front lug hooks the trunnion; the rear engages the catch. Button 93 sits at the top. Real AKM mag: about 225 x 65 x 25mm.',
+  'Steel AKM-pattern hi-cap shell (73M) with the stamped ribs. 600 rounds per the manual (retailers list 400 to 600). The front lug hooks the trunnion; the rear engages the catch. Button 93 sits at the top. Measured AKM mag models: about 26.7mm thick over the ribs, 30 to 32mm at the top, about 64mm deep.',
   [[prof(P(MAG_POLY), 2 * MZ, 1.2), 'blk'], ...ribs], { shell: true });
 part('magFloor', 'Magazine rear cover (floor plate)', 'mag', ['74'], [110, -300, 0],
   'Floor plate (74) at the bottom of the shell.',
@@ -705,14 +722,14 @@ part('feedLips', 'Magazine cover (feed plate) + bullet block, spring, screw', 'm
    [spring(mm(1.2), mm(0.25), mm(8), 6, 'x', X(585), Y(122), 0), 'spring']]);
 
 // ================= OWNER BUILD: POLARSTAR KYTHERA HPA =================
-const KY_X0 = X(588), KY_X1 = KY_X0 - mm(115);
+const KY_X0 = GX(100), KY_X1 = KY_X0 - mm(115);
 part('kythera', 'Kythera V3 engine (front/rear cylinder, sleeve)', 'hpa', [], [250, 510, 0],
   'Polarstar Kythera for V3 (SKU 10001002): fully mechanical HPA engine, semi-auto only, no FCU or battery. About 115 x 21 x 21mm, 147g. Front cylinder 10000763, rear cylinder 10000764, sleeve 10000765. It sits where the AEG cylinder was, inside the retained V3 shell.',
   [[latheX([[0, KY_X1], [mm(10.5), KY_X1], [mm(10.5), KY_X0 - mm(55)], [mm(11.5), KY_X0 - mm(55)], [mm(11.5), KY_X0 - mm(8)], [mm(9), KY_X0], [0, KY_X0]], 32), 'alu'],
    [tube(mm(10.6), mm(11), KY_X0 - mm(60), KY_X0 - mm(52), 32), 'red']], { variant: 'hpa' });
 part('kyNozzle', 'Kythera nozzle #2 + spool, spool spring', 'hpa', [], [380, 510, 0],
   'Nozzle #2 for AK (tip 0.882in / 22.4mm), driven by the air spool (front 10000767, tail 10000992) and spool spring 10000389; fit the heavy spring above about 130 PSI.',
-  [[tube(mm(2.2), mm(3.2), KY_X0 + mm(22.4), KY_X0 - mm(10), 16), 'poly2'], [spring(mm(4), mm(0.5), mm(22), 8, 'x', KY_X0 - mm(70), 0, 0), 'spring']], { variant: 'hpa' });
+  [[tube(mm(2.2), mm(3.2), KY_X0 + mm(13.5), KY_X0 - mm(10), 16), 'poly2'], [spring(mm(4), mm(0.5), mm(22), 8, 'x', KY_X0 - mm(70), 0, 0), 'spring']], { variant: 'hpa' });
 part('kyMeter', 'Input fitting + metering screw', 'hpa', [], [100, 510, 0],
   'Input fitting (10000834) at the engine rear and the metering screw (10001020, 0.029in orifice by default). The metering screw sets nozzle return speed; a loose one is a common cause of misfeeds.',
   [[cyl(mm(4), mm(10), 'y', KY_X1 + mm(8), -mm(13), 0, 14), 'brass'], [cyl(mm(2), mm(4), 'y', KY_X1 + mm(22), mm(11.5), 0, 10), 'steel']], { variant: 'hpa' });
@@ -722,7 +739,7 @@ part('kySear', 'Sear assembly + trigger link, reset cable', 'hpa', [], [150, 360
    [tubeAlong([[X(690), Y(125), mm(6)], [X(740), Y(150), mm(6)], [X(775), Y(200), mm(6)], [X(795), Y(270), mm(6)]], mm(0.7), 5), 'spring']], { variant: 'hpa' });
 part('airLine', 'Air line (through the grip)', 'hpa', [], [-60, -160, 0],
   'Braided air line from the input fitting down through the pistol grip and out the bottom to the tank regulator. Pressure is set at the tank (60 to 180 PSI); nothing regulates inside the gun.',
-  [[tubeAlong([[KY_X1 + mm(8), -mm(18), 0], [X(760), Y(150), 0], [X(785), Y(210), 0], [X(800), Y(275), 0], [X(805), Y(310), 0], [X(830), Y(345), 0], [X(900), Y(360), 0]], mm(3), 10), 'black']], { variant: 'hpa' });
+  [[tubeAlong([[KY_X1 + mm(8), -mm(18), 0], ...[4, 45, 97].map(d => motorAt(d).toArray()), [X(820), Y(330), 0], [X(850), Y(352), 0], [X(900), Y(360), 0]], mm(3), 10), 'black']], { variant: 'hpa' });
 part('zciBarrel', 'ZCI 455mm 6.02 barrel + R-hop patch, G&G green bucking', 'hpa', [], [60, -60, 0],
   'Owner build: ZCI 455mm 6.02 stainless inner barrel with a square window cut for an R-hop patch (about 2.15mm deep x 6mm long), under a G&G green bucking with its nub removed.',
   [[tube(mm(3.01), mm(4.25), X(594), X(37), 24), 'steel'], [bx(X(583), X(573), mm(4.25), mm(5.6), -mm(1.6), mm(1.6)), 'rubber'],
