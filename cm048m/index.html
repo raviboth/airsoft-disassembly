@@ -175,6 +175,7 @@ const MAT = {
   wood:   { color: 0xffffff, metalness: 0.0,  roughness: 0.34 },
   blk:    { color: 0x26282c, metalness: 0.55, roughness: 0.45 },
   stamp:  { color: 0xffffff, metalness: 0.3,  roughness: 0.7 },
+  scale:  { color: 0xffffff, metalness: 0.3,  roughness: 0.6 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
@@ -350,6 +351,21 @@ const STAMP = (() => {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 })();
+// AKM rear sight leaf scale (CM048M close-up): left row П 2 4 6 8 10, right row 1 3 5 7 9, each number behind a tick;
+// u runs rear to front over the leaf ahead of the slider, v top = left side; glyphs turned so they read upright from behind the gun
+const LEAFSCALE = (() => {
+  const c = document.createElement('canvas'); c.width = 416; c.height = 256;
+  const g = c.getContext('2d'); g.fillStyle = g.strokeStyle = 'rgba(232,232,226,0.92)'; g.lineWidth = 4;
+  g.font = 'bold 50px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const row = (vy, labels, off) => labels.forEach((t, i) => {
+    const u = 22 + off + i * 66;
+    g.beginPath(); g.moveTo(u - 14, vy - 42); g.lineTo(u - 14, vy + 42); g.stroke();
+    g.save(); g.translate(u + 12, vy); g.rotate(Math.PI / 2); g.fillText(t, 0, 0); g.restore();
+  });
+  row(64, ['П', '2', '4', '6', '8', '10'], 0); row(192, ['1', '3', '5', '7', '9'], 33);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+})();
 const WOOD = (() => {
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
   const x = c.getContext('2d'); x.fillStyle = '#7b3a15'; x.fillRect(0, 0, 512, 128);
@@ -461,6 +477,7 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
     const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey], side: THREE.DoubleSide });
     if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
     if (matKey === 'wood') { mat.map = WOOD; }
+    if (matKey === 'scale') { mat.map = LEAFSCALE; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
     if (matKey === 'stamp') { mat.map = STAMP; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true; m.receiveShadow = true;
@@ -626,29 +643,60 @@ part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [1
       return extrudeX(e, X(300.8), X(297.8), 0.3); })(), 'blk'],
    [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk'],
    [cyl(mm(1.6), mm(5), 'y', X(304), mm(18), mm(10), 12), 'steel']]);
-function rsTower() {        // front face of the rear sight block in (z, y): window for the gas tube, ring round the barrel
-  const s = new THREE.Shape(), hw = mm(13), top = Y(46.5), r = mm(13);
-  s.moveTo(-hw, top - 2); s.quadraticCurveTo(-hw, top, -hw + 2, top); s.lineTo(hw - 2, top); s.quadraticCurveTo(hw, top, hw, top - 2);
-  s.lineTo(hw, 0); s.absarc(0, 0, r, 0, -Math.PI, true); s.lineTo(-hw, top - 2);
-  const w = new THREE.Path(), wy0 = Y(57), wy1 = Y(86), ww = mm(9.5);
+function rsTower(e = 0) {   // front face of the rear sight block in (z, y): window for the gas tube, ring round the barrel; e = bevel inset
+  const s = new THREE.Shape(), hw = mm(13) - e, top = Y(45.6) - e, r = mm(13) - e, c = mm(4);
+  s.moveTo(-hw, top - c); s.quadraticCurveTo(-hw, top, -hw + c, top); s.lineTo(hw - c, top); s.quadraticCurveTo(hw, top, hw, top - c);
+  s.lineTo(hw, 0); s.absarc(0, 0, r, 0, -Math.PI, true); s.lineTo(-hw, top - c);
+  const w = new THREE.Path(), wy0 = Y(57) + e, wy1 = Y(86) - e, ww = mm(9.5) + e;
   w.moveTo(-ww, wy0); w.lineTo(-ww, wy1); w.lineTo(ww, wy1); w.lineTo(ww, wy0); w.lineTo(-ww, wy0); s.holes.push(w);
-  const b = new THREE.Path(); b.absarc(0, 0, mm(8.6), 0, Math.PI * 2, true); s.holes.push(b);
+  const b = new THREE.Path(); b.absarc(0, 0, mm(8.6) + e, 0, Math.PI * 2, true); s.holes.push(b);
   return s;
 }
 part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
   'Rear sight base (16) with the tangent leaf (19, "staff guage"), its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
   // CYMA rear sight block (Patrol Base / Asia Airsoft spare photos): a front tower with the gas tube window over the barrel
-  // ring, then a narrower body that carries the leaf hinge ears; the lower rear corner is cut on the diagonal (side photo)
-  [[extrudeX(rsTower(), X(453), X(441), 0.6), 'blk'],
-   [prof(P([[453, 46.5], [516, 46.5], [520, 51], [520, 58], [498, 81], [453, 81]]), mm(24), 0.8), 'blk'],
-   ...[1, -1].map(s => [bx(X(467), X(455), Y(48), Y(41), s * mm(5.5), s * mm(8.5)), 'blk']),
-   [cyl(mm(1.6), mm(17.5), 'z', X(461), Y(44), 0, 12), 'steel'],
-   [cyl(mm(2.4), mm(1), 'z', X(448), Y(51), -mm(13) - 0.9, 14), 'dark'],
-   [prof(P([[458, 43.5], [521, 39.2], [523, 43.2], [458, 47.2]]), mm(11), 0.4), 'dark'],
-   ...Array.from({ length: 12 }, (_, i) => [bx(X(472 + i * 4) - 1, X(472 + i * 4) + 1, Y(43.6 - i * 0.29), Y(42.2 - i * 0.29), -mm(5.5), mm(5.5)), 'dark']),
-   [bx(X(505), X(495), Y(47.5), Y(38.5), -mm(8.5), mm(8.5)), 'steel'],
-   [cyl(mm(2.6), mm(2.4), 'z', X(500), Y(39.5), -mm(9.5), 14), 'steel'],
-   [bx(X(524), X(519), Y(40), Y(35), -mm(4), mm(4)), 'dark']]);
+  // ring, then a lower body whose top falls away toward the rear under the leaf; lower rear corner cut on the diagonal.
+  // Leaf, slider and notch from the CM048M top close-up and CYMA / VFC spare leaves: a grooved leaf with the range scale
+  // in two rows and ratchet slots down both sides, a slider with a checkered push button on each side, the notch
+  // plate standing up at the rear end. Leaf drawn at the battle setting, slider at П.
+  rearSightPieces());
+function rearSightPieces() {
+  const k = 0, lt = px => 43 - (px - 463.5) * k, T = 2.2;             // leaf top line (photo px, lies flat at the battle setting) and thickness
+  const leafSide = (a, b, y0, y1) => P([[a, lt(a) + y0], [b, lt(b) + y0], [b, lt(b) + y1], [a, lt(a) + y1]]);
+  const zAt = (g, z) => { g.translate(0, 0, z); return g; };
+  const out = [
+    [extrudeX(rsTower(1.4), X(453) + 1.4, X(441) - 1.4, 1.4), 'blk'],
+    [prof(P([[453, 51], [517, 51.2], [520, 53.5], [520, 58], [498, 81], [453, 81]]), mm(24), 0.8), 'blk'],
+    [prof(leafSide(461, 470, 0, T), mm(10.4), 0.3), 'blk'],                          // hinge tongue between the ears
+    [prof(leafSide(469.5, 525, 1.0, T), mm(13), 0.3), 'blk'],                           // leaf floor
+    ...[1, -1].map(sg => [zAt(prof(leafSide(469.5, 525, 0, 1.05), mm(5.8), 0.2), sg * mm(3.6)), 'blk']),   // rails either side of the groove
+    [cyl(mm(1.6), mm(19), 'z', X(463.5), Y(44), 0, 12), 'steel'],                          // hinge pin
+    [cyl(mm(2.8), mm(1), 'z', X(444.5), Y(51.2), -mm(13) - 0.9, 16), 'dark'],
+  ];
+  for (const sg of [1, -1]) {                                                         // hinge ears, round topped
+    out.push([cyl(mm(3.5), mm(3), 'z', X(463.5), Y(44), sg * mm(7), 20), 'blk']);
+    out.push([bx(X(467.7), X(459.3), Y(51), Y(44), sg * mm(5.5), sg * mm(8.5)), 'blk']);
+    out.push([cyl(mm(2.1), mm(0.8), 'z', X(463.5), Y(44), sg * mm(9.1), 14), 'steel']);
+  }
+  for (const sg of [1, -1])                                                         // base cheeks either side of the leaf: their top is the cam the slider rides on
+    out.push([at(prof(P([[466, 45.3], [475, 45.5], [484, 46.1], [491, 47], [497, 48.3], [500, 51], [466, 51]]), mm(2.4), 0.3), 0, 0, sg * mm(7.8)), 'blk']);
+  for (let px = 505.5; px <= 521; px += 2.2) for (const sg of [1, -1])               // ratchet: square slots down both leaf sides (Arsenal leaf side view)
+    out.push([bx(X(px + 0.55), X(px - 0.55), Y(lt(px) + T - 0.3), Y(lt(px) + 0.3), sg > 0 ? mm(6.5) - 0.1 : -mm(6.5) - 0.15, sg > 0 ? mm(6.5) + 0.15 : -mm(6.5) + 0.1), 'black']);
+  const sx0 = 494.5, sx1 = 502.5, sb = 51;                                            // slider: band round the leaf down to the base top
+  out.push([prof(P([[sx0, lt(sx0) - 0.9], [sx1, lt(sx1) - 0.9], [sx1, sb], [sx0, sb]]), mm(15), 0.35), 'blk']);
+  for (const sg of [1, -1]) {
+    const yc = Y(41.9), zc = sg * mm(9.3);
+    out.push([cyl(mm(2.6), mm(8.6), 'x', X(500.2), yc, zc, 20), 'blk']);             // push button barrel, along the leaf
+    out.push([cyl(mm(2.2), mm(0.7), 'x', X(505.6), yc, zc, 20), 'checker']);        // checkered thumb end, facing rear
+  }
+  const ns = new THREE.Shape(), nb = Y(lt(525) + T), nt = Y(38.8), hw = mm(7.2), nw = mm(1.2), nd = mm(2.2);
+  ns.moveTo(-hw, nb); ns.lineTo(hw, nb); ns.lineTo(hw, nt - mm(1)); ns.lineTo(hw - mm(1), nt); ns.lineTo(nw, nt); ns.lineTo(nw, nt - nd);
+  ns.absarc(0, nt - nd, nw, 0, -Math.PI, true); ns.lineTo(-nw, nt); ns.lineTo(-hw + mm(1), nt); ns.lineTo(-hw, nt - mm(1)); ns.lineTo(-hw, nb);
+  out.push([extrudeX(ns, X(526.5), X(523), 0.25), 'blk']);                          // notch plate
+  const sc = new THREE.PlaneGeometry(24.5, mm(12)); sc.rotateX(-Math.PI / 2); sc.rotateZ(-Math.atan(k));
+  out.push([at(sc, X(482), Y(lt(482)) + 0.26, 0), 'scale']);                         // range scale over both rails, hinge to slider
+  return out;
+}
 part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
   'Cam lever (17) on the right side of the rear sight base. Rotate it up to release the gas tube and upper handguard.',
   [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
