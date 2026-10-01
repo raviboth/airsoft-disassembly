@@ -769,11 +769,15 @@ part('sideRail', 'Side rail (optics mount)', 'rcv', ['2'], [0, 0, -110],
    ...[[638, 127], [657, 125], [707, 132]].map(([a, b]) => [cyl(mm(2.8), mm(1.2), 'z', X(a), Y(b), -RZ - mm(0.6), 12), 'steel'])]);
 part('trigGuard', 'Rigger loop (trigger guard)', 'rcv', ['3'], [20, -100, 0],
   'Stamped steel trigger guard (3), riveted under the receiver. Real AKM guard: 66mm hole span, 33.5mm wide at the ears.',
-  [[prof(P([[643, 143], [722, 143], [722, 148], [718, 187], [640, 188], [638, 150]]), mm(9), 0.5, [P([[648, 150], [713, 150], [710, 182], [648, 182]])]), 'blk'],
+  // the front ear (px 634 to 657) is a box that houses the magazine catch, pinned through at px 643
+  [[prof(P([[634, 143], [722, 143], [722, 148], [718, 187], [662, 187], [657, 183], [655, 176.5], [637, 176.5], [634, 172]]), mm(9), 0.5, [P([[658, 150], [713, 150], [710, 182], [662, 182], [658, 178]])]), 'blk'],
    [bx(X(722), X(643), Y(145), Y(143), -mm(16), mm(16)), 'blk']]);
 part('magCatch', 'Magazine safety (magazine catch)', 'rcv', ['4'], [70, -130, 40],
-  'Paddle magazine catch (4) in front of the trigger guard. Push it forward and rock the magazine forward off the front lug.',
-  [[prof(P([[634, 143], [650, 143], [656, 170], [652, 195], [648, 195], [644, 172], [634, 158]]), mm(7), 0.6), 'blk']]);
+  'Paddle magazine catch (4): a stamped U-channel pinned inside the front ear of the trigger guard, with the finger paddle hanging below. Push the paddle forward and rock the magazine forward off the front lug.',
+  // stamped U-channel (VFC AKM-25 / AK74M GBB catch photos): body and catch nose inside the guard ear, paddle hanging below it
+  [[prof(P([[636, 140.5], [650, 140.5], [653, 150], [651, 171], [645, 177], [637, 177], [636, 160]]), mm(6.6), 0.4), 'blk'],
+   [prof(P([[640, 175], [646.5, 175], [642.5, 196], [638.5, 196.5], [637.5, 186]]), mm(12), 0.6), 'blk'],
+   [cyl(mm(1.8), mm(10.2), 'z', X(643), Y(166), 0, 12), 'dark']]);
 
 // ================= HOP-UP AND INNER BARREL =================
 part('hopChamber', 'Hop-up chamber + adjuster, block, screws', 'hop', ['38', '45', '46', '47', '48', '49', '50', '41', '42', '43'], [60, -60, 0],
