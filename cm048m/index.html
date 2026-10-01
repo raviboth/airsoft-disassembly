@@ -624,11 +624,22 @@ part('cleaningRod', 'Cleaning rod', 'frt', ['34'], [150, -95, 0],
   'Steel cleaning rod under the barrel, held at the front sight block and running back under the handguard into the front trunnion. CYMA lists the spare rod at 405mm; real AKM rod is about 400mm.',
   [[cyl(mm(3), X(80) - X(550), 'x', (X(80) + X(550)) / 2, Y(119.5), 0, 12), 'steel'],
    [cyl(mm(3.8), mm(6), 'x', X(80), Y(119.5), 0, 12), 'steel']]);
+// AKM 45 degree gas block, traced from the CYMA right side photo (1152px, same px scale as the model): barrel ring with the
+// bayonet lug hanging under its front, a waisted web whose front face sweeps up in a concave curve, and the gas cylinder nose
+// on top (the gas tube's front collar slides over the cylinder behind it)
+const GB_WEB = P([[180.5, 97], ...Array.from({ length: 17 }, (_, i) => {   // concave front sweep: quadratic from the ring top to the cylinder
+  const t = i / 16, u = 1 - t; return [u * u * 181 + 2 * u * t * 207 + t * t * 216.5, u * u * 94.6 + 2 * u * t * 90.5 + t * t * 61.3];
+}), [238, 61.3], [238, 82.8], [224, 82.8], [219, 85.5], [216, 89], [214.5, 97]]);
 part('gasBlock', 'Gas block + pins', 'frt', ['26M', '27M'], [160, 90, 0],
-  'AKM 45 degree gas block (26M), pinned to the barrel (27M, 2x12.5 shaft). Decorative on the airsoft gun. The lower tab holds the cleaning rod.',
-  [[tube(8.8, 12.5, X(214), X(180), 32), 'blk'],
-   [prof(P([[180, 92], [190, 92], [210, 62], [224, 62], [224, 86], [214, 86], [211, 96], [211, 112], [180, 112]]), mm(17), 1), 'blk'],
-   [prof(P([[180, 112], [192, 112], [192, 127], [182, 127]]), mm(9), 0.6), 'blk']]);
+  'AKM 45 degree gas block (26M). The real block is a steel casting pinned to the barrel (27M, 2x12.5 shaft) over a 31.5mm long, 15mm seat; the CYMA one is a zinc casting clamped to the outer barrel by a hex grub screw underneath, and is decorative. A barrel ring at the bottom, a waisted web with a concave front sweep, and the gas cylinder on top, about 26mm above the bore, that the gas tube collar fits over. The lug under the front of the ring is the AKM bayonet lug; the cleaning rod runs through its slot. The AKM block has no sling loop (that is on the handguard retainer).',
+  [[tube(8.8, 11.2, X(214), X(180), 32), 'blk'],
+   [latheX([[8.8, X(180)], [10.2, X(180)], [11.2, X(181.2)]], 32), 'blk'],
+   [prof(GB_WEB, mm(11), 0.9), 'blk'],
+   [latheX([[0, X(213.5)], [GT_R - 2.2, X(213.5)], [GT_R - 0.6, X(214.6)], [GT_R + 0.7, X(216.5)], [GT_R + 0.7, X(237)], [GT_R + 0.2, X(238)], [GT_R - 2, X(238)]], 40, GT_Y), 'blk'],
+   [prof(P([[180.5, 110], [195, 110], [195, 116], [193, 118], [193, 126.5], [190.5, 127.5], [183, 127.5], [181, 125.5]]), mm(9), 0.7, [P([[184, 117], [190.5, 117], [190.5, 122], [184, 122]])]), 'blk'],
+   [bx(X(212.5), X(201), Y(110), Y(115.5), -mm(4.5), mm(4.5)), 'blk'],
+   [cyl(mm(1.8), mm(1.2), 'y', X(207), Y(115.9), 0, 6), 'dark'],
+   ...[187, 207].map(px => [cyl(mm(1), 2 * 11.3, 'z', X(px), Y(95.5), 0, 8), 'dark'])]);
 part('gasTube', 'Gas tube (lead windpipe) + ring', 'frt', ['56', '58'], [110, 160, 0],
   'Gas tube (56, "lead windpipe" in the manual). Real AKM tube is 176.7mm; the front section has the vent slots, the rear sits in the rear sight block under the upper handguard.',
   [[tube(GT_R - 1.8, GT_R, X(430), X(214), 32, GT_Y), 'blk'],
