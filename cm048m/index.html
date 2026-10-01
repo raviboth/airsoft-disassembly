@@ -725,7 +725,7 @@ part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, 
     const ring = (cx, cy, r) => Array.from({ length: 16 }, (_, i) => [cx + r * Math.cos(-i / 16 * Math.PI * 2), cy + r * Math.sin(-i / 16 * Math.PI * 2)]);
     const hw = RZ - mm(1.3), sw = mm(10.5), t = mm(1.6);
     return [
-      [prof(P([[794, 79.2], [806.4, 79.2], [817.4, 92.4], [817.4, 141.4], [794, 141.4]]), 2 * hw, 0.4), 'blk'],   // top fills the receiver back up to the rails, following the rear chamfer
+      [prof(P([[794, 79.2], [806.4, 79.2], [815.4, 90], [815.4, 141.4], [794, 141.4]]), 2 * hw, 0.4), 'blk'],   // sits just inside the dust cover's rear wall
       ...[1, -1].map(sg => [bx(X(856), X(817.4), Y(131), Y(105), sg > 0 ? sw - t : -sw, sg > 0 ? sw : -sw + t), 'dark']),   // hollow box (cable channel)
       [bx(X(856), X(817.4), Y(105) - t, Y(105), -sw, sw), 'dark'], [bx(X(856), X(817.4), Y(131), Y(131) + t, -sw, sw), 'dark'],
       [prof(P([[817, 94.6], [860, 103.2], [863.5, 104.8], [864.5, 107], [862, 108.4], [858, 107.6], [817, 99]]), mm(14), 0.4,
@@ -753,8 +753,8 @@ function akmCover() {
   const flute = (px, u, a, b) => (u > 0.45 && u < 0.72) ? -mm(0.7) * bump(px, a, b, 4) * Math.sin((u - 0.45) / 0.27 * Math.PI) : 0;
   // short grooves along the crown top, one per bay between the ribs (K-Var and Apex side views)
   const groove = px => -mm(0.8) * [[563, 625], [649, 714], [725, 773]].reduce((a, [s, e]) => a + bump(px, s, e, 3), 0);
-  // raked rear face: a plane through photo (777, 56) and (812, 85); column end x for a point at depth d
-  const RK = 35 / 29, xEnd = d => Math.min(814, 777 + d * RK);
+  // raked rear face: a plane through photo (777, 56) and (812, 85), down to the receiver's rear end; column end x for a point at depth d
+  const RK = 35 / 29, xEnd = d => Math.min(817.6, 777 + d * RK);
   // half profile, top centre outwards: [z, d, ribWeight, skirtU or -1, topWeight]
   const half = (bot) => {
     const pts = [];
@@ -806,16 +806,19 @@ function akmCover() {
   // rear wall: the outer column ends, triangulated in (z, d) and flat shaded so the rake edge stays crisp; the guide button
   // pokes out through a square window in it (K-Var and Arsenal cover rear views)
   const ends = Array.from({ length: N }, (_, i) => pos.slice(vid(K - 1, i, 0) * 3, vid(K - 1, i, 0) * 3 + 3));
-  const win = [[-mm(4.2), Y(85.5)], [mm(4.2), Y(85.5)], [mm(4.2), Y(75.8)], [-mm(4.2), Y(75.8)]];   // square window for the guide button
-  const winPts = win.map(([z, y]) => [X(777 + (top - y) * RK), y, z]);
-  const tris = THREE.ShapeUtils.triangulateShape(ends.map(([, y, z]) => new THREE.Vector2(z, y)), [win.map(([z, y]) => new THREE.Vector2(z, y))]);
-  const all = [...ends, ...winPts];
-  const cp = []; for (const t of tris) for (const j of t) cp.push(...all[j]);
-  const cap = new THREE.BufferGeometry(); cap.setAttribute('position', new THREE.Float32BufferAttribute(cp, 3)); cap.computeVertexNormals();
+  const cs = new THREE.Shape(ends.map(([, y, z]) => new THREE.Vector2(z, y)));
+  const wy0 = Y(85.5), wy1 = Y(75.8), ww = mm(4.2);
+  cs.holes.push(new THREE.Path([new THREE.Vector2(-ww, wy0), new THREE.Vector2(-ww, wy1), new THREE.Vector2(ww, wy1), new THREE.Vector2(ww, wy0)]));
+  const cap = new THREE.ShapeGeometry(cs).toNonIndexed(), cpos = cap.attributes.position;
+  for (let v = 0; v < cpos.count; v++) {      // shape (z, y) onto the rake: x from the depth below the crown top
+    const z = cpos.getX(v), y = cpos.getY(v);
+    cpos.setXYZ(v, X(xEnd(Math.max(0, top - y))), y, z);
+  }
+  cap.deleteAttribute('uv'); cap.computeVertexNormals();
   return [shell, cap];
 }
 part('dustCover', 'Gun body cover (dust cover) + latch, screw', 'rcv', ['65', '63', '64'], [0, 170, 0],
-  'Stamped steel AKM dust cover (65): half-round crown over the recoil spring, flared shoulders and straight skirts, three stiffening ribs across the crown and a long flute on each skirt. The rear end is raked with a square window for the recoil spring guide button; the right skirt stops short at the front to clear the cocking lever. Real AKM cover is about 240 x 39mm. Held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it.',
+  'Stamped steel AKM dust cover (65): half-round crown over the recoil spring, flared shoulders and straight skirts, three stiffening ribs across the crown and a long flute on each skirt. The rear end is raked and closes the whole back of the receiver down to the stock, with a square window the recoil spring guide button pokes through (press the button to lift the cover off); the right skirt stops short at the front to clear the cocking lever. Real AKM cover is about 240 x 39mm. Held by the recoil spring guide button at the rear. On the airsoft gun it hides the hop-up adjuster. Small part 63 with screw 64 is the latch inside it.',
   akmCover().map(g => [g, 'blk']), { shell: true });
 part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv', ['62', '60', '61'], [0, 235, 0],
   'Recoil spring guide (62) with its spring (60) and bushing (61). On the real rifle it returns the bolt carrier; here it only springs the cocking lever back and locks the dust cover through the rear button.',
