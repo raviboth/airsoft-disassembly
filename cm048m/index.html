@@ -759,18 +759,17 @@ part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv',
    [cyl(mm(4), mm(3), 'x', X(785), Y(70), 0, 16), 'steel'], [bx(X(793), X(785), Y(80), Y(72.5), -mm(4), mm(4)), 'steel'],
    [bx(X(803), X(794), Y(84), Y(78), -mm(3.3), mm(3.3)), 'steel'], [bx(X(809), X(802), Y(84), Y(76.5), -mm(3.3), mm(3.3)), 'steel'],
    [cyl(mm(4), mm(5), 'x', X(558), Y(70), 0, 16), 'brass']]);
-// AKM charging handle: a flat paddle swept out from the carrier, not a ball. Section grows from the stem to a wider,
-// thinner knob with a rounded end, tilted nose-down and swept slightly back (CYMA carrier spares, RedWolf and Taiwangun shots)
+// AKM charging handle, plan shape from the Forbus AKM carrier drawing and the Apex top view: 10mm wide at the root,
+// sticks out about 27.5mm from the carrier side, straight rear face, front face scalloped (4.4mm deep at 17.4mm out),
+// rounded tip about 5mm wide. A flat blade about 7mm thick that rises slightly toward the tip (Atlantic end-on shots).
 function chargingHandle(x0, y0) {
-  const N = 28, M = 20, pos = [], idx = [];
+  const N = 64, M = 24, pos = [], idx = [];
   for (let i = 0; i <= N; i++) {
-    const t = i / N, z = RZ - mm(2) + mm(22) * t, x = x0 - mm(2.5) * t * t, y = y0 - mm(2) * t * t;
-    const k = t < 0.35 ? t / 0.35 : 1, end = t > 0.88 ? Math.sqrt(Math.max(0, 1 - ((t - 0.88) / 0.12) ** 2)) : 1;
-    const a = (mm(3.6) + (mm(6) - mm(3.6)) * k) * end, b = (mm(3.6) + (mm(2.7) - mm(3.6)) * k) * Math.max(end, 0.15), tilt = -0.35 * k;
-    for (let j = 0; j < M; j++) {
-      const u = j / M * Math.PI * 2, ex = a * Math.cos(u), ey = b * Math.sin(u) * (Math.cos(u) > 0 ? 0.85 : 1.1);
-      pos.push(x + ex * Math.cos(tilt) - ey * Math.sin(tilt), y + ex * Math.sin(tilt) + ey * Math.cos(tilt), z);
-    }
+    const t = i / N, z = RZ - mm(3.5) + mm(27.5) * t, y = y0 + mm(1.8) * t * t;
+    const front = 5 - 11 * t + 6.6 * t * t, rear = -5 + 0.8 * t * t;            // mm along x, + toward the muzzle
+    const end = t > 0.88 ? Math.sqrt(Math.max(0, 1 - ((t - 0.88) / 0.12) ** 2)) : 1;      // rounded tip
+    const cx = x0 + mm((front + rear) / 2), a = mm(Math.max((front - rear) / 2, 3)) * Math.max(end, 0.04), b = mm(2.9 - 0.6 * t) * Math.max(end, 0.04);
+    for (let j = 0; j < M; j++) { const u = j / M * Math.PI * 2; pos.push(cx + a * Math.cos(u), y + b * Math.sin(u), z); }
   }
   for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
     const a = i * M + j, b = i * M + (j + 1) % M, c = a + M, d = b + M; idx.push(a, c, b, b, c, d);
@@ -779,7 +778,7 @@ function chargingHandle(x0, y0) {
   g.setIndex(idx); g.computeVertexNormals(); return g;
 }
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
-  'Right-side cocking lever (59). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
+  'Right-side cocking lever (59): a flat blade 10mm wide at the root, about 27.5mm long, scalloped on the front face and rounded at the tip (Forbus AKM carrier drawing). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
   [[bx(X(622), X(505), Y(88), Y(73), RZ - mm(3.5), RZ - mm(1.8)), 'steel'],
    [chargingHandle(X(522), Y(80.5)), 'dark']]);
 // AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
