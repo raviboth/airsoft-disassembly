@@ -876,7 +876,7 @@ function selectorLever() {
   const [cx, cy] = SEL_C, arc = [];
   for (let i = 0; i <= 30; i++) { const a = (80 - 175 * i / 30) * Math.PI / 180; arc.push([cx + SEL_R * Math.cos(a), cy + SEL_R * Math.sin(a)]); }
   const out = [...arc, [711, 100.4], [707, 97.2], [691, 83.8], [611, 82.8], [607.8, 85.4], [607.8, 100.2], [610.5, 103.3], [640, 102.6]];
-  const hole = Array.from({ length: 14 }, (_, i) => [623.3 + 1.8 * Math.cos(i / 14 * 2 * Math.PI), 92.4 + 1.8 * Math.sin(i / 14 * 2 * Math.PI)]);
+  const hole = [[621.6, 90.6], [625, 90.6], [625, 94.2], [621.6, 94.2]];        // square hole through the front ledge (VFC 0348 lever)
   return prof(P(out), mm(1.6), 0.25, [P(hole)]);
 }
 // raised stamped pad along the arm: a stadium between two photo points
@@ -889,8 +889,11 @@ function selectorRib(a, b, r) {
 part('selector', 'Semi/auto selector + copper bushing, spring, located slice', 'rcv', ['11', '10', '12', '9'], [0, 0, 110],
   'AK selector lever (11) on the right side, shown on safe. Top = safe (its top edge closes the cut in the dust cover skirt and blocks the cocking lever), middle = АВ (full auto), bottom = ОД (semi); the marks are stamped on the receiver under the front tab. Stamped plate with a round pivot end, tapering arm and a front finger tab. Pivots on bushing 10 under a domed screw; spring 12 and detent plate 9 give the click positions. The manual warns not to switch semi to full with the trigger held. Owners report the lever screw working loose.',
   [[at(selectorLever(), 0, 0, RZ + mm(2.3)), 'blk'],
-   // finger tab: the lower front edge folded outward
-   [at(prof(P([[630, 101.4], [611, 101.4], [608.4, 99], [608.4, 100.4], [610.8, 103.2], [630, 102.7]]), mm(3.2), 0.2), 0, 0, RZ + mm(4.2)), 'blk'],
+   // finger tab: the lower front edge folded outward into a wide pad, checkered on its face (VFC 0348 edge view)
+   [at(prof(P([[632, 100.8], [611, 100.8], [608.4, 98.6], [608.4, 100.6], [610.8, 103.4], [632, 102.9]]), mm(5), 0.25), 0, 0, RZ + mm(5)), 'blk'],
+   [at(new THREE.PlaneGeometry(mm(17), mm(4.6)).rotateX(Math.PI / 2), X(620.5), Y(103.75), RZ + mm(5)), 'checker'],
+   // raised ledge across the top front, around the square hole
+   [at(prof(P([[616, 86.6], [630, 86.6], [630, 96], [616, 96]]), mm(1), 0.25, [P([[621.6, 90.6], [625, 90.6], [625, 94.2], [621.6, 94.2]])]), 0, 0, RZ + mm(3.4)), 'blk'],
    [at(selectorRib([712, 104.5], [637, 95], 3.4), 0, 0, RZ + mm(3.1)), 'blk'],
    [cyl(mm(5.6), mm(1), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(3.6), 28), 'blk'],
    [at(new THREE.SphereGeometry(mm(3.6), 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.45), X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(4.1)), 'steel'],
