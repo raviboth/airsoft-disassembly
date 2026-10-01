@@ -106,7 +106,7 @@ const VFC_NAMES = { '01': 'Flash hider', '02': 'Front sight set', '03': 'Gas cha
 const VFC = { brake: ['01'], fsb: ['02'], brakeDetent: ['01'], outerBarrel: ['08'], cleaningRod: ['09'], gasBlock: ['03'], gasTube: ['05'], upperHG: ['04', '06'], hgLever: ['07'],
   lowerHG: ['11', '12'], hgRetainer: ['10'], rearSight: ['13', '14'], receiver: ['27'], frontTrunnion: ['27'], rearTrunnion: ['27'], sideRail: ['27'], trigGuard: ['27'],
   dustCover: ['16'], recoilGuide: ['17'], cockLever: ['15'], selector: ['26'], magCatch: ['25'], hopChamber: ['21'], hopAdjuster: ['21'], hopArm: ['20'], barrelClip: ['21'], bucking: ['20'], innerBarrel: ['18', '19'],
-  gearbox: ['22'], cylinder: ['22'], piston: ['22'], mainSpring: ['22'], gears: ['22'], tappet: ['22'], trigger: ['22'], selPlate: ['22'], wiring: ['22'],
+  gearbox: ['22'], cylinder: ['22'], piston: ['22'], mainSpring: ['22'], gears: ['22'], tappet: ['22'], trigger: ['22'], switchAsm: ['22'], selPlate: ['22'], wiring: ['22'],
   motor: ['23'], motorCage: ['24'], grip: ['28'], stock: ['29'], stockScrews: ['29'], buttPlate: ['29'], slingLoop: ['29'],
   magShell: ['30'], magFloor: ['30'], magTracts: ['30'], magGears: ['30'], feedLips: ['30'] };
 
@@ -1048,11 +1048,26 @@ part('tappet', 'Tappet plate + cut-off lever, anti-reversal latch', 'gbx', [], [
   'V3 tappet plate (about 110 x 25mm) pulls the nozzle back to feed a BB; the cut-off lever stops the sector gear in semi; the metal anti-reversal latch stops the gears spinning backwards.',
   [[bx(GX(-8), GX(100), GY(7.5), GY(10), mm(5.5), mm(8)), 'poly'], [bx(GX(100), GX(104), GY(7.5), GY(30), mm(3), mm(8)), 'poly'],
    [bx(GX(8), GX(22), GY(-6), GY(3), mm(6), mm(7.5)), 'steel'], [bx(GX(-38), GX(-26), GY(-34), GY(-26), -mm(9), -mm(7.5)), 'steel']], { tag: 'V3', variant: 'aeg' });
-const TRIG = P([[693, 143], [703, 146], [713, 162], [710, 177], [705, 177], [706, 163], [697, 150]]);
-part('trigger', 'Trigger + trigger contacts', 'gbx', [], [150, 360, 0],
-  'Gearbox trigger (pivot pin near the front bottom of the shell) and its copper contact assembly (2 screws plus a separation spring). No MOSFET on the stock gun.',
-  [[prof([...TRIG, [GX(28), GY(-5)], [GX(33), GY(-2)]], mm(5), 0.8), 'steel'], [cyl(mm(1.5), mm(8), 'z', GX(30), GY(-3), 0, 10), 'steel'],
-   [bx(GX(40), GX(62), GY(-6), GY(4), -mm(5), mm(5)), 'poly'], [bx(GX(44), GX(58), GY(4), GY(6), -mm(3), mm(3)), 'brass']], { tag: 'V3', variant: 'aeg' });
+// trigger blade traced from the CYMA side photo (photo px): concave front face down to the tip, convex back face up to the receiver
+const TRIG_BLADE = P([[692.2, 141], [692.7, 143.9], [696.1, 147.8], [698.3, 151.3], [699.1, 154.8], [698.7, 159.2], [697.2, 163.6], [694.6, 168], [690.8, 171.9],
+  [688.2, 174.1], [687.4, 174.9], [688.5, 175.5], [692.3, 173.7], [696.1, 171], [698.7, 167.1], [701, 161.8], [702.5, 156.6], [702.8, 152.2], [703.2, 147.8], [705.5, 144.3], [705.8, 141]]);
+// trigger body inside the shell (gearbox mm): pivot boss at the front, the upright post that pushes the switch trolley, spring lug at the back
+const TRIG_BODY = G([[20.5, -9], [19, -8], [19, -2], [25.5, -2], [26, 5.5], [28.6, 5.5], [29, 1.2], [32.4, 0], [33.6, -3], [32.4, -6.2], [31.6, -9]]);
+part('trigger', 'Trigger + trigger spring', 'gbx', [], [150, 360, 0],
+  'Gearbox trigger: steel on the stock gun, with the AKM crescent blade (concave front face, tip curling forward) in the rear half of the guard. It pivots on a pin near the front bottom of the shell; the upright post on its body pushes the switch trolley forward, and a small torsion spring on the rear lug returns it. Pulling the blade about 5mm closes the contacts.',
+  [[prof(TRIG_BLADE, mm(6), 0.6), 'blk'], [prof(TRIG_BODY, mm(8), 0.3), 'blk'],
+   [cyl(mm(2.6), mm(9), 'z', GX(30.5), GY(-3), 0, 16), 'steel'], [cyl(mm(1.5), 2 * GBZ, 'z', GX(30.5), GY(-3), 0, 10), 'steel'],
+   [cyl(mm(1), mm(11), 'z', GX(21), GY(-5.5), 0, 8), 'steel'],
+   [spring(mm(1.7), mm(0.35), mm(3), 4, 'z', GX(21), GY(-5.5), mm(4.2)), 'spring'],
+   [bx(GX(17.5), GX(21), GY(-7.2), GY(-6.6), mm(4.6), mm(5.4)), 'spring']], { tag: 'V3' });
+// V3 switch assembly in front of the trigger, under the cylinder (CYMA AK gearbox photos): polymer housing at the front bottom of the
+// shell with the contacts and wire exit at its front end, a top rail running back to the trigger, and the sliding trolley the trigger post pushes
+part('switchAsm', 'Switch assembly (trigger contacts)', 'gbx', [], [260, 300, 0],
+  'V3 switch assembly: a black polymer housing at the front bottom of the shell, held by 2 screws, with copper contact leaves at its front end where the motor leads leave the gearbox. Pulling the trigger pushes the spring-loaded trolley forward to close the contacts; the cut-off lever knocks it back in semi. No MOSFET on the stock gun, so the contacts carry full motor current and pit over time.',
+  [[at(prof(G([[33, 2], [56, 2], [56, -7.5], [81, -7.5], [81, 4], [33, 4]]), mm(8), 0.3), 0, 0, -mm(0.5)), 'blk'],
+   [bx(GX(30), GX(44), GY(-2.2), GY(1.6), -mm(3), mm(3)), 'blk'],
+   ...[-1, 1].map(s => [bx(GX(62), GX(84), GY(-5), GY(-3.6), s * mm(2.2) - mm(0.6), s * mm(2.2) + mm(0.6)), 'brass']),
+   ...[60, 76].map(a => [cyl(mm(1.6), mm(1.2), 'z', GX(a), GY(-2), -mm(4.4), 10), 'dark'])], { tag: 'V3', variant: 'aeg' });
 part('selPlate', 'Selector plate', 'gbx', [], [-150, 440, 0],
   'V3 selector plate (about 87 x 13mm) on the right of the shell, with the rack teeth that the external lever turns. Debris under the dust cover can jam it. Kept in the Kythera build.',
   [[at(prof(G([[-6, -6], [80, -6], [80, 7], [-6, 7]]), mm(1.2), 0.2), 0, 0, GBZ + mm(1)), 'steel'],
