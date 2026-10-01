@@ -703,7 +703,7 @@ part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
 
 // ================= RECEIVER AND CONTROLS =================
 const RCV_SIDE = P([[493, 77], [806, 77], [818, 91], [818, 143], [545, 143], [493, 132]]);
-const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113], [798, 101], [805, 128]];
+const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113]];
 part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
   [[at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
@@ -718,8 +718,20 @@ part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', 
   [[bx(X(572), X(496), Y(128), Y(76), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
    [cyl(mm(3.5), mm(30), 'z', X(515), Y(122), 0, 12), 'steel']], { shell: true });
 part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
-  'Rear trunnion (6): the stock tang slots into it and the gearbox rear seats against it.',
-  [[bx(X(816), X(797), Y(146), Y(86), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'], [bx(X(830), X(818), Y(135), Y(100), -mm(10), mm(10)), 'dark']], { shell: true });
+  'Rear trunnion (6), the CYMA "stock adapter": a block inside the rear of the receiver that the gearbox rear seats against, a square socket out the back for the stock nose and power cable, and an upper and a longer lower tang that run back inside the stock wrist, each with a screw hole. Held by the hex screws through the receiver sides. Hidden once the stock is on.',
+  // CYMA spare photos (18airsoft, Asia Airsoft, the metal receiver close-up): block, socket, two tangs. Kept inside the receiver
+  // walls (rear corner follows the receiver's top chamfer) and inside the stock wrist section (STOCK_ST)
+  (() => {
+    const ring = (cx, cy, r) => Array.from({ length: 16 }, (_, i) => [cx + r * Math.cos(-i / 16 * Math.PI * 2), cy + r * Math.sin(-i / 16 * Math.PI * 2)]);
+    const hw = RZ - mm(1.3), sw = mm(10.5), t = mm(1.6);
+    return [
+      [prof(P([[794, 89], [813, 89], [817.4, 95], [817.4, 141.4], [794, 141.4]]), 2 * hw, 0.4), 'dark'],
+      ...[1, -1].map(sg => [bx(X(833), X(817.4), Y(128), Y(104), sg > 0 ? sw - t : -sw, sg > 0 ? sw : -sw + t), 'dark']),   // socket walls
+      [bx(X(833), X(817.4), Y(104) - t, Y(104), -sw, sw), 'dark'], [bx(X(833), X(817.4), Y(128), Y(128) + t, -sw, sw), 'dark'],
+      [prof(P([[817, 92.6], [845, 99.6], [849, 100.6], [851.4, 103.4], [849.5, 105.6], [845, 105], [817, 97.6]]), mm(15), 0.4, [P(ring(846.5, 102.5, 1.6))]), 'dark'],   // upper tang
+      [prof(P([[817, 134.6], [874, 150.4], [878.5, 151.6], [880.6, 155], [878.4, 158.2], [873, 157.8], [817, 140.8]]), mm(15), 0.4, [P(ring(875.5, 154.4, 1.8))]), 'dark'], // lower tang
+    ];
+  })(), { shell: true });
 // selector lever pivot (photo px) and its top edge (photo py) along the arm; the dust cover's right skirt is cut to it
 const SEL_C = [731.5, 112], SEL_R = 11.5;
 const selTop = px => px >= 707 ? 97.2 + (px - 707) * 0.7 : px >= 691 ? 83.8 + (px - 691) * 13.4 / 16 : 82.8 + (px - 615) / 76;
@@ -979,8 +991,10 @@ part('stock', 'Gunstock (fixed AKM stock)', 'stk', ['66M'], [-160, 0, 0],
   'Real wood fixed AKM stock (66M), plain sides (the AK74 stock 66 has a lightening slot). Hollow: the battery lives inside, behind the butt plate. Real AKM stocks run 270 to 280 x 100 x 37mm.',
   [[sweepX(STOCK_ST, { n: 3.4 }), 'wood']], { shell: true });
 part('stockScrews', 'Stock screws M5x13 (hex)', 'stk', ['69'], [-120, 70, 0],
-  'Hex screws (69) through the receiver and rear trunnion into the stock tang.',
-  [1, -1].flatMap(s => [[cyl(mm(4.2), mm(2), 'z', X(806), Y(100), s * (RZ + mm(1)), 14), 'steel'], [cyl(mm(4.2), mm(2), 'z', X(806), Y(132), s * (RZ + mm(1)), 14), 'steel']]));
+  'Hex socket screws (69) through the receiver sides into the rear trunnion.',
+  // one near the top rear corner on each side (CM048M side photos), one low at the rear
+  [1, -1].flatMap(s => [[799, 100.6], [805, 129]].flatMap(([a, b]) => [[cyl(mm(3), mm(1.2), 'z', X(a), Y(b), s * (RZ + mm(1)), 18), 'dark'],
+    [cyl(mm(1.3), mm(0.4), 'z', X(a), Y(b), s * (RZ + mm(1.5)), 6), 'black']])));
 part('buttPlate', 'Stock rear cap (butt plate) + screws', 'stk', ['71', '72'], [-240, 0, 0],
   'Steel butt plate (71) held by two Phillips M4x12 screws (72). Remove it to reach the battery.',
   [[sweepX([{ x: X(1132), yt: Y(102), yb: Y(226), w: mm(42) }, { x: X(1122), yt: Y(102), yb: Y(226), w: mm(42) }], { n: 4, step: 20 }), 'blk'],
