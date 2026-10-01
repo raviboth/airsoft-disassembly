@@ -903,13 +903,36 @@ const MAG_BACK = [[636, 143], [633, 170], [623, 198], [613, 223], [603, 243], [5
 const MAG_POLY = [[558, 126], ...MAG_FRONT, [452, 295], [499, 355], ...[...MAG_BACK].reverse(), [636, 126]];
 const MZ = mm(12.4);
 const magF = resample(MAG_FRONT, 22), magB = resample(MAG_BACK, 22);
-const ribs = [0.42, 0.58, 0.74].flatMap(f => [1, -1].map(s => [tubeAlong(magF.slice(2, 19).map((p, k) => { const q = magB[k + 2]; return [X(p[0] + (q[0] - p[0]) * f), Y(p[1] + (q[1] - p[1]) * f), s * MZ]; }), mm(1), 6), 'blk']));
+// side detail traced from the Airsoft Station photo: three stamped ribs, grooves along the front and rear spines,
+// a flat top panel and the floor plate band. Lines run between the front and back curves at fraction f.
+const MZS = MZ + 1.2;                                   // side surface (extrude depth plus bevel)
+const magF60 = resample(MAG_FRONT, 60), magB60 = resample(MAG_BACK, 60);
+const magLine = (f, py0, py1) => magF60.map((p, k) => [p[0] + (magB60[k][0] - p[0]) * f, p[1] + (magB60[k][1] - p[1]) * f]).filter(([, y]) => y >= py0 && y <= py1);
+const sideTube = (pts, r, flat, s, mat) => [at(tubeAlong(pts.map(([a, b]) => [X(a), Y(b), 0]), r, 8).scale(1, 1, flat), 0, 0, s * MZS), mat];
+const MAG_RIBS = [[0.33, 297], [0.46, 297], [0.6, 314]];
+const magSide = [1, -1].flatMap(s => [
+  ...MAG_RIBS.flatMap(([f, end]) => {
+    const pts = magLine(f, 152, end), cap = q => [at(new THREE.SphereGeometry(mm(1.7), 12, 8).scale(1, 1, 0.5), X(q[0]), Y(q[1]), s * MZS), 'blk'];
+    return [sideTube(pts, mm(1.7), 0.5, s, 'blk'), cap(pts[0]), cap(pts[pts.length - 1])];
+  }),
+  sideTube(magLine(0.13, 146, 292), mm(0.45), 0.6, s, 'black'),         // front spine seam
+  sideTube(magLine(0.9, 146, 348), mm(0.45), 0.6, s, 'black'),          // rear spine seam
+  sideTube([[467, 298], [488, 316], [509, 334]], mm(1.5), 0.5, s, 'blk'),     // short cross rib above the floor plate
+  sideTube([[456.5, 296], [480, 326], [502.5, 352]], mm(0.4), 0.6, s, 'black'),   // floor plate seam
+  [at(prof(P([[575, 136], [623, 136], [623, 145.5], [575, 145.5]]), mm(0.6), 0.3), 0, 0, s * MZS), 'blk']]);
 part('magShell', 'Magazine cover (AKM ribbed shell) + button', 'mag', ['73M', '93'], [60, -240, 0],
   'Steel AKM-pattern hi-cap shell (73M) with the stamped ribs. 600 rounds per the manual (retailers list 400 to 600). The front lug hooks the trunnion; the rear engages the catch. Button 93 sits at the top. Measured AKM mag models: about 26.7mm thick over the ribs, 30 to 32mm at the top, about 64mm deep.',
-  [[prof(P(MAG_POLY), 2 * MZ, 1.2), 'blk'], ...ribs], { shell: true });
+  [[prof(P(MAG_POLY), 2 * MZ, 1.2), 'blk'], ...magSide,
+   // front lug above the top front (hooks the trunnion) and rear locking lug with three grip ridges (catch side)
+   [bx(X(562), X(553), Y(127), Y(119), -mm(6), mm(6)), 'blk'],
+   [bx(X(643), X(636), Y(139), Y(131), -mm(8), mm(8)), 'blk'],
+   ...[0, 1, 2].map(i => [bx(X(642.5), X(637), Y(131), Y(129.8), -mm(6.5) + i * mm(1.8), -mm(5.6) + i * mm(1.8)), 'blk'])], { shell: true });
 part('magFloor', 'Magazine rear cover (floor plate)', 'mag', ['74'], [110, -300, 0],
-  'Floor plate (74) at the bottom of the shell.',
-  [[prof(P([[449, 293], [455, 288], [505, 350], [499, 359]]), 2 * MZ + mm(2), 0.8), 'blk']]);
+  'Floor plate (74) at the bottom of the shell, with the slot for the winding wheel near the front. Winding the wheel tensions the clock spring that feeds the 600 BBs.',
+  [[prof(P([[449, 293], [455, 288], [505, 350], [499, 359]]), 2 * MZ + mm(2), 0.8), 'blk'],
+   // winding wheel slot near the front of the floor plate, wheel rim showing through
+   [at(new THREE.BoxGeometry(16, 2.2, mm(9)).rotateZ(Math.atan2(-60, -47)), X(462.1), Y(315.1), 0), 'black'],
+   [at(cyl(mm(10), mm(3), 'z', 0, 0, 0, 40), X(473), Y(306.5), 0), 'poly2']]);
 part('magTracts', 'Right / left trajectory (feed tract halves) + shafts', 'mag', ['77', '78', '75', '76'], [290, -240, 0],
   'Plastic inner body in two halves (77 right, 78 left) that holds the BB channel and the winding gear train, pinned by shafts 75 and 76 (2x25.5 and 2x21.5).',
   [[prof(P([[560, 127], ...resample(MAG_FRONT, 12).map(([a, b]) => [a + 10, b]), [470, 300], [500, 340], [520, 332], [545, 300], ...resample(MAG_FRONT, 12).reverse().map(([a, b]) => [a + 26, b]).slice(0, 10), [600, 127]]), 2 * MZ - mm(4), 0.5), 'poly2']], { variant: null });
@@ -920,8 +943,8 @@ part('magGears', 'Winding gear train (gears, clock spring, driver)', 'mag', ['79
    [gear(mm(8), 16, mm(2.5), X(510), Y(270), 0), 'poly'], [gear(mm(5), 12, mm(2.5), X(522), Y(255), 0), 'poly'],
    [cyl(mm(1.5), 2 * MZ, 'z', X(492), Y(300), 0, 8), 'steel']]);
 part('feedLips', 'Magazine cover (feed plate) + bullet block, spring, screw', 'mag', ['89', '90', '92', '91'], [60, -170, 0],
-  'Feed plate (89) at the top of the magazine with the spring-loaded bullet block (90, 92, screw 91) that stops BBs spilling out when the mag is out of the gun.',
-  [[bx(X(620), X(560), Y(128), Y(124), -mm(8), mm(8)), 'poly2'], [bx(X(572), X(562), Y(126), Y(120), -mm(3), mm(3)), 'steel'],
+  'Feed plate (89) at the top of the magazine, BB outlet toward the rear, with the spring-loaded bullet block (90, 92, screw 91) that stops BBs spilling out when the mag is out of the gun.',
+  [[bx(X(620), X(560), Y(128), Y(124), -mm(8), mm(8)), 'poly2'], [cyl(mm(3.2), 0.4, 'y', X(603), Y(124) + 0.75, 0, 20), 'black'], [cyl(mm(4.2), 0.6, 'y', X(603), Y(124) + 0.35, 0, 20), 'steel'], [bx(X(572), X(562), Y(126), Y(120), -mm(3), mm(3)), 'steel'],
    [spring(mm(1.2), mm(0.25), mm(8), 6, 'x', X(585), Y(122), 0), 'spring']]);
 
 // ================= OWNER BUILD: POLARSTAR KYTHERA HPA =================
