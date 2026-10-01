@@ -174,6 +174,7 @@ const MAT = {
   checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
   wood:   { color: 0xffffff, metalness: 0.0,  roughness: 0.34 },
   blk:    { color: 0x26282c, metalness: 0.55, roughness: 0.45 },
+  stamp:  { color: 0xffffff, metalness: 0.3,  roughness: 0.7 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
@@ -337,6 +338,18 @@ function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
   return out;
 }
 // lacquered birch-ply wood grain (canvas), grain runs along u
+// selector marks stamped in the right receiver wall under the lever tab: a short line with a cross tick, then АВ / ОД
+const STAMP = (() => {
+  const c = document.createElement('canvas'); c.width = 320; c.height = 320;
+  const g = c.getContext('2d'); g.strokeStyle = g.fillStyle = 'rgba(110,115,125,0.38)'; g.lineWidth = 7;
+  g.font = 'bold 76px sans-serif'; g.textBaseline = 'middle';
+  for (const [y, t] of [[90, 'АВ'], [245, 'ОД']]) {
+    g.beginPath(); g.moveTo(20, y); g.lineTo(110, y); g.moveTo(65, y - 22); g.lineTo(65, y + 22); g.stroke();
+    g.fillText(t, 140, y + 4);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+})();
 const WOOD = (() => {
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
   const x = c.getContext('2d'); x.fillStyle = '#7b3a15'; x.fillRect(0, 0, 512, 128);
@@ -448,6 +461,7 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
     const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey], side: THREE.DoubleSide });
     if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
     if (matKey === 'wood') { mat.map = WOOD; }
+    if (matKey === 'stamp') { mat.map = STAMP; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true; m.receiveShadow = true;
     m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
@@ -619,6 +633,7 @@ part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
    [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
    ...[1, -1].map(s => [bx(X(794), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
    ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
+   [at(new THREE.PlaneGeometry(mm(26), mm(26)), X(619), Y(124), RZ + mm(0.6) + 0.45), 'stamp'],
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
 part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
   'Front trunnion (5): receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it. Shaft 51 (7x30) and screw 52 tie it in. Real AKM trunnion block is 65mm long, flush with the receiver front.',
@@ -627,6 +642,9 @@ part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', 
 part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
   'Rear trunnion (6): the stock tang slots into it and the gearbox rear seats against it.',
   [[bx(X(816), X(797), Y(146), Y(86), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'], [bx(X(830), X(818), Y(135), Y(100), -mm(10), mm(10)), 'dark']], { shell: true });
+// selector lever pivot (photo px) and its top edge (photo py) along the arm; the dust cover's right skirt is cut to it
+const SEL_C = [731.5, 112], SEL_R = 11.5;
+const selTop = px => px >= 707 ? 97.2 + (px - 707) * 0.7 : px >= 691 ? 83.8 + (px - 691) * 13.4 / 16 : 82.8 + (px - 615) / 76;
 // AKM stamped dust cover: sheet (outer + inner skin) swept along x. Section from the end-on photos (K-Var Arsenal cover):
 // half-round crown over the recoil spring, flared shoulders, straight skirts. Skirt heights, ribs, flutes and the raked rear
 // traced from the CM048M side photo (left) and the RedWolf right-side close-up.
@@ -636,7 +654,10 @@ function akmCover() {
   const bump = (px, a, b, e) => ramp(px, a, a + e) * (1 - ramp(px, b - e, b));
   // skirt bottom depth per side (0 = top), by photo px
   const botL = px => H - mm(6) * (1 - ramp(px, 565, 587));
-  const botR = px => H - (H * 0.45) * (1 - ramp(px, 610, 628));
+  const botR = px => {      // right skirt: cut along the selector lever's top edge, then the cocking lever notch
+    const lv = Math.min(H, selTop(px) + 1.2 - 56);
+    return lv - (lv - 0.55 * H) * (1 - ramp(px, 610, 628));
+  };
   const rib = px => [555, 635, 717].reduce((a, r) => a + mm(1) * Math.exp(-(((px - r) / 2.3) ** 2)), 0);
   const flute = (px, u, a, b) => (u > 0.45 && u < 0.72) ? -mm(0.7) * bump(px, a, b, 4) * Math.sin((u - 0.45) / 0.27 * Math.PI) : 0;
   // short grooves along the crown top, one per bay between the ribs (K-Var and Apex side views)
@@ -713,12 +734,34 @@ part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60]
   [[bx(X(622), X(505), Y(88), Y(73), RZ - mm(3.5), RZ - mm(1.8)), 'steel'],
    [cyl(mm(3.5), mm(22), 'z', X(509), Y(80), RZ + mm(9), 14), 'steel'],
    [new THREE.SphereGeometry(mm(5.2), 16, 12).translate(X(509), Y(80), RZ + mm(21)), 'steel']]);
+// AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
+// Stamped plate: round pivot end at the rear, tapering arm, raised front tab with the finger hole; the top edge
+// closes the cut in the dust cover's right skirt when the lever is up (safe).
+function selectorLever() {
+  // outline traced from the Taiwangun CM048M right-side close-up; hump in the top edge as on the VFC and real AKM levers
+  const [cx, cy] = SEL_C, arc = [];
+  for (let i = 0; i <= 30; i++) { const a = (80 - 175 * i / 30) * Math.PI / 180; arc.push([cx + SEL_R * Math.cos(a), cy + SEL_R * Math.sin(a)]); }
+  const out = [...arc, [711, 100.4], [707, 97.2], [691, 83.8], [611, 82.8], [607.8, 85.4], [607.8, 100.2], [610.5, 103.3], [640, 102.6]];
+  const hole = Array.from({ length: 14 }, (_, i) => [623.3 + 1.8 * Math.cos(i / 14 * 2 * Math.PI), 92.4 + 1.8 * Math.sin(i / 14 * 2 * Math.PI)]);
+  return prof(P(out), mm(1.6), 0.25, [P(hole)]);
+}
+// raised stamped pad along the arm: a stadium between two photo points
+function selectorRib(a, b, r) {
+  const [ax, ay] = a, [bx_, by] = b, ang = Math.atan2(by - ay, bx_ - ax), pts = [];
+  for (let i = 0; i <= 12; i++) { const t = ang + Math.PI / 2 + Math.PI * i / 12; pts.push([bx_ + r * Math.cos(t), by + r * Math.sin(t)]); }
+  for (let i = 0; i <= 12; i++) { const t = ang - Math.PI / 2 + Math.PI * i / 12; pts.push([ax + r * Math.cos(t), ay + r * Math.sin(t)]); }
+  return prof(P(pts), mm(0.6), 0.3);
+}
 part('selector', 'Semi/auto selector + copper bushing, spring, located slice', 'rcv', ['11', '10', '12', '9'], [0, 0, 110],
-  'AK selector lever (11) on the right side. Top = safe (also covers the ejection port), middle = AB (full auto), bottom = OД (semi). Pivots on bushing 10; spring 12 and detent plate 9 give the click positions. The manual warns not to switch semi to full with the trigger held.',
-  [[at(prof(P([[738, 108], [622, 87], [613, 87], [613, 97], [626, 98], [738, 125]]), mm(1.5), 0.3), 0, 0, RZ + mm(2.4)), 'blk'],
-   [cyl(mm(6.5), mm(2.6), 'z', X(735), Y(116), RZ + mm(2.2), 24), 'blk'],
-   [cyl(mm(3), mm(3.5), 'z', X(735), Y(116), RZ + mm(3), 14), 'brass'],
-   [bx(X(620), X(612), Y(98), Y(86), RZ + mm(2), RZ + mm(7)), 'blk']]);
+  'AK selector lever (11) on the right side, shown on safe. Top = safe (its top edge closes the cut in the dust cover skirt and blocks the cocking lever), middle = АВ (full auto), bottom = ОД (semi); the marks are stamped on the receiver under the front tab. Stamped plate with a round pivot end, tapering arm and a front finger tab. Pivots on bushing 10 under a domed screw; spring 12 and detent plate 9 give the click positions. The manual warns not to switch semi to full with the trigger held. Owners report the lever screw working loose.',
+  [[at(selectorLever(), 0, 0, RZ + mm(2.3)), 'blk'],
+   // finger tab: the lower front edge folded outward
+   [at(prof(P([[630, 101.4], [611, 101.4], [608.4, 99], [608.4, 100.4], [610.8, 103.2], [630, 102.7]]), mm(3.2), 0.2), 0, 0, RZ + mm(4.2)), 'blk'],
+   [at(selectorRib([712, 104.5], [637, 95], 3.4), 0, 0, RZ + mm(3.1)), 'blk'],
+   [cyl(mm(5.6), mm(1), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(3.6), 28), 'blk'],
+   [at(new THREE.SphereGeometry(mm(3.6), 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.45), X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(4.1)), 'steel'],
+   [bx(X(SEL_C[0]) - mm(3), X(SEL_C[0]) + mm(3), Y(SEL_C[1]) - mm(0.35), Y(SEL_C[1]) + mm(0.35), RZ + mm(4.6), RZ + mm(5.8)), 'black'],
+   [cyl(mm(4.2), mm(1.6), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(1.3), 20), 'brass']]);
 part('sideRail', 'Side rail (optics mount)', 'rcv', ['2'], [0, 0, -110],
   'Dovetail side mount (2) on the left of the receiver, for AK side-mount optics.',
   [[at(prof(P([[612, 103], [760, 103], [760, 127], [612, 127]]), mm(3), 0.6), 0, 0, -RZ - mm(1.8)), 'blk'],
@@ -970,6 +1013,7 @@ const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded 
 <a href="https://airsoftstation.com/cyma-cm048m-ak47-full-metal-real-wood-airsoft-rifle/">Airsoft Station</a> (side photo used for tracing),
 <a href="https://robertforbus.com/ak-part-drawings/akm-receiver/">Robert Forbus AKM drawings</a>,
 <a href="https://get.vegaforce.com/downloads/AKM_AKMS_PARTS_LIST.pdf">VFC AKM/AKMS parts list</a> (the gun CYMA copies; AKM-xx cross-reference),
+selector lever shape from <a href="https://www.apexgunparts.com/">Apex Gun Parts</a> AKM levers and the <a href="https://www.ehobbyasia.com/">ehobbyasia</a> VFC #03-48 lever photos,
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
 <a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
