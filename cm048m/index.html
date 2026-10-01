@@ -896,8 +896,8 @@ part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8
 
 // ================= GRIP, STOCK AND POWER =================
 // levels from a row-by-row scan of the side photo's grip edges; the bottom is cut at an angle (front corner lowest)
-const GL = [[147, 720, 790, 30.5], [172, 720.5, 791, 31], [178, 724, 792, 31], [182, 733.5, 792.8, 31], [220, 749.5, 807.8, 31], [255, 764.3, 821.5, 30.8], [262, 767, 821.5, 30.5],
-            [268, 768, 813, 30], [274, 767.5, 799, 28.5], [279, 768.5, 786, 25]].map(([py, f, b, w]) => ({ y: Y(py), xf: X(f), xb: X(b), w: mm(w) }));
+const GL = [[147, 720, 790, 30.5], [172, 720.5, 791, 31], [178, 724, 792, 31], [182, 733.5, 792.8, 31], [220, 749.5, 807.8, 31], [255, 764.3, 821.5, 30.8], [262, 767, 821.5, 31.6],
+            [268, 768, 813, 31.8], [274, 767.5, 799, 30.4], [279, 768.5, 786, 27]].map(([py, f, b, w]) => ({ y: Y(py), xf: X(f), xb: X(b), w: mm(w) }));
 const GRIP_OPT = { n: 3.4, frontTaper: 0.88, step: 2 };
 part('grip', 'Gun grip + grip screw', 'stk', ['13', '14'], [-40, -150, 0],
   'Polymer AKM-pattern motor grip (13). Hollow shell around the motor, about 30mm wide (the real AKM grip is 24 x 40mm in section, 20 degrees from vertical, 106mm long; airsoft motor grips run 30 to 31mm wide to clear the motor). Top flange with rounded ends sits under the receiver; checkered field on the rear half of each side with a smooth front band. Screw 14 holds it; the M3 hex screw in the bottom plate sets motor height.',
