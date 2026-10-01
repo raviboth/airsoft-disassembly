@@ -702,11 +702,15 @@ part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
   [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
 
 // ================= RECEIVER AND CONTROLS =================
-const RCV_SIDE = P([[493, 77], [806, 77], [818, 91], [818, 143], [545, 143], [493, 132]]);
+// top rear corner cut along the dust cover's rake so it stays under the cover; the receiver's rear edge shows only below it
+const RCV_SIDE = P([[493, 77], [801.3, 77], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
+// right wall: the ejection port, a cut down from the top edge behind the rear sight block that the carrier and its charging
+// handle show through; the selector lever's top edge closes its rear end (Taiwangun CM048M right-side close-up, real AKM)
+const RCV_RIGHT = P([[493, 77], [521.5, 77], [521.5, 93], [524, 95.4], [613.5, 95.4], [616.5, 93], [616.5, 77], [801.3, 77], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
 const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113]];
 part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
-  [[at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
+  [[at(prof(RCV_RIGHT, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
    [bx(X(818), X(636), Y(143) - mm(1.2), Y(143), -RZ, RZ), 'blk'],
    [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
    ...[1, -1].map(s => [bx(X(794), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
@@ -715,7 +719,8 @@ part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
 part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
   'Front trunnion (5): receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it. Shaft 51 (7x30) and screw 52 tie it in. Real AKM trunnion block is 65mm long, flush with the receiver front.',
-  [[bx(X(572), X(496), Y(128), Y(76), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
+  [[bx(X(572), X(496), Y(128), Y(95.5), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
+   [bx(X(572), X(496), Y(95.5), Y(76), -RZ + mm(1.3), RZ - mm(4.4)), 'dark'],   // stepped in on the right where the carrier runs past the ejection port
    [cyl(mm(3.5), mm(30), 'z', X(515), Y(122), 0, 12), 'steel']], { shell: true });
 part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
   'Rear trunnion (6), the CYMA "stock adapter": a block inside the rear of the receiver that the gearbox rear seats against, a hollow box out the back that carries the power cable into the stock, a long upper tang with two screw holes under the stock comb and a short lower tang with one. Held by the hex screws through the receiver sides. Hidden once the stock is on.',
@@ -847,7 +852,9 @@ function chargingHandle(x0, y0) {
 }
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
   'Right-side cocking lever (59): a flat blade 10mm wide at the root, about 27.5mm long, scalloped on the front face, ending in an upright paddle whose front face takes the finger when pulling back (Forbus AKM carrier drawing, real AKM photo). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
-  [[bx(X(622), X(505), Y(88), Y(73), RZ - mm(3.5), RZ - mm(1.8)), 'steel'],
+  // carrier side face seen through the ejection port, with the long groove along it (Taiwangun close-up)
+  [[bx(X(622), X(505), Y(97.5), Y(72), RZ - mm(4.2), RZ - mm(1.9)), 'blk'],
+   [bx(X(612), X(526), Y(84.6), Y(83.2), RZ - mm(1.95), RZ - mm(1.7)), 'black'],
    [chargingHandle(X(522), Y(80.5)), 'dark']]);
 // AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
 // Stamped plate: round pivot end at the rear, tapering arm, raised front tab with the finger hole; the top edge
