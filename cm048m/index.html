@@ -566,13 +566,22 @@ part('brake', 'Slant muzzle brake + thread adaptor, screw', 'frt', ['37M', '35',
    [[clipFront(latheX([[4.5, X(63)], [10.3, X(63)], [10.3, X(60.5)], [9.7, X(60.5)], [9.7, X(41)], [9.2, X(41)], [9.2, X(24.5)], [4.5, X(24.5)], [4.5, X(63)]], 40), y => X(24.5 + Math.max(0, y) * 2.2)), 'orange'],
    [tube(5.2, 8.2, X(72), X(64), 24), 'blk'],
    [cyl(1.2, 3, 'y', X(55), 10, 0, 8), 'dark']]);
+function fsEars() {          // front view of the sight ears: a ring round the post, open at the top
+  const s = new THREE.Shape(), cy = Y(52), ro = mm(8.5), ri = mm(6.6), g = 0.6;
+  s.absarc(0, cy, ro, Math.PI / 2 + g, Math.PI * 2.5 - g, false);
+  s.absarc(0, cy, ri, Math.PI * 2.5 - g - 0.12, Math.PI / 2 + g + 0.12, true);
+  return s;
+}
 part('fsb', 'Front sight block + post, detent, pins', 'frt', ['28M', '29M', '30M', '27M', '31'], [200, 90, 0],
   'Front sight block (28M) pinned to the outer barrel. Carries the threaded post (30M) with its detent (29M) and the lug that holds the cleaning rod. Real AKM: post 26mm long, M6x0.75 thread, screwed into a drum for elevation zeroing.',
+  // shape from the CYMA front sight block STL (JA3D, Printables 98870) and the side photo: barrel ring, a column with the
+  // lightening window and a raked rear face, round ears open at the top, the windage drum carrying the post
   [[tube(8.8, 12, X(93), X(66), 32), 'blk'],
-   [at(prof(P([[66, 92], [66, 50], [70, 42], [78, 41], [93, 84], [93, 92]]), mm(2.4), 0.4, [P([[74, 70], [84, 70], [84, 80], [74, 80]])]), 0, 0, mm(6.5)), 'blk'],
-   [at(prof(P([[66, 92], [66, 50], [70, 42], [78, 41], [93, 84], [93, 92]]), mm(2.4), 0.4, [P([[74, 70], [84, 70], [84, 80], [74, 80]])]), 0, 0, -mm(6.5)), 'blk'],
+   [prof(P([[65, 96], [65, 58], [80, 56], [92, 96]]), mm(10), 0.6, [P([[72, 79], [84, 79], [84, 90], [72, 90]])]), 'blk'],
+   [extrudeX(fsEars(), X(80), X(65), 0.5), 'blk'],
+   [cyl(mm(3.4), mm(13), 'z', X(73), Y(62), 0, 20), 'dark'],
    [prof(P([[70, 108], [92, 108], [90, 124], [72, 124]]), mm(11), 0.8), 'blk'],
-   [cyl(mm(1.6), Y(58) - Y(90), 'y', X(79), (Y(58) + Y(90)) / 2, 0, 10), 'dark'],
+   [cyl(mm(1.5), Y(46) - Y(62), 'y', X(73), (Y(46) + Y(62)) / 2, 0, 10), 'dark'],
    [cyl(mm(4.5), mm(11), 'z', X(79), Y(92), 0, 16), 'dark']]);
 part('brakeDetent', 'Brake detent pin + spring', 'frt', ['32', '33'], [230, 50, 40],
   'Spring-loaded pin in the front sight block that clicks into the brake to stop it unscrewing (AKM style). Real AKM detent: 12.6mm long, 4mm diameter.',
