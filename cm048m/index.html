@@ -886,8 +886,8 @@ function selectorRib(a, b, r) {
   for (let i = 0; i <= 12; i++) { const t = ang - Math.PI / 2 + Math.PI * i / 12; pts.push([ax + r * Math.cos(t), ay + r * Math.sin(t)]); }
   return prof(P(pts), mm(0.6), 0.3);
 }
-part('selector', 'Semi/auto selector + copper bushing, spring, located slice', 'rcv', ['11', '10', '12', '9'], [0, 0, 110],
-  'AK selector lever (11) on the right side, shown on safe. Top = safe (its top edge closes the cut in the dust cover skirt and blocks the cocking lever), middle = АВ (full auto), bottom = ОД (semi); the marks are stamped on the receiver under the front tab. Stamped plate with a round pivot end, tapering arm and a front finger tab. Pivots on bushing 10 under a domed screw; spring 12 and detent plate 9 give the click positions. The manual warns not to switch semi to full with the trigger held. Owners report the lever screw working loose.',
+part('selector', 'Semi/auto selector (lever)', 'rcv', ['11'], [0, 0, 110],
+  'AK selector lever (11) on the right side, shown on safe. Top = safe (its top edge closes the cut in the dust cover skirt and blocks the cocking lever), middle = АВ (full auto), bottom = ОД (semi); the marks are stamped on the receiver under the front tab. Stamped plate with a round pivot end, tapering arm and a front finger tab. Keyed onto the located slice (9) and held by screw 12 under a snap-on dome cap; the clicks come from the toothed selector plate in the gearbox. The manual warns not to switch semi to full with the trigger held. Owners report the lever screw working loose.',
   [[at(selectorLever(), 0, 0, RZ + mm(2.3)), 'blk'],
    // finger tab: the lower front edge folded outward into a wide pad, checkered on its face (VFC 0348 edge view)
    [at(prof(P([[632, 100.8], [611, 100.8], [608.4, 98.6], [608.4, 100.6], [610.8, 103.4], [632, 102.9]]), mm(5), 0.25), 0, 0, RZ + mm(5)), 'blk'],
@@ -895,10 +895,34 @@ part('selector', 'Semi/auto selector + copper bushing, spring, located slice', '
    // raised ledge across the top front, around the square hole
    [at(prof(P([[616, 86.6], [630, 86.6], [630, 96], [616, 96]]), mm(1), 0.25, [P([[621.6, 90.6], [625, 90.6], [625, 94.2], [621.6, 94.2]])]), 0, 0, RZ + mm(3.4)), 'blk'],
    [at(selectorRib([712, 104.5], [637, 95], 3.4), 0, 0, RZ + mm(3.1)), 'blk'],
-   [cyl(mm(5.6), mm(1), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(3.6), 28), 'blk'],
-   [at(new THREE.SphereGeometry(mm(3.6), 20, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.45), X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(4.1)), 'steel'],
-   [bx(X(SEL_C[0]) - mm(3), X(SEL_C[0]) + mm(3), Y(SEL_C[1]) - mm(0.35), Y(SEL_C[1]) + mm(0.35), RZ + mm(4.6), RZ + mm(5.8)), 'black'],
-   [cyl(mm(4.2), mm(1.6), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(1.3), 20), 'brass']]);
+   [cyl(mm(5.6), mm(1), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(3.6), 28), 'blk']]);
+// selector hardware, outside to in (CYMA lever kits, Patrol Base exploded stack, G&G RK47 strip on iFixit): snap-on dome cap,
+// screw (manual part 12; the English list says "spring", the Chinese says screw), the lever (11), the located slice (9) through
+// the receiver wall into the gearbox selector plate, and the brass sleeve (10) on the screw shank inside the lever eye and slice.
+// Sizes estimated from product-photo ratios against the 11mm receiver hole; thread size unconfirmed (M3 or M4).
+// mm(12.5) is the gearbox shell half width (GBZ, declared further down).
+const selAxis = (r, z0, z1, mat, seg = 24) => [cyl(r, z1 - z0, 'z', X(SEL_C[0]), Y(SEL_C[1]), (z0 + z1) / 2, seg), mat];
+part('selScrew', 'Selector screw + dome cover cap', 'rcv', ['12'], [0, 0, 190],
+  'Screw (12) that holds the selector lever on: a black Phillips pan head with a star lock washer under it, threading into the gearbox shell through the brass sleeve. The CYMA parts list calls it "spring of semi/auto selector", a mistranslation; the Chinese reads selector screw. A snap-on dome cap hides the head. Owners report it working loose; a drop of threadlocker fixes that.',
+  [[at(new THREE.SphereGeometry(mm(6.6), 28, 10, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(1, 1, 0.42), X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(4.15)), 'dark'],
+   [cyl(mm(6.6), mm(0.5), 'z', X(SEL_C[0]), Y(SEL_C[1]), RZ + mm(4.4), 28), 'dark'],
+   selAxis(mm(4.5), RZ + mm(4.15), RZ + mm(5.9), 'black', 22),                                  // pan head under the cap
+   selAxis(mm(5.6), RZ + mm(3.9), RZ + mm(4.15), 'dark', 22),                                   // star washer
+   selAxis(mm(1.5), mm(12.5) - mm(3), RZ + mm(4.15), 'steel', 12)]);                                 // shank into the shell
+part('selBushing', 'Semi/auto copper (selector sleeve)', 'rcv', ['10'], [0, 0, 160],
+  'Plain brass sleeve (10) on the screw shank, inside the lever eye and the located slice. The screw clamps down on it, so the lever and slice turn freely around it. It comes out with the screw.',
+  [selAxis(mm(2.6), mm(12.5) + mm(0.6), RZ + mm(3.9), 'brass', 20)]);
+part('selAdapter', 'Located slice (selector adapter)', 'rcv', ['9'], [0, 0, 75],
+  'Located slice (9), a zinc collar: the outer end has two flats that key the lever eye and sit in the 11mm receiver hole, the inner step keys into the ring on the gearbox selector plate, so turning the lever turns the plate. It stays in the plate ring when the gearbox comes out.',
+  (() => {
+    const [cx, cy] = SEL_C, r = mm(5), f = mm(4.25), dd = [];
+    for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; dd.push([cx + Math.max(-f, Math.min(f, r * Math.cos(a))), cy + r * Math.sin(a)]); }
+    const bore = Array.from({ length: 16 }, (_, i) => [cx + mm(2.7) * Math.cos(-i / 16 * Math.PI * 2), cy + mm(2.7) * Math.sin(-i / 16 * Math.PI * 2)]);
+    const z0 = RZ - mm(2), z1 = RZ + mm(3.4), zi = mm(12.5) + mm(0.6);
+    return [[at(prof(P(dd), z1 - z0, 0.2, [P(bore)]), 0, 0, (z0 + z1) / 2), 'zinc'],                       // double-D outer end
+      [tube(mm(2.7), mm(4), 0, 1, 24).rotateZ(Math.PI / 2).scale(1, z0 - zi, 1).rotateX(Math.PI / 2).translate(X(cx), Y(cy), zi), 'zinc'],
+      [bx(X(cx) - mm(0.9), X(cx) + mm(0.9), Y(cy) + mm(3.6), Y(cy) + mm(4.9), zi, z0), 'zinc']];          // key on the inner step
+  })());
 part('sideRail', 'Side rail (optics mount)', 'rcv', ['2'], [0, 0, -110],
   'Dovetail side mount (2) on the left of the receiver, for AK side-mount optics.',
   [[at(prof(P([[612, 103], [760, 103], [760, 127], [612, 127]]), mm(3), 0.6), 0, 0, -RZ - mm(1.8)), 'blk'],
