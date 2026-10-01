@@ -105,7 +105,7 @@ const VFC_NAMES = { '01': 'Flash hider', '02': 'Front sight set', '03': 'Gas cha
   '27': 'AKM lower receiver', '28': 'Grip', '29': 'AKM fixed stock', '30': 'Magazine' };
 const VFC = { brake: ['01'], fsb: ['02'], brakeDetent: ['01'], outerBarrel: ['08'], cleaningRod: ['09'], gasBlock: ['03'], gasTube: ['05'], upperHG: ['04', '06'], hgLever: ['07'],
   lowerHG: ['11', '12'], hgRetainer: ['10'], rearSight: ['13', '14'], receiver: ['27'], frontTrunnion: ['27'], rearTrunnion: ['27'], sideRail: ['27'], trigGuard: ['27'],
-  dustCover: ['16'], recoilGuide: ['17'], cockLever: ['15'], selector: ['26'], magCatch: ['25'], hopChamber: ['21'], bucking: ['20'], innerBarrel: ['18', '19'],
+  dustCover: ['16'], recoilGuide: ['17'], cockLever: ['15'], selector: ['26'], magCatch: ['25'], hopChamber: ['21'], hopAdjuster: ['21'], hopArm: ['20'], barrelClip: ['21'], bucking: ['20'], innerBarrel: ['18', '19'],
   gearbox: ['22'], cylinder: ['22'], piston: ['22'], mainSpring: ['22'], gears: ['22'], tappet: ['22'], trigger: ['22'], selPlate: ['22'], wiring: ['22'],
   motor: ['23'], motorCage: ['24'], grip: ['28'], stock: ['29'], stockScrews: ['29'], buttPlate: ['29'], slingLoop: ['29'],
   magShell: ['30'], magFloor: ['30'], magTracts: ['30'], magGears: ['30'], feedLips: ['30'] };
@@ -176,6 +176,7 @@ const MAT = {
   blk:    { color: 0x26282c, metalness: 0.55, roughness: 0.45 },
   stamp:  { color: 0xffffff, metalness: 0.3,  roughness: 0.7 },
   scale:  { color: 0xffffff, metalness: 0.3,  roughness: 0.6 },
+  hopscale: { color: 0xffffff, metalness: 0.3, roughness: 0.6 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
@@ -366,6 +367,18 @@ const LEAFSCALE = (() => {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 })();
+// hop-up scale plate: tick rows with 2 6 10 over 4 8 12, as on the CYMA / TM AK slider
+const HOPSCALE = (() => {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 160;
+  const g = c.getContext('2d'); g.fillStyle = g.strokeStyle = 'rgba(232,232,226,0.9)'; g.lineWidth = 3;
+  g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = 'bold 40px sans-serif';
+  for (let i = 0; i <= 12; i++) { const u = 76 + i * 30; g.beginPath(); g.moveTo(u, 46); g.lineTo(u, i % 2 ? 54 : 60); g.stroke(); }
+  [['2', 1], ['6', 5], ['10', 9]].forEach(([t, i]) => g.fillText(t, 76 + i * 30, 24));
+  [['4', 3], ['8', 7], ['12', 11]].forEach(([t, i]) => g.fillText(t, 76 + i * 30, 132));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+})();
 const WOOD = (() => {
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
   const x = c.getContext('2d'); x.fillStyle = '#7b3a15'; x.fillRect(0, 0, 512, 128);
@@ -478,6 +491,7 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
     if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
     if (matKey === 'wood') { mat.map = WOOD; }
     if (matKey === 'scale') { mat.map = LEAFSCALE; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
+    if (matKey === 'hopscale') { mat.map = HOPSCALE; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
     if (matKey === 'stamp') { mat.map = STAMP; mat.transparent = true; mat.depthWrite = false; mat.polygonOffset = true; mat.polygonOffsetFactor = -2; }
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true; m.receiveShadow = true;
@@ -941,19 +955,57 @@ part('magCatch', 'Magazine safety (magazine catch)', 'rcv', ['4'], [70, -130, 40
    [cyl(mm(1.8), mm(10.2), 'z', X(643), Y(166), 0, 12), 'dark']]);
 
 // ================= HOP-UP AND INNER BARREL =================
-part('hopChamber', 'Hop-up chamber + adjuster, block, screws', 'hop', ['38', '45', '46', '47', '48', '49', '50', '41', '42', '43'], [60, -60, 0],
-  'Hop-up chamber (38) seated in the front trunnion, fed from the top of the magazine. The adjuster (45, "selector") slides fore and aft on top; reach it by locking the cocking lever back or removing the dust cover. 46 is the adjuster block, 47 to 50 the screws and nail, 41 a brass barrel spacer, 42 the barrel clip, 43 the adjuster rubber. CYMA sells a one-piece die-cast chamber (SB-C03); some batches ship plastic.',
-  [[latheX([[5.2, X(598)], [11.5, X(598)], [11.5, X(545)], [8, X(545)], [8, X(538)], [5.2, X(538)], [5.2, X(598)]], 32), 'zinc'],
-   [bx(X(590), X(556), Y(95), Y(86), -mm(6), mm(6)), 'zinc'],
-   [bx(X(582), X(566), Y(86), Y(82), -mm(4), mm(4)), 'poly2'],
-   [bx(X(578), X(560), Y(125), Y(113), -mm(5), mm(5)), 'zinc'],
-   [torus(5.6, 0.8, 'x', X(540), 0, 0), 'brass']]);
+// TM-pattern AK chamber as CYMA ships it (C.03 photos, CYMA manual p14 exploded view; size from the Prowin TM-spec chamber,
+// listed 42 x 51 x 12mm). Rear face butts against the gearbox front, the nozzle stub enters the shell, the feed stem sits
+// on the magazine outlet and the adjuster slider rides on the top deck. Stem is shortened (about 12mm vs 17 to 19mm in the
+// refs) to land on the model magazine top.
+const HOP_TOP = 84.1, HOP_BOT = 110.8, HOP_STEM = 600.3;
+part('hopChamber', 'HOP-UP chamber', 'hop', ['38', '49'], [60, -60, 0],
+  'AK hop-up chamber (38), zinc alloy on the CYMA C.03 pattern: a round tube that holds the bucking, a flat-sided box on top that carries the adjuster, a short stub at the rear that takes the gearbox nozzle and a feed stem that drops onto the magazine outlet. It sits at the rear of the barrel block and is held by two small side screws; a long window in the left wall lets the hop arm reach the bucking. Nail 49 locates it. Measured TM-spec chambers are about 51mm long, 42mm tall with the stem and 12mm thick; CYMA sells the metal chamber alone as C.03 (42g). VFC AKs differ: their chamber is built into the rear sight block.',
+  [[latheX([[mm(3.3), X(612)], [mm(4.6), X(612)], [mm(4.6), X(611)], [mm(5.2), X(611)], [mm(5.2), X(608.4)], [mm(3.3), X(608.4)]], 32), 'zinc'],
+   [tube(mm(4.9), mm(6), X(608.4), X(566), 32), 'zinc'],
+   // side profile: flat-sided box over the full length, dropping to the tube bottom at the front, with the clip slot cut up from below,
+   // the hop arm window and the small rear-top hole
+   [at(prof(P([[550, HOP_TOP], [608.4, HOP_TOP], [608.4, 100.5], [566, 100.5], [566, HOP_BOT], [557, HOP_BOT], [557, 105.5], [553, 105.5], [553, HOP_BOT], [550, HOP_BOT]]), mm(11), 0.4,
+     [P([[562, 88], [593, 88], [594, 90], [593, 92], [562, 92], [561, 90]]), P(Array.from({ length: 12 }, (_, i) => [603 + 1.6 * Math.cos(-i * Math.PI / 6), 88.5 + 1.6 * Math.sin(-i * Math.PI / 6)]))]), 0, 0, mm(0.5)), 'zinc'],
+   [cyl(mm(5), Y(104) - Y(121.5), 'y', X(HOP_STEM), (Y(104) + Y(121.5)) / 2, 0, 24), 'zinc'],
+   [cyl(mm(4.2), Y(121.5) - Y(124), 'y', X(HOP_STEM), (Y(121.5) + Y(124)) / 2, 0, 24), 'zinc'],
+   [cyl(mm(2.9), 0.3, 'y', X(HOP_STEM), Y(124) - 0.1, 0, 20), 'black'],
+   [bx(X(604), X(598), Y(106), Y(100.5), -mm(7), -mm(5.6)), 'zinc'],   // square lug on the left near the rear
+   [cyl(mm(1), mm(3), 'z', X(586), Y(97), -mm(5.8), 10), 'steel']]);   // locating nail 49
+part('hopAdjuster', 'Hop-up adjuster: scale plate, slider, finger block, screws', 'hop', ['45', '46', '48', '50'], [60, -10, 0],
+  'Adjuster on the top deck: a black scale plate marked 2 6 10 / 4 8 12 over a black steel slider (45, "selector") with a long slot and a toothed edge that clicks against the scale. The finger block (46, fixed by M3x8 screw 50) stands up at the front end; the M2x4 washer-head screw 48 (5.5mm head) runs in the slot and holds the slider down. Pushing the slider forward wedges the hop arm down onto the bucking. Reach it with the dust cover off, or by locking the cocking lever back and reaching in through the ejection port.',
+  // slider under the scale plate, its front end and toothed left edge showing; finger block on the front end
+  [[bx(X(601), X(563), Y(HOP_TOP), Y(HOP_TOP) + mm(1), -mm(4), mm(4.5)), 'black'],
+   ...[0, 1, 2, 3].map(i => [bx(X(600 - i * 2.4), X(599 - i * 2.4), Y(HOP_TOP), Y(HOP_TOP) + mm(1), -mm(4.9), -mm(4)), 'black']),
+   [bx(X(572), X(565.5), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(4), -mm(3.2), mm(3.6)), 'black'],
+   [cyl(mm(2.6), mm(0.9), 'y', X(568.8), Y(HOP_TOP) + mm(4.45), mm(0.2), 16), 'dark'],
+   // scale plate over the rear half, slotted for washer-head screw 48
+   ...[[-mm(5), -mm(1.5)], [mm(1.5), mm(5.5)]].map(([z0, z1]) => [bx(X(604), X(575), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(2), z0, z1), 'black']),
+   ...[[604, 600], [579, 575]].map(([a, c]) => [bx(X(a), X(c), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(2), -mm(1.5), mm(1.5)), 'black']),
+   [(() => { const g = new THREE.PlaneGeometry(X(575) - X(604), mm(9.6)); g.rotateX(-Math.PI / 2); g.translate((X(575) + X(604)) / 2, Y(HOP_TOP) + mm(2) + 0.08, mm(0.25)); return g; })(), 'hopscale'],
+   [cyl(mm(2.75), mm(0.8), 'y', X(589), Y(HOP_TOP) + mm(2.4), 0, 20), 'dark']]);
+part('hopArm', 'Rubber selector (hop arm) + screws', 'hop', ['43', '47'], [60, -40, -55],
+  'Hop arm (43) inside the chamber window, pressed down by the slider and held by the two M2x4 screws 47; it pushes the cylindrical rubber nub (44, shown with the bucking) down onto the bucking above the barrel window. Kept in the owner build, where it presses the G&G bucking over the R-hop patch with the nub removed.',
+  [[bx(X(593), X(562), Y(91.6), Y(88.4), -mm(5.7), mm(5.7)), 'poly2'],
+   ...[566, 590].map(a => [cyl(mm(1), mm(3.5), 'y', X(a), Y(HOP_TOP) - mm(1.2), mm(2.8), 8), 'dark'])]);
 part('bucking', 'Rubber hop-up unit (bucking) + nub', 'hop', ['39', '44'], [20, -60, 0],
-  'Hop-up bucking (39) over the inner barrel window, pressed by the rubber nub (44). Stock bucking is about 60 shore.',
-  [[tube(mm(3.1), mm(4.9), X(596), X(566), 24), 'rubber'], [cyl(mm(2.2), mm(3), 'y', X(578), Y(96.5), 0, 12), 'rubber']], { variant: 'aeg' });
+  'Hop-up bucking (39) over the inner barrel window, pressed by the cylindrical rubber nub (44); the lip at the rear seals on the nozzle. Stock bucking is about 60 shore.',
+  [[tube(mm(3.1), mm(4.9), X(593), X(562), 24), 'rubber'], [tube(mm(2.6), mm(4.9), X(594.5), X(593), 24), 'rubber'],
+   [cyl(mm(1.6), Y(91.6) - Y(97.6), 'y', X(578), (Y(91.6) + Y(97.6)) / 2, 0, 12), 'rubber']], { variant: 'aeg' });
+part('barrelClip', 'Gun barrel connect link (C-clip) + copper', 'hop', ['42', '41'], [30, -110, 0],
+  'U clip (42) pushed up through the slot across the bottom front of the chamber, gripping the groove on the inner barrel so the barrel cannot slide out; it can be seen through the magazine well. Copper (41) is the brass collar on the barrel just in front of the chamber.',
+  (() => {
+    const u = new THREE.Shape(), ri = mm(4.25), ro = mm(6.4), top = mm(2.2);
+    u.moveTo(-ro, top); u.lineTo(-ro, 0); u.absarc(0, 0, ro, Math.PI, 0, false); u.lineTo(ro, top); u.lineTo(ri, top); u.lineTo(ri, 0);
+    u.absarc(0, 0, ri, 0, Math.PI, true); u.lineTo(-ri, top); u.lineTo(-ro, top);
+    return [[extrudeX(u, X(556.6), X(553.4), 0.2), 'black'],
+      [bx(X(557.2), X(552.8), -ro - mm(1.2), -ro + mm(0.3), -mm(4.5), mm(4.5)), 'black'],
+      [tube(mm(4.25), mm(5.6), X(549.6), X(546.6), 24), 'brass']];
+  })());
 part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
-  'Brass inner barrel (40): 455mm, about 6.03mm bore on the stock gun (retailers quote 425 to 469mm). Hop window at the rear, under the bucking.',
-  [[tube(mm(3.02), mm(4.25), X(594), X(37), 24), 'brass'], [bx(X(583), X(573), mm(4.4), mm(4.9), -mm(1.5), mm(1.5)), 'black']], { variant: 'aeg' });
+  'Brass inner barrel (40): 455mm, about 6.03mm bore on the stock gun (retailers quote 425 to 469mm). Hop window at the rear, under the bucking; the groove for the C-clip sits under the front of the chamber.',
+  [[tube(mm(3.02), mm(4.25), X(592), X(37), 24), 'brass'], [bx(X(582), X(574), mm(4.4), mm(4.9), -mm(1.5), mm(1.5)), 'black']], { variant: 'aeg' });
 
 // ================= GEARBOX AND MOTOR (stock AEG) =================
 // Gearbox frame (mm): origin = sector gear axle, +x toward the muzzle, +y up. Positions measured from a flat SHS V3 shell
@@ -1112,7 +1164,7 @@ part('magGears', 'Winding gear train (gears, clock spring, driver)', 'mag', ['79
    [cyl(mm(1.5), 2 * MZ, 'z', X(492), Y(300), 0, 8), 'steel']]);
 part('feedLips', 'Magazine cover (feed plate) + bullet block, spring, screw', 'mag', ['89', '90', '92', '91'], [60, -170, 0],
   'Feed plate (89) at the top of the magazine, BB outlet toward the rear, with the spring-loaded bullet block (90, 92, screw 91) that stops BBs spilling out when the mag is out of the gun.',
-  [[bx(X(620), X(560), Y(128), Y(124), -mm(8), mm(8)), 'poly2'], [cyl(mm(3.2), 0.4, 'y', X(603), Y(124) + 0.75, 0, 20), 'black'], [cyl(mm(4.2), 0.6, 'y', X(603), Y(124) + 0.35, 0, 20), 'steel'], [bx(X(572), X(562), Y(126), Y(120), -mm(3), mm(3)), 'steel'],
+  [[bx(X(620), X(560), Y(128), Y(124), -mm(8), mm(8)), 'poly2'], [cyl(mm(3.2), 0.4, 'y', X(600.3), Y(124) + 0.75, 0, 20), 'black'], [cyl(mm(4.2), 0.6, 'y', X(600.3), Y(124) + 0.35, 0, 20), 'steel'], [bx(X(572), X(562), Y(126), Y(120), -mm(3), mm(3)), 'steel'],
    [spring(mm(1.2), mm(0.25), mm(8), 6, 'x', X(585), Y(122), 0), 'spring']]);
 
 // ================= OWNER BUILD: POLARSTAR KYTHERA HPA =================
@@ -1136,8 +1188,8 @@ part('airLine', 'Air line (through the grip)', 'hpa', [], [-60, -160, 0],
   [[tubeAlong([[KY_X1 + mm(8), -mm(18), 0], ...[4, 45, 97].map(d => motorAt(d).toArray()), [X(820), Y(330), 0], [X(850), Y(352), 0], [X(900), Y(360), 0]], mm(3), 10), 'black']], { variant: 'hpa' });
 part('zciBarrel', 'ZCI 455mm 6.02 barrel + R-hop patch, G&G green bucking', 'hpa', [], [60, -60, 0],
   'Owner build: ZCI 455mm 6.02 stainless inner barrel with a square window cut for an R-hop patch (about 2.15mm deep x 6mm long), under a G&G green bucking with its nub removed.',
-  [[tube(mm(3.01), mm(4.25), X(594), X(37), 24), 'steel'], [bx(X(583), X(573), mm(4.25), mm(5.6), -mm(1.6), mm(1.6)), 'rubber'],
-   [tube(mm(4.3), mm(4.95), X(596), X(566), 24), 'green']], { variant: 'hpa' });
+  [[tube(mm(3.01), mm(4.25), X(592), X(37), 24), 'steel'], [bx(X(582), X(574), mm(4.25), mm(5.6), -mm(1.6), mm(1.6)), 'rubber'],
+   [tube(mm(4.3), mm(4.95), X(594.5), X(562), 24), 'green']], { variant: 'hpa' });
 
 // ---------- UI: list ----------
 const list = document.getElementById('list');
