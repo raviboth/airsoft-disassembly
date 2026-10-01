@@ -613,12 +613,29 @@ part('hgRetainer', 'Lower handguard front cap + button', 'frt', ['24', '25'], [1
       return extrudeX(e, X(300.8), X(297.8), 0.3); })(), 'blk'],
    [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk'],
    [cyl(mm(1.6), mm(5), 'y', X(304), mm(18), mm(10), 12), 'steel']]);
+function rsTower() {        // front face of the rear sight block in (z, y): window for the gas tube, ring round the barrel
+  const s = new THREE.Shape(), hw = mm(13), top = Y(46.5), r = mm(13);
+  s.moveTo(-hw, top - 2); s.quadraticCurveTo(-hw, top, -hw + 2, top); s.lineTo(hw - 2, top); s.quadraticCurveTo(hw, top, hw, top - 2);
+  s.lineTo(hw, 0); s.absarc(0, 0, r, 0, -Math.PI, true); s.lineTo(-hw, top - 2);
+  const w = new THREE.Path(), wy0 = Y(57), wy1 = Y(86), ww = mm(9.5);
+  w.moveTo(-ww, wy0); w.lineTo(-ww, wy1); w.lineTo(ww, wy1); w.lineTo(ww, wy0); w.lineTo(-ww, wy0); s.holes.push(w);
+  const b = new THREE.Path(); b.absarc(0, 0, mm(8.6), 0, Math.PI * 2, true); s.holes.push(b);
+  return s;
+}
 part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
   'Rear sight base (16) with the tangent leaf (19, "staff guage"), its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
-  [[prof(P([[440, 52], [447, 48], [500, 48], [521, 53], [521, 112], [440, 112]]), mm(26), 1.2, [P([[441, 60], [441, 84], [445, 84], [445, 60]])]), 'blk'],
-   [prof(P([[452, 46], [521, 39], [523, 43], [452, 49]]), mm(13), 0.4), 'dark'],
-   [bx(X(488), X(477), Y(49), Y(37), -mm(9), mm(9)), 'steel'],
-   [bx(X(519), X(514), Y(40), Y(35), -mm(4), mm(4)), 'dark']]);
+  // CYMA rear sight block (Patrol Base / Asia Airsoft spare photos): a front tower with the gas tube window over the barrel
+  // ring, then a narrower body that carries the leaf hinge ears; the lower rear corner is cut on the diagonal (side photo)
+  [[extrudeX(rsTower(), X(453), X(441), 0.6), 'blk'],
+   [prof(P([[453, 46.5], [516, 46.5], [520, 51], [520, 58], [498, 81], [453, 81]]), mm(24), 0.8), 'blk'],
+   ...[1, -1].map(s => [bx(X(467), X(455), Y(48), Y(41), s * mm(5.5), s * mm(8.5)), 'blk']),
+   [cyl(mm(1.6), mm(17.5), 'z', X(461), Y(44), 0, 12), 'steel'],
+   [cyl(mm(2.4), mm(1), 'z', X(448), Y(51), -mm(13) - 0.9, 14), 'dark'],
+   [prof(P([[458, 43.5], [521, 39.2], [523, 43.2], [458, 47.2]]), mm(11), 0.4), 'dark'],
+   ...Array.from({ length: 12 }, (_, i) => [bx(X(472 + i * 4) - 1, X(472 + i * 4) + 1, Y(43.6 - i * 0.29), Y(42.2 - i * 0.29), -mm(5.5), mm(5.5)), 'dark']),
+   [bx(X(505), X(495), Y(47.5), Y(38.5), -mm(8.5), mm(8.5)), 'steel'],
+   [cyl(mm(2.6), mm(2.4), 'z', X(500), Y(39.5), -mm(9.5), 14), 'steel'],
+   [bx(X(524), X(519), Y(40), Y(35), -mm(4), mm(4)), 'dark']]);
 part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
   'Cam lever (17) on the right side of the rear sight base. Rotate it up to release the gas tube and upper handguard.',
   [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
