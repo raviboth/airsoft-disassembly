@@ -342,7 +342,7 @@ function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
 const STAMP = (() => {
   const c = document.createElement('canvas'); c.width = 320; c.height = 320;
   const g = c.getContext('2d'); g.strokeStyle = g.fillStyle = 'rgba(110,115,125,0.38)'; g.lineWidth = 7;
-  g.font = 'bold 76px sans-serif'; g.textBaseline = 'middle';
+  g.font = '70px sans-serif'; g.textBaseline = 'middle';
   for (const [y, t] of [[90, 'АВ'], [245, 'ОД']]) {
     g.beginPath(); g.moveTo(20, y); g.lineTo(110, y); g.moveTo(65, y - 22); g.lineTo(65, y + 22); g.stroke();
     g.fillText(t, 140, y + 4);
