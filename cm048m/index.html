@@ -761,14 +761,14 @@ part('recoilGuide', 'Lever cock (recoil spring guide) + spring, bushing', 'rcv',
    [cyl(mm(4), mm(5), 'x', X(558), Y(70), 0, 16), 'brass']]);
 // AKM charging handle, plan shape from the Forbus AKM carrier drawing and the Apex top view: 10mm wide at the root,
 // sticks out about 27.5mm from the carrier side, straight rear face, front face scalloped (4.4mm deep at 17.4mm out),
-// flaring to a blunt paddle end (user photo of a real AKM). A flat blade about 7mm thick that rises slightly toward the tip (Atlantic end-on shots).
+// narrowing to an upright paddle about 5mm thick and 10mm high whose front face takes the finger (user photo of a real AKM).
 function chargingHandle(x0, y0) {
   const N = 64, M = 24, pos = [], idx = [];
   for (let i = 0; i <= N; i++) {
     const t = i / N, z = RZ - mm(3.5) + mm(27.5) * t, y = y0 + mm(1.8) * t * t;
-    const front = 5 - 11 * t + 10.5 * t * t, rear = -5 + 0.5 * t * t;            // mm along x, + toward the muzzle
+    const front = 5 - 11 * t + 6.6 * t * t, rear = -5 + 0.8 * t * t;            // mm along x, + toward the muzzle
     const end = t > 0.95 ? Math.sqrt(Math.max(0, 1 - ((t - 0.95) / 0.05) ** 2)) : 1;   // blunt end      // rounded tip
-    const cx = x0 + mm((front + rear) / 2), a = mm(Math.max((front - rear) / 2, 3)) * Math.max(end, 0.04), b = mm(t < 0.35 ? 4 - 6 * t : 1.9) * Math.max(end, 0.04);
+    const cx = x0 + mm((front + rear) / 2), a = mm(Math.max((front - rear) / 2, 2.2)) * Math.max(end, 0.04), b = mm(t < 0.45 ? 3.6 : 3.6 + 1.6 * Math.sin(Math.min(1, (t - 0.45) / 0.4) * Math.PI / 2)) * Math.max(end, 0.04);
     for (let j = 0; j < M; j++) { const u = j / M * Math.PI * 2; pos.push(cx + a * Math.cos(u), y + b * Math.sin(u), z); }
   }
   for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
@@ -778,7 +778,7 @@ function chargingHandle(x0, y0) {
   g.setIndex(idx); g.computeVertexNormals(); return g;
 }
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
-  'Right-side cocking lever (59): a flat blade 10mm wide at the root, about 27.5mm long, scalloped on the front face, flaring to a blunt flat paddle at the tip (Forbus AKM carrier drawing, real AKM photo). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
+  'Right-side cocking lever (59): a flat blade 10mm wide at the root, about 27.5mm long, scalloped on the front face, ending in an upright paddle whose front face takes the finger when pulling back (Forbus AKM carrier drawing, real AKM photo). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
   [[bx(X(622), X(505), Y(88), Y(73), RZ - mm(3.5), RZ - mm(1.8)), 'steel'],
    [chargingHandle(X(522), Y(80.5)), 'dark']]);
 // AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
