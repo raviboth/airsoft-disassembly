@@ -798,8 +798,27 @@ function rearSightPieces() {
   return out;
 }
 part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
-  'Cam lever (17) on the right side of the rear sight base. Rotate it up to release the gas tube and upper handguard.',
-  [[bx(X(447), X(440), Y(80), Y(56), mm(13), mm(15.5)), 'steel'], [cyl(mm(3), mm(3), 'z', X(443.5), Y(79), mm(14.5), 12), 'steel']]);
+  'Gas tube lock lever (17) on the right side of the rear sight block. Its cross shaft runs through the top front corner of the block, just above the gas tube, and a flat on the shaft holds the rear of the tube down. Locked, the arm lies against the side pointing down and back at about 40 degrees; swing it up to vertical to lift out the gas tube with the upper handguard. The shaft head shows on the left side.',
+  hgLeverPieces());
+// Lever position from the CYMA right-side photos (RedWolf, Airsoft Station) and the Arsenal AK-336 block: pivot at the top
+// front corner of the tower, arm down and back over the lower body, finger ridges near the end, a short tab bent in at the tip.
+function hgLeverPieces() {
+  const pv = [449, 49.5], ang = 40 * Math.PI / 180, L = 30;
+  const u = [Math.cos(ang), Math.sin(ang)], n = [-u[1], u[0]];
+  const pt = (t, w) => [pv[0] + u[0] * t + n[0] * w, pv[1] + u[1] * t + n[1] * w];
+  const z0 = mm(13.2), T = mm(2);
+  const out = [
+    [at(prof(P([pt(0, -3.2), pt(L, -2.6), pt(L, 2.6), pt(0, 3.2)]), T, 0.3), 0, 0, z0 + T / 2), 'blk'],     // arm
+    [cyl(mm(4.5), T + mm(0.4), 'z', X(pv[0]), Y(pv[1]), z0 + T / 2, 24), 'blk'],                             // pivot boss
+    [cyl(mm(2.8), mm(1), 'z', X(pv[0]), Y(pv[1]), z0 + T + mm(0.6), 20), 'steel'],                           // shaft end
+    [cyl(mm(1.8), 2 * z0, 'z', X(pv[0]), Y(pv[1]), 0, 12), 'steel'],                                         // cross shaft
+    [cyl(mm(3), mm(1), 'z', X(pv[0]), Y(pv[1]), -mm(13) - mm(0.5), 20), 'steel'],                            // shaft head, left side
+    [at(prof(P([pt(L - 3.2, -2.6), pt(L, -2.6), pt(L, 2.6), pt(L - 3.2, 2.6)]), mm(1.6), 0.2), 0, 0, z0 - mm(0.8)), 'blk'],   // tip tab, bent in
+  ];
+  for (const t of [17, 20, 23])                                                                              // finger ridges
+    out.push([at(prof(P([pt(t - 0.4, -2.9), pt(t + 0.4, -2.9), pt(t + 0.4, 2.9), pt(t - 0.4, 2.9)]), mm(0.6), 0.1), 0, 0, z0 + T + mm(0.3)), 'blk']);
+  return out;
+}
 
 // ================= RECEIVER AND CONTROLS =================
 // top rear corner cut along the dust cover's rake so it stays under the cover; the receiver's rear edge shows only below it
