@@ -178,6 +178,7 @@ const MAT = {
   scale:  { color: 0xffffff, metalness: 0.3,  roughness: 0.6 },
   hopscale: { color: 0xffffff, metalness: 0.3, roughness: 0.6 },
   white:  { color: 0xd9dbdd, metalness: 0.0,  roughness: 0.6 },
+  rubberblk: { color: 0x1c1d20, metalness: 0.0, roughness: 0.85 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
@@ -1001,10 +1002,21 @@ part('hopArm', 'Rubber selector (hop arm) + screws', 'hop', ['43', '47'], [60, -
   'Hop arm (43) inside the chamber window, pressed down by the slider and held by the two M2x4 screws 47; it pushes the cylindrical rubber nub (44, shown with the bucking) down onto the bucking above the barrel window. Kept in the owner build, where it presses the G&G bucking over the R-hop patch with the nub removed.',
   [[bx(X(593), X(562), Y(91.6), Y(88.4), -mm(5.7), mm(5.7)), 'poly2'],
    ...[566, 590].map(a => [cyl(mm(1), mm(3.5), 'y', X(a), Y(HOP_TOP) - mm(1.2), mm(2.8), 8), 'dark'])]);
+// TM-pattern bucking (Begadi TM-spec drawings, SHS/Prometheus listings: 22 to 24mm long, 10mm OD): a thin sleeve over the barrel's
+// rear 19.5mm, an end wall at the barrel's breech face, then a narrower lip that the nozzle seals into; inside, the mound sits over
+// the barrel window 1.7 to 6.3mm ahead of the breech, with two raised bands round the outside. BK_F = front end (photo px).
+const BK_F = 592 - 19.5 / S, BKX = d => X(BK_F + d / S);
+const buckingGeo = (mat, mound = true) => [
+  [tube(mm(4.25), mm(4.7), BKX(0), BKX(19.5), 24), mat],
+  ...[6.5, 12.5].map(d => [tube(mm(4.6), mm(4.95), BKX(d), BKX(d + 1.6), 24), mat]),
+  [tube(mm(3.12), mm(4.7), BKX(19.5), BKX(20.2), 24), mat],
+  [tube(mm(3.12), mm(3.65), BKX(20.2), BKX(22), 24), mat],
+  ...(mound ? [[bx(BKX(13.2), BKX(17.8), mm(2.75), mm(4.3), -mm(1.25), mm(1.25)), mat]] : [])];
+const HOP_NUB = BK_F + 15.5 / S;   // nub and arm press over the mound
 part('bucking', 'Rubber hop-up unit (bucking) + nub', 'hop', ['39', '44'], [20, -60, 0],
-  'Hop-up bucking (39) over the inner barrel window, pressed by the cylindrical rubber nub (44); the lip at the rear seals on the nozzle. Stock bucking is about 60 shore.',
-  [[tube(mm(3.1), mm(4.9), X(593), X(562), 24), 'rubber'], [tube(mm(2.6), mm(4.9), X(594.5), X(593), 24), 'rubber'],
-   [cyl(mm(1.6), Y(91.6) - Y(97.6), 'y', X(578), (Y(91.6) + Y(97.6)) / 2, 0, 12), 'rubber']], { variant: 'aeg' });
+  'Hop-up bucking (39): black rubber, about 60 shore on the stock CYMA. A thin sleeve over the rear 19.5mm of the inner barrel, ending in a wall at the breech face and a narrower lip (about 7.3mm across) that the nozzle pushes into to seal. Inside, a mound sits over the barrel window, 1.7 to 6.3mm ahead of the breech: the cylindrical rubber nub (44) under the hop arm presses it down into the bore, where it spins the BB backwards. Raising the adjuster lowers the mound further for more hop. TM-pattern sizes: 22 to 24mm long, 10mm across (SHS, Prometheus listings; Begadi drawings).',
+  [...buckingGeo('rubberblk'),
+   [cyl(mm(1.6), Y(91.6) - Y(97.6), 'y', X(HOP_NUB), (Y(91.6) + Y(97.6)) / 2, 0, 12), 'rubberblk']], { variant: 'aeg' });
 part('barrelClip', 'Gun barrel connect link (C-clip) + copper', 'hop', ['42', '41'], [30, -110, 0],
   'U clip (42) pushed up through the slot across the bottom front of the chamber, gripping the groove on the inner barrel so the barrel cannot slide out; it can be seen through the magazine well. Copper (41) is the brass collar on the barrel just in front of the chamber.',
   (() => {
@@ -1016,8 +1028,8 @@ part('barrelClip', 'Gun barrel connect link (C-clip) + copper', 'hop', ['42', '4
       [tube(mm(4.25), mm(5.6), X(549.6), X(546.6), 24), 'brass']];
   })());
 part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
-  'Brass inner barrel (40): 455mm, about 6.03mm bore on the stock gun (retailers quote 425 to 469mm). Hop window at the rear, under the bucking; the groove for the C-clip sits under the front of the chamber.',
-  [[tube(mm(3.02), mm(4.25), X(592), X(37), 24), 'brass'], [bx(X(582), X(574), mm(4.4), mm(4.9), -mm(1.5), mm(1.5)), 'black']], { variant: 'aeg' });
+  'Brass inner barrel (40): 455mm, about 6.03mm bore on the stock gun (retailers quote 425 to 469mm). Hop window (about 5mm) 1.5mm ahead of the breech, under the bucking's mound; the groove for the C-clip sits under the front of the chamber.',
+  [[tube(mm(3.02), mm(4.25), X(592), X(37), 24), 'brass'], [bx(X(592 - 1.5 / S), X(592 - 6.7 / S), mm(3.9), mm(4.27), -mm(1.4), mm(1.4)), 'black']], { variant: 'aeg' });
 
 // ================= GEARBOX AND MOTOR (stock AEG) =================
 // Gearbox frame (mm): origin = sector gear axle, +x toward the muzzle, +y up. Positions measured from a flat SHS V3 shell
@@ -1280,8 +1292,8 @@ part('airLine', 'Air line (through the grip)', 'hpa', [], [-60, -160, 0],
   [[tubeAlong([[KY_X1 + mm(8), -mm(18), 0], ...[4, 45, 97].map(d => motorAt(d).toArray()), [X(820), Y(330), 0], [X(850), Y(352), 0], [X(900), Y(360), 0]], mm(3), 10), 'black']], { variant: 'hpa' });
 part('zciBarrel', 'ZCI 455mm 6.02 barrel + R-hop patch, G&G green bucking', 'hpa', [], [60, -60, 0],
   'Owner build: ZCI 455mm 6.02 stainless inner barrel with a square window cut for an R-hop patch (about 2.15mm deep x 6mm long), under a G&G green bucking with its nub removed.',
-  [[tube(mm(3.01), mm(4.25), X(592), X(37), 24), 'steel'], [bx(X(582), X(574), mm(4.25), mm(5.6), -mm(1.6), mm(1.6)), 'rubber'],
-   [tube(mm(4.3), mm(4.95), X(594.5), X(562), 24), 'green']], { variant: 'hpa' });
+  [[tube(mm(3.01), mm(4.25), X(592), X(37), 24), 'steel'], [bx(X(592 - 1.2 / S), X(592 - 7.2 / S), mm(3.4), mm(4.28), -mm(1.6), mm(1.6)), 'rubber'],
+   ...buckingGeo('green', false)], { variant: 'hpa' });
 
 // ---------- UI: list ----------
 const list = document.getElementById('list');
