@@ -177,6 +177,7 @@ const MAT = {
   stamp:  { color: 0xffffff, metalness: 0.3,  roughness: 0.7 },
   scale:  { color: 0xffffff, metalness: 0.3,  roughness: 0.6 },
   hopscale: { color: 0xffffff, metalness: 0.3, roughness: 0.6 },
+  white:  { color: 0xd9dbdd, metalness: 0.0,  roughness: 0.6 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
@@ -1025,15 +1026,20 @@ part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
 const GX = xm => X(610) + mm(xm - 99.6), GY = ym => mm(ym - 24.8);
 const G = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const GBZ = mm(12.5);
-const GB_OUT = G([[-67, 28], [-63, 33], [-56, 39], [-48, 42], [-40, 43], [-40, 40.5], [97, 43], [99, 41], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
+const GB_OUT = G([[-67, 30], [-62, 37], [-57, 42.4], [-42, 42.4], [-42, 38], [97, 38], [99, 36.5], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
   [-5, -40], [-10, -45], [-31, -36], [-37, -31], [-42, -24], [-48, -12], [-48, 10], [-62, 10], [-66, 14]]);
-const GB_WIN = G([[12, 21], [80, 21], [80, 37.5], [12, 37.5]]).reverse();
+// cylinder window: a round-ended slot over the front two thirds (CYMA AK V3 photos)
+const GB_WIN = G([...Array.from({ length: 9 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 8; return [78 + 7.1 * Math.cos(a), 24.4 + 7.1 * Math.sin(a)]; }),
+  ...Array.from({ length: 9 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 8; return [16.5 + 7.1 * Math.cos(a), 24.4 + 7.1 * Math.sin(a)]; })]).reverse();
+const GB_RACK = G([[-58, 18.5], [3, 18.5], [3, 22], [-58, 22]]).reverse();   // right half only: slot over the piston rack
 const BUSH = [[0, 0], [-21, -5.7], [-16.6, -25.8]];
 part('gearbox', 'Gear box (Version 3 shell + combine plate)', 'gbx', ['7'], [0, 360, 0],
   'CYMA Version 3 gearbox (7): two metal shell halves (7mm bushings) held by screws and the slide-on top combine plate; the spring guide seats at the rear, the cylinder window is on top. Outline and bushing positions are traced from a flat SHS V3 shell photo scaled to 167mm long (Retro Arms lists 167 x 86 x 25mm): sector gear 21.8mm from the spur, spur 20.5mm from the bevel, cylinder axis 24.8mm above the sector axle. The manual gives no internal part numbers, so the internals use generic V3 names.',
-  [[at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, GBZ - mm(1.1)), 'zinc'], [at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, -GBZ + mm(1.1)), 'zinc'],
-   [bx(GX(-40), GX(-54), GY(40), GY(42.5), -GBZ, GBZ), 'zinc'],
-   [cyl(mm(2.2), mm(2), 'z', GX(101.3), GY(40.1), 0, 10), 'zinc'],
+  [[at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN, GB_RACK]), 0, 0, GBZ - mm(1.1)), 'zinc'], [at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, -GBZ + mm(1.1)), 'zinc'],
+   [bx(GX(-42), GX(-56), GY(40), GY(42.4), -GBZ, GBZ), 'zinc'],
+   [bx(GX(-42), GX(97), GY(38), GY(39.6), -mm(10.5), mm(10.5)), 'black'],   // top plate along the cylinder section
+   [bx(GX(-49), GX(-61), GY(42.4), GY(44.6), -mm(5), mm(5)), 'black'],      // spring guide latch on the rear block
+   [at(prof(G([[99, 33.5], [103.5, 33.5], [105.5, 35.5], [105.5, 37.5], [103.5, 39.5], [99, 39.5]]), mm(2.6), 0.2, [G(Array.from({ length: 10 }, (_, i) => [103.2 + 1.1 * Math.cos(-i * Math.PI / 5), 36.5 + 1.1 * Math.sin(-i * Math.PI / 5)]))]), 0, 0, 0), 'zinc'],
    ...BUSH.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.8), mm(1.4), 'z', GX(a), GY(b), s * (GBZ + mm(0.3)), 20), 'brass'])),
    ...[[-9.9, -41.5], [-1.7, -33.4], [1.5, 17.4], [-42.4, -5.7], [82, 0], [-62, 30]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (GBZ + mm(0.2)), 12), 'dark']))], { shell: true });
 part('cylinder', 'Cylinder + cylinder head, nozzle', 'gbx', [], [250, 510, 0],
@@ -1079,10 +1085,17 @@ part('switchAsm', 'Switch assembly (trigger contacts)', 'gbx', [], [260, 300, 0]
    [bx(GX(30), GX(44), GY(-2.2), GY(1.6), -mm(3), mm(3)), 'blk'],
    ...[-1, 1].map(s => [bx(GX(62), GX(84), GY(-5), GY(-3.6), s * mm(2.2) - mm(0.6), s * mm(2.2) + mm(0.6)), 'brass']),
    ...[60, 76].map(a => [cyl(mm(1.6), mm(1.2), 'z', GX(a), GY(-2), -mm(4.4), 10), 'dark'])], { tag: 'V3', variant: 'aeg' });
-part('selPlate', 'Selector plate', 'gbx', [], [-150, 440, 0],
-  'V3 selector plate (about 87 x 13mm) on the right of the shell, with the rack teeth that the external lever turns. Debris under the dust cover can jam it. Kept in the Kythera build.',
-  [[at(prof(G([[-6, -6], [80, -6], [80, 7], [-6, 7]]), mm(1.2), 0.2), 0, 0, GBZ + mm(1)), 'steel'],
-   ...Array.from({ length: 5 }, (_, i) => [bx(GX(-5 + i * 2.6), GX(-3.8 + i * 2.6), GY(7), GY(9), GBZ + mm(0.5), GBZ + mm(1.7)), 'steel'])], { tag: 'V3' });
+// selector plate on the LEFT of the shell (CYMA AK V3 photos: white plate from the trigger area back to the rear gear), its rear
+// rack driven by the black selector gear; on the right a small gear takes the drive from the external lever
+const SELG = [-47, 0];
+part('selPlate', 'Selector plate + selector gears', 'gbx', [], [-150, 440, -60],
+  'V3 selector plate (about 87 x 13mm, white polymer on CYMA AK gearboxes) on the left of the shell, with a long window and a small spring. Its rear rack meshes with the black selector gear at the rear of the shell; the gear\'s axle runs through to the right side, where a small gear takes the drive from the external AK lever. Moving the plate forward blocks the trigger (safe) or lets the cut-off lever work (semi). Debris under the dust cover can jam it. Kept in the Kythera build.',
+  [[at(prof(G([[-41, -5.5], [35, -5.5], [35, 4.5], [-30, 4.5], [-30, 8.5], [-41, 8.5]]), mm(1.4), 0.2, [G([[-24, -1.5], [22, -1.5], [22, 2.5], [-24, 2.5]]).reverse()]), 0, 0, -GBZ - mm(1)), 'white'],
+   ...Array.from({ length: 4 }, (_, i) => [bx(GX(-40.5 + i * 2.4), GX(-39.3 + i * 2.4), GY(8.5), GY(10), -GBZ - mm(1.7), -GBZ - mm(0.3)), 'white']),
+   [spring(mm(1.1), mm(0.25), mm(9), 8, 'x', GX(-12), GY(0.5), -GBZ - mm(1)), 'spring'],
+   [gear(mm(7.5), 14, mm(3), GX(SELG[0]), GY(SELG[1]), -GBZ - mm(2.2)), 'black'],
+   [cyl(mm(1.5), 2 * GBZ + mm(5), 'z', GX(SELG[0]), GY(SELG[1]), 0, 10), 'steel'],
+   [gear(mm(3.6), 10, mm(2.2), GX(4), GY(10), GBZ + mm(1.6)), 'black']], { tag: 'V3' });
 // motor axis: down the grip from under the bevel gear
 const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();
 const motorAt = (d) => new THREE.Vector3(GX(-16.6), GY(-33), 0).addScaledVector(MOTOR_DIR, d);
@@ -1095,8 +1108,21 @@ part('motor', 'Motor (short type, high torque)', 'gbx', [], [-160, -260, 0],
    [alongGrip(new THREE.CylinderGeometry(mm(9), mm(12.2), mm(4), 28), 69), 'poly']], { variant: 'aeg' });
 part('motorCage', 'Motor cage (CY-0029)', 'gbx', [], [-100, -200, 0],
   'Two-piece metal motor cage bolted to the two screw eyes under the gearbox (CYMA CY-0029, about 85g), with the motor height screw at the bottom.',
-  [[alongGrip(new THREE.CylinderGeometry(mm(13.4), mm(13.4), mm(64), 28), 42), 'zinc'],
-   [alongGrip(new THREE.CylinderGeometry(mm(2), mm(2), mm(8), 10), 78), 'steel']], { shell: true, variant: 'aeg' });
+  // a rectangular box round the motor (CYMA AK V3 photos): flat side plates with a long window that shows the motor can,
+  // closed front and back walls, and the height-screw boss at the bottom
+  (() => {
+    const W = mm(15.6), D = mm(13.2), L = mm(64), t = mm(0.9);
+    const side = z => {
+      const sh = new THREE.Shape(); sh.moveTo(-W, -L / 2); sh.lineTo(W, -L / 2); sh.lineTo(W, L / 2); sh.lineTo(-W, L / 2); sh.lineTo(-W, -L / 2);
+      const h = new THREE.Path(); h.moveTo(-W + mm(3.5), -L / 2 + mm(6)); h.lineTo(-W + mm(3.5), L / 2 - mm(9)); h.lineTo(W - mm(3.5), L / 2 - mm(9)); h.lineTo(W - mm(3.5), -L / 2 + mm(6)); h.lineTo(-W + mm(3.5), -L / 2 + mm(6));
+      sh.holes.push(h);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }); g.translate(0, 0, z - t / 2); return alongGrip(g, 42);
+    };
+    return [[side(D - t / 2), 'zinc'], [side(-D + t / 2), 'zinc'],
+      ...[-1, 1].map(k => { const g = new THREE.BoxGeometry(mm(1.6), L, 2 * D); g.translate(k * (W - mm(0.8)), 0, 0); return [alongGrip(g, 42), 'zinc']; }),
+      [(() => { const g = new THREE.BoxGeometry(2 * W, mm(2.5), 2 * D); g.translate(0, -L / 2 + mm(1.25), 0); return alongGrip(g, 42); })(), 'zinc'],
+      [alongGrip(new THREE.CylinderGeometry(mm(2), mm(2), mm(8), 10), 78), 'steel']];
+  })(), { shell: true, variant: 'aeg' });
 part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8'], [0, 360, 0],
   'Wire guard (8) on the gearbox rear with the motor and trigger leads running back to the stock.',
   [[bx(GX(-70), GX(-66), GY(14), GY(33.5), -mm(6), mm(6)), 'poly'],   // top kept under the trunnion's rear chamfer
