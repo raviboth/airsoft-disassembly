@@ -508,10 +508,10 @@ function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z' } = {}) {
   g.translate(cx, cy, cz);
   return g;
 }
-// clip a geometry so no vertex passes x = f(y) (used for the slant muzzle brake cut)
+// clip a geometry so no vertex passes x = f(y, z) (used for the slant muzzle brake cut)
 function clipFront(g, f) {
   const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) p.setX(i, Math.min(p.getX(i), f(p.getY(i))));
+  for (let i = 0; i < p.count; i++) p.setX(i, Math.min(p.getX(i), f(p.getY(i), p.getZ(i))));
   p.needsUpdate = true; g.computeVertexNormals();
   return g;
 }
@@ -667,11 +667,14 @@ function extrudeX(shape, xA, xB, bevel = 0) {
 }
 
 // ================= BARREL, SIGHTS AND FRONT END =================
+const BRAKE_ROLL = 40 * Math.PI / 180;   // AKM slant face cant toward the right (z+)
 part('brake', 'Slant muzzle brake + thread adaptor, screw', 'frt', ['37M', '35', '36'], [230, 0, 0],
-  'AKM-style slant brake (37M), orange on US-market guns. Threads onto the outer barrel through adaptor 35 (14mm CCW, same size as the real AKM M14x1 LH thread) and is locked by M3x3 grub screw 36. The slant cut is longer at the bottom so real muzzle gas pushes the muzzle down against climb.',
+  'AKM-style slant brake (37M), shown black like the rest of the barrel (US-market guns ship it orange). Threads onto the outer barrel through adaptor 35 (14mm CCW, same size as the real AKM M14x1 LH thread) and is locked by M3x3 grub screw 36. The slant face points up and to the right, leaving a longer lip at the lower left, so on a real AKM the muzzle gas pushes the muzzle down and left against its climb up and right.',
   // profile from the side photo and the CYMA C.54 spare (taiwangun side shot): rear rim, main body, slimmer nose;
-   // the slant face runs from the top down to the bore line, below it the front face is square
-   [[clipFront(latheX([[4.5, X(63)], [10.3, X(63)], [10.3, X(60.5)], [9.7, X(60.5)], [9.7, X(41)], [9.2, X(41)], [9.2, X(24.5)], [4.5, X(24.5)], [4.5, X(63)]], 40), y => X(24.5 + Math.max(0, y) * 2.2)), 'orange'],
+   // the slant face runs from the upper right down to the bore line (cut plane rolled 40 degrees toward the gun's right),
+   // below and left of it the front face is square
+   [[clipFront(latheX([[4.5, X(63)], [10.3, X(63)], [10.3, X(60.5)], [9.7, X(60.5)], [9.7, X(41)], [9.2, X(41)], [9.2, X(24.5)], [4.5, X(24.5)], [4.5, X(63)]], 40),
+     (y, z) => X(24.5 + Math.max(0, y * Math.cos(BRAKE_ROLL) + z * Math.sin(BRAKE_ROLL)) * 2.2)), 'blk'],
    [tube(5.2, 8.2, X(72), X(64), 24), 'blk'],
    [cyl(1.2, 3, 'y', X(55), 10, 0, 8), 'dark']]);
 function fsEars() {          // front view of the sight ears: a ring round the post, open at the top
