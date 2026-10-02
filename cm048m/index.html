@@ -1257,9 +1257,11 @@ part('selPlate', 'Selector plate + selector gears', 'gbx', [], [-150, 440, -60],
    [gear(mm(11.6), 22, mm(3), GX(SELG[0]), GY(SELG[1]), -GBZ - mm(2.2)), 'black'],
    [cyl(mm(1.5), 2 * GBZ + mm(5), 'z', GX(SELG[0]), GY(SELG[1]), 0, 10), 'steel'],
    [gear(mm(3.6), 10, mm(2.2), GX(-0.4), GY(14.5), GBZ + mm(1.6)), 'black']], { tag: 'V3' });
-// motor axis: down the grip from under the bevel gear
-const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();
-const motorAt = (d) => new THREE.Vector3(GX(BUSH[2][0]), GY(BUSH[2][1] - 7.2), 0).addScaledVector(MOTOR_DIR, d);
+// motor axis: down the grip, through the bevel gear axle (the pinion meshes on the bevel's crown teeth), tilted 22 degrees
+// to run parallel to the grip's traced centre line (front and rear edges lean 23 and 21.5 degrees)
+const MOTOR_TILT = 22 * Math.PI / 180;
+const MOTOR_DIR = new THREE.Vector3(-Math.sin(MOTOR_TILT), -Math.cos(MOTOR_TILT), 0);
+const motorAt = (d) => new THREE.Vector3(GX(BUSH[2][0]), GY(BUSH[2][1]), 0).addScaledVector(MOTOR_DIR, mm(7.2) + d);
 function alongGrip(g, d0) { g.rotateZ(Math.atan2(MOTOR_DIR.y, MOTOR_DIR.x) + Math.PI / 2); const c = motorAt(d0); g.translate(c.x, c.y, c.z); return g; }
 part('motor', 'Motor (short type, high torque)', 'gbx', [], [-160, -260, 0],
   'Short-type high-torque motor with neodymium magnets, hanging under the gearbox inside the pistol grip, pinion up into the bevel gear. Mesh is set with an M3 hex screw through the grip bottom (manual p13): only adjust if the motor gets loud.',
@@ -1269,19 +1271,23 @@ part('motor', 'Motor (short type, high torque)', 'gbx', [], [-160, -260, 0],
    [alongGrip(new THREE.CylinderGeometry(mm(9), mm(12.2), mm(4), 28), 69), 'poly']], { variant: 'aeg' });
 part('motorCage', 'Motor cage (CY-0029)', 'gbx', [], [-100, -200, 0],
   'Two-piece metal motor cage bolted to the two screw eyes under the gearbox (CYMA CY-0029, about 85g), with the motor height screw at the bottom.',
-  // a rectangular box round the motor (CYMA AK V3 photos): flat side plates with a long window that shows the motor can,
-  // closed front and back walls, and the height-screw boss at the bottom
+  // CY-0029 (sixmm product photo, CM02 gearbox photos): a narrow cast frame with rounded corners hugging the 24.4mm motor can,
+  // split left and right, big side windows that show the can, thin front and rear rails, a solid band at the top with the two
+  // clamp screws and a closed bottom with the height-screw boss. Sized to sit about 2mm inside the grip walls.
   (() => {
-    const W = mm(15.6), D = mm(13.2), L = mm(64), t = mm(0.9);
-    const side = z => {
-      const sh = new THREE.Shape(); sh.moveTo(-W, -L / 2); sh.lineTo(W, -L / 2); sh.lineTo(W, L / 2); sh.lineTo(-W, L / 2); sh.lineTo(-W, -L / 2);
-      const h = new THREE.Path(); h.moveTo(-W + mm(3.5), -L / 2 + mm(6)); h.lineTo(-W + mm(3.5), L / 2 - mm(9)); h.lineTo(W - mm(3.5), L / 2 - mm(9)); h.lineTo(W - mm(3.5), -L / 2 + mm(6)); h.lineTo(-W + mm(3.5), -L / 2 + mm(6));
-      sh.holes.push(h);
-      const g = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }); g.translate(0, 0, z - t / 2); return alongGrip(g, 42);
-    };
-    return [[side(D - t / 2), 'zinc'], [side(-D + t / 2), 'zinc'],
-      ...[-1, 1].map(k => { const g = new THREE.BoxGeometry(mm(1.6), L, 2 * D); g.translate(k * (W - mm(0.8)), 0, 0); return [alongGrip(g, 42), 'zinc']; }),
-      [(() => { const g = new THREE.BoxGeometry(2 * W, mm(2.5), 2 * D); g.translate(0, -L / 2 + mm(1.25), 0); return alongGrip(g, 42); })(), 'zinc'],
+    const W = mm(14.2), D = mm(12.9), L = mm(62), R = mm(5), t = mm(1.6);
+    const arc = (cx, cz, r, a0, a1, k = 6) => Array.from({ length: k + 1 }, (_, i) => { const a = a0 + (a1 - a0) * i / k; return [cx + r * Math.cos(a), cz + r * Math.sin(a)]; });
+    const half = (w, d, r) => [...arc(w - r, -(d - r), r, -Math.PI / 2, 0), ...arc(w - r, d - r, r, 0, Math.PI / 2)];   // front rail and its two corners
+    const ring = (w, d, r) => [...half(w, d, r), ...half(w, d, r).map(([x, z]) => [-x, -z])];
+    const shp = pts => { const sh = new THREE.Shape(); pts.forEach(([x, z], i) => i ? sh.lineTo(x, z) : sh.moveTo(x, z)); return sh; };
+    const band = hole => { const sh = shp(ring(W, D, R)); if (hole) sh.holes.push(shp(ring(W - t, D - t, R - t).reverse())); return sh; };
+    const ext = (sh, y0, y1) => { const g = new THREE.ExtrudeGeometry(sh, { depth: y1 - y0, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, y0, 0); return alongGrip(g, 42); };
+    const rail = k => shp([...half(W, D, R), ...half(W - t, D - t, R - t).reverse()].map(([x, z]) => [k * x, z]));
+    const yB = -L / 2 + mm(5), yT = L / 2 - mm(7);
+    const screw = k => { const g = new THREE.CylinderGeometry(mm(1.1), mm(1.1), 2 * D + mm(0.6), 8); g.rotateX(Math.PI / 2); g.translate(k * (W - mm(2.4)), L / 2 - mm(3.5), 0); return alongGrip(g, 42); };
+    return [[ext(band(true), yT, L / 2), 'zinc'], [ext(band(true), -L / 2 + mm(2.5), yB), 'zinc'], [ext(band(false), -L / 2, -L / 2 + mm(2.5)), 'zinc'],
+      [ext(rail(1), yB, yT), 'zinc'], [ext(rail(-1), yB, yT), 'zinc'],
+      [screw(1), 'black'], [screw(-1), 'black'],
       [alongGrip(new THREE.CylinderGeometry(mm(2), mm(2), mm(8), 10), 78), 'steel']];
   })(), { shell: true, variant: 'aeg' });
 part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8'], [0, 360, 0],
@@ -1294,7 +1300,7 @@ part('wiring', 'Protect a box of line (wire cover) + gearbox wiring', 'gbx', ['8
 // levels from a row-by-row scan of the side photo's grip edges; the bottom is cut at an angle (front corner lowest)
 const GL = [[147, 720, 790, 30.5], [172, 720.5, 791, 31], [178, 724, 792, 31], [182, 733.5, 792.8, 31], [220, 749.5, 807.8, 31], [255, 764.3, 821.5, 30.8], [262, 767, 821.5, 31.6],
             [268, 768, 813, 31.8], [274, 767.5, 799, 30.4], [279, 768.5, 786, 27]].map(([py, f, b, w]) => ({ y: Y(py), xf: X(f), xb: X(b), w: mm(w) }));
-const GRIP_OPT = { n: 3.4, frontTaper: 0.88, step: 2 };
+const GRIP_OPT = { n: 3.8, frontTaper: 0.95, step: 2 };   // boxy motor-grip section, about 2mm wall round the motor cage
 part('grip', 'Gun grip + grip screw', 'stk', ['13', '14'], [-40, -150, 0],
   'Polymer AKM-pattern motor grip (13). Hollow shell around the motor, about 30mm wide (the real AKM grip is 24 x 40mm in section, 20 degrees from vertical, 106mm long; airsoft motor grips run 30 to 31mm wide to clear the motor). Top flange with rounded ends sits under the receiver; checkered field on the rear half of each side with a smooth front band. Screw 14 holds it; the M3 hex screw in the bottom plate sets motor height.',
   [[loft(GL, GRIP_OPT), 'poly'],
