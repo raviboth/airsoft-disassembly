@@ -1095,7 +1095,7 @@ part('selPlate', 'Selector plate + selector gears', 'gbx', [], [-150, 440, -60],
    [spring(mm(1.1), mm(0.25), mm(9), 8, 'x', GX(-12), GY(0.5), -GBZ - mm(1)), 'spring'],
    [gear(mm(7.5), 14, mm(3), GX(SELG[0]), GY(SELG[1]), -GBZ - mm(2.2)), 'black'],
    [cyl(mm(1.5), 2 * GBZ + mm(5), 'z', GX(SELG[0]), GY(SELG[1]), 0, 10), 'steel'],
-   [gear(mm(3.6), 10, mm(2.2), GX(4), GY(10), GBZ + mm(1.6)), 'black']], { tag: 'V3' });
+   [gear(mm(3.6), 10, mm(2.2), GX(-0.4), GY(14.5), GBZ + mm(1.6)), 'black']], { tag: 'V3' });
 // motor axis: down the grip from under the bevel gear
 const MOTOR_DIR = new THREE.Vector3(-0.35, -0.94, 0).normalize();
 const motorAt = (d) => new THREE.Vector3(GX(-16.6), GY(-33), 0).addScaledVector(MOTOR_DIR, d);
