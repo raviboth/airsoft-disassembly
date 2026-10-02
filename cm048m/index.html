@@ -1000,7 +1000,7 @@ part('hopAdjuster', 'Hop-up adjuster: scale plate, slider, finger block, screws'
    [cyl(mm(2.75), mm(0.8), 'z', X(589), Y(92.3), RZA + mm(2.4), 20), 'dark']]);
 part('hopArm', 'Rubber selector (hop arm) + screws', 'hop', ['43', '47'], [60, -40, -55],
   'Hop arm (43) inside the chamber window, pressed down by the slider and held by the two M2x4 screws 47; it pushes the cylindrical rubber nub (44, shown with the bucking) down onto the bucking above the barrel window. Kept in the owner build, where it presses the G&G bucking over the R-hop patch with the nub removed.',
-  [[bx(X(593), X(562), Y(91.6), Y(88.4), -mm(5.7), mm(5.7)), 'poly2'],
+  [[bx(X(593), X(562), mm(8.7), mm(11.9), -mm(5.7), mm(5.7)), 'poly2'],   // bottom face rests on the nub
    ...[566, 590].map(a => [cyl(mm(1), mm(3.5), 'y', X(a), Y(HOP_TOP) - mm(1.2), mm(2.8), 8), 'dark'])]);
 // TM-pattern bucking (Begadi TM-spec drawings, SHS/Prometheus listings: 22 to 24mm long, 10mm OD): a thin sleeve over the barrel's
 // rear 19.5mm, an end wall at the barrel's breech face, then a narrower lip that the nozzle seals into; inside, the mound sits over
@@ -1016,7 +1016,8 @@ const HOP_NUB = BK_F + 15.5 / S;   // nub and arm press over the mound
 part('bucking', 'Rubber hop-up unit (bucking) + nub', 'hop', ['39', '44'], [20, -60, 0],
   'Hop-up bucking (39): black rubber, about 60 shore on the stock CYMA. A thin sleeve over the rear 19.5mm of the inner barrel, ending in a wall at the breech face and a narrower lip (about 7.3mm across) that the nozzle pushes into to seal. Inside, a mound sits over the barrel window, 1.7 to 6.3mm ahead of the breech: the cylindrical rubber nub (44) under the hop arm presses it down into the bore, where it spins the BB backwards. Raising the adjuster lowers the mound further for more hop. TM-pattern sizes: 22 to 24mm long, 10mm across (SHS, Prometheus listings; Begadi drawings).',
   [...buckingGeo('rubberblk'),
-   [cyl(mm(1.6), Y(91.6) - Y(97.6), 'y', X(HOP_NUB), (Y(91.6) + Y(97.6)) / 2, 0, 12), 'rubberblk']], { variant: 'aeg' });
+   // cylindrical nub lying across the bore, its round side on the mound
+   [cyl(mm(2), mm(5), 'z', X(HOP_NUB), mm(6.7), 0, 20), 'rubberblk']], { variant: 'aeg' });
 part('barrelClip', 'Gun barrel connect link (C-clip) + copper', 'hop', ['42', '41'], [30, -110, 0],
   'U clip (42) pushed up through the slot across the bottom front of the chamber, gripping the groove on the inner barrel so the barrel cannot slide out; it can be seen through the magazine well. Copper (41) is the brass collar on the barrel just in front of the chamber.',
   (() => {
