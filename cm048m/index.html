@@ -1066,17 +1066,54 @@ part('sideRail', 'Side rail (optics mount)', 'rcv', ['2'], [0, 0, -110],
   [[at(prof(P([[612, 103], [760, 103], [760, 127], [612, 127]]), mm(3), 0.6), 0, 0, -RZ - mm(1.8)), 'blk'],
    [bx(X(760), X(612), Y(103), Y(98), -RZ - mm(7), -RZ - mm(1.5)), 'blk'],
    ...[[638, 127], [657, 125], [707, 132]].map(([a, b]) => [cyl(mm(2.8), mm(1.2), 'z', X(a), Y(b), -RZ - mm(0.6), 12), 'steel'])]);
+// trigger guard bow (photo px): centre of the outer skin, from inside the catch box down the front of the finger hole, along the
+// bottom and up the rear to the top plate; corners rounded, sampled densely so the channel bands can be offset along it
+const TG_PATH = (() => {
+  const c = [[658.5, 172, 0], [658.5, 185, 4], [720.5, 185, 5], [719, 145, 0]], out = [];
+  for (let i = 0; i < c.length; i++) {
+    const [a, b, r] = c[i];
+    if (!r) { out.push([a, b]); continue; }
+    const [pa, pb] = c[i - 1], [na, nb] = c[i + 1];
+    const l0 = Math.hypot(a - pa, b - pb), l1 = Math.hypot(na - a, nb - b);
+    const s0 = [a + (pa - a) * r / l0, b + (pb - b) * r / l0], s1 = [a + (na - a) * r / l1, b + (nb - b) * r / l1];
+    for (let k = 0; k <= 8; k++) { const t = k / 8, u = 1 - t; out.push([u * u * s0[0] + 2 * u * t * a + t * t * s1[0], u * u * s0[1] + 2 * u * t * b + t * t * s1[1]]); }
+  }
+  return resample(out, 60);
+})();
+// band of the guard channel between offsets d0 and d1 (photo px, positive = into the finger hole)
+function tgBand(d0, d1) {
+  const n = TG_PATH.map((p, i) => {
+    const q0 = TG_PATH[Math.max(0, i - 1)], q1 = TG_PATH[Math.min(TG_PATH.length - 1, i + 1)];
+    const dx = q1[0] - q0[0], dy = q1[1] - q0[1], l = Math.hypot(dx, dy);
+    return [dy / l, -dx / l];
+  });
+  const off = d => TG_PATH.map((p, i) => [p[0] + n[i][0] * d, p[1] + n[i][1] * d]);
+  return P([...off(d0), ...off(d1).reverse()]);
+}
 part('trigGuard', 'Rigger loop (trigger guard)', 'rcv', ['3'], [20, -100, 0],
-  'Stamped steel trigger guard (3), riveted under the receiver. Real AKM guard: 66mm hole span, 33.5mm wide at the ears.',
-  // the front ear (px 634 to 657) is a box that houses the magazine catch, pinned through at px 643
-  [[prof(P([[634, 143], [722, 143], [722, 148], [718, 187], [662, 187], [657, 183], [655, 176.5], [637, 176.5], [634, 172]]), mm(9), 0.5, [P([[658, 150], [713, 150], [710, 182], [662, 182], [658, 178]])]), 'blk'],
-   [bx(X(722), X(643), Y(145), Y(143), -mm(16), mm(16)), 'blk']]);
+  'Stamped steel trigger guard (3), riveted under the receiver. The bow is a sheet steel channel, a flat web with its edges turned up toward the finger hole for stiffness; the front is a box whose side walls hold the magazine catch pin, riveted to the receiver floor through a flat top plate. Real AKM guard: 66mm hole span, 33.5mm wide at the ears, 2.5x8mm rivets (4 front, 1 rear).',
+  // side profile from the right side photo; channel section and rivet layout from a bare AKM receiver from below (ultimak):
+  // web 12mm wide, 1.4mm thick, flanges 2.9mm deep. The catch box is two side walls round the catch, open at the bottom
+  // for the paddle.
+  (() => {
+    const W = mm(12), ft = mm(1.2), box = P([[634, 143], [658, 143], [659, 176.5], [637, 176.5], [634, 172]]);
+    const g = [[at(prof(tgBand(0, mm(1.4)), W - 0.3, 0.15), 0, 0, 0), 'blk']];
+    for (const sz of [-1, 1]) {
+      g.push([at(prof(tgBand(0, mm(2.9)), ft - 0.3, 0.15), 0, 0, sz * (W - ft) / 2), 'blk']);
+      g.push([at(prof(box, ft - 0.3, 0.15), 0, 0, sz * (mm(4.9) + ft / 2)), 'blk']);
+      for (const a of [639, 652]) g.push([cyl(mm(1.9), mm(0.9), 'y', X(a), Y(145.4), sz * mm(11.5), 12), 'blk']);
+    }
+    g.push([prof(P([[634, 143], [658, 143], [658, 145.5], [634, 145.5]]), mm(9.8) + 2 * ft - 0.3, 0.15), 'blk']);   // box roof
+    g.push([cyl(mm(1.9), mm(0.9), 'y', X(725), Y(145.4), 0, 12), 'blk']);                                        // rear rivet on the tang
+    g.push([bx(X(728), X(634), Y(145), Y(143), -mm(15), mm(15)), 'blk']);                                       // top plate
+    return g;
+  })());
 part('magCatch', 'Magazine safety (magazine catch)', 'rcv', ['4'], [70, -130, 40],
   'Paddle magazine catch (4): a stamped U-channel pinned inside the front ear of the trigger guard, with the finger paddle hanging below. Push the paddle forward and rock the magazine forward off the front lug.',
   // stamped U-channel (VFC AKM-25 / AK74M GBB catch photos): body and catch nose inside the guard ear, paddle hanging below it
   [[prof(P([[636, 140.5], [650, 140.5], [653, 150], [651, 171], [645, 177], [637, 177], [636, 160]]), mm(6.6), 0.4), 'blk'],
    [prof(P([[640, 175], [646.5, 175], [642.5, 196], [638.5, 196.5], [637.5, 186]]), mm(12), 0.6), 'blk'],
-   [cyl(mm(1.8), mm(10.2), 'z', X(643), Y(166), 0, 12), 'dark']]);
+   [cyl(mm(1.8), mm(13.2), 'z', X(643), Y(166), 0, 12), 'dark']]);
 
 // ================= HOP-UP AND INNER BARREL =================
 // TM-pattern AK chamber as CYMA ships it (C.03 photos, CYMA manual p14 exploded view; size from the Prowin TM-spec chamber,
