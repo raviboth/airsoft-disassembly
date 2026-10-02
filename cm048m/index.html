@@ -638,14 +638,17 @@ function lowerHGGeo(px0, px1, grow = 0, notches = true) {
   return g;
 }
 // retainer (front cap): D-shaped plate, section in (z, y) mm about the bore
-const HGL_Z = -mm(13.5), HGF = 286;   // lock lever shaft (left of the bore, at bore height); front face of the retainer (photo px)
+// Lock lever (owner photos): a cross shaft through the collar block above the bore, the arm on the right lying back
+// through a notch in the plate's top edge
+const HGL = { px: 291.5, y: mm(7.6), z0: mm(8.9), z1: mm(11.4) };
 function retainerShape(grow = 0, hole = true) {
   const s = new THREE.Shape(), hw = mm(17.5 + grow), top = mm(16 + grow), cy = mm(-2.5), r = hw;
-  s.moveTo(-hw, top); s.lineTo(hw, top); s.lineTo(hw, cy); s.absarc(0, cy, r, 0, -Math.PI, true); s.lineTo(-hw, top);
+  s.moveTo(-hw, top);
+  if (hole) { s.lineTo(HGL.z0 - mm(0.5), top); s.lineTo(HGL.z0 - mm(0.5), mm(4.4)); s.lineTo(HGL.z1 + mm(0.3), mm(4.4)); s.lineTo(HGL.z1 + mm(0.3), top); }
+  s.lineTo(hw, top); s.lineTo(hw, cy); s.absarc(0, cy, r, 0, -Math.PI, true); s.lineTo(-hw, top);
   if (hole) {
     const b = new THREE.Path(); b.absarc(0, 0, mm(8.6), 0, Math.PI * 2, true); s.holes.push(b);
     const rd = new THREE.Path(); rd.absarc(0, Y(119.5), mm(3.4), 0, Math.PI * 2, true); s.holes.push(rd);
-    const lv = new THREE.Path(); lv.absarc(HGL_Z, 0, mm(2.6), 0, Math.PI * 2, true); s.holes.push(lv);   // lock lever shaft, left side
   }
   return s;
 }
@@ -710,39 +713,70 @@ part('gasTube', 'Gas tube (lead windpipe) + ring', 'frt', ['56', '58'], [110, 16
   'Gas tube (56, "lead windpipe" in the manual). Real AKM tube is 176.7mm; the front section has the vent slots, the rear sits in the rear sight block under the upper handguard.',
   [[tube(GT_R - 1.8, GT_R, X(430), X(214), 32, GT_Y), 'blk'],
    ...[236, 250, 264, 278].map(px => [cyl(mm(1.8), mm(4), 'z', X(px), GT_Y, GT_R - 1, 8), 'black'])]);
+// Upper handguard section (owner photos from the side, front and below): a flat-sided rounded box, not round, open along the
+// bottom over the gas tube; its lower edges meet the top of the lower handguard and carry the same two vent notches.
+const UHG = { hw: mm(16.5), yb: Y(83), yt: GT_Y + GT_R + 6.4, ci: GT_R + 0.6, n: 3.2 };
+function uhgOuter(grow = 0, seg = 96) {
+  const yc = (UHG.yt + UHG.yb) / 2, hh = (UHG.yt - UHG.yb) / 2 + grow, hw = UHG.hw + grow, e = 2 / UHG.n, out = [];
+  for (let i = 0; i < seg; i++) { const t = i / seg * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+    out.push([hw * Math.sign(c) * Math.abs(c) ** e, yc + hh * Math.sign(sn) * Math.abs(sn) ** e]); }
+  return out;
+}
+function uhgShape(notch = 0) {
+  const s = new THREE.Shape(), pts = uhgOuter().filter(([z, y]) => !(y < (UHG.yt + UHG.yb) / 2 && Math.abs(z) < UHG.ci));
+  const yc = (UHG.yt + UHG.yb) / 2;
+  const k = pts.findIndex(([z, y], i) => { const [z2, y2] = pts[(i + 1) % pts.length]; return z < 0 && z2 > 0 && y < yc && y2 < yc; });   // the gap
+  const ring = [...pts.slice(k + 1), ...pts.slice(0, k + 1)].map(([z, y]) => [z, Math.max(y, UHG.yb + notch)]);   // bottom-right, over the top, to bottom-left
+  ring.forEach(([z, y], i) => i ? s.lineTo(z, y) : s.moveTo(z, y));
+  s.lineTo(-UHG.ci, ring[ring.length - 1][1]); s.lineTo(-UHG.ci, GT_Y); s.absarc(0, GT_Y, UHG.ci, Math.PI, 0, true);
+  s.lineTo(UHG.ci, ring[0][1]); s.lineTo(ring[0][0], ring[0][1]);
+  return s;
+}
+function uhgCap(grow) {
+  const s = new THREE.Shape(); uhgOuter(grow).forEach(([z, y], i) => i ? s.lineTo(z, y) : s.moveTo(z, y));
+  const h = new THREE.Path(); h.absarc(0, GT_Y, GT_R + 0.3, 0, Math.PI * 2, true); s.holes.push(h);
+  return s;
+}
+const woodX = (shape, xA, xB) => {   // extrude along x with the grain running along x
+  const g = extrudeX(shape, xA, xB), P = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < P.count; i++) uv.setXY(i, P.getX(i) * 0.0035, (P.getY(i) + P.getZ(i)) * 0.01);
+  return g;
+};
 part('upperHG', 'Upper handguard + back cap', 'frt', ['55M', '57'], [110, 230, 0],
-  'Real wood upper handguard (55M, AKM profile, about 111mm on the real rifle) that wraps over the gas tube from above: a C section open along the bottom, so the tube shows between the handguards. Its collars sit in steel cups at both ends (back cap 57 at the rear sight block, front cup on the tube). Released by the lever on the rear sight block.',
-  [[sectorX(GT_R + 0.5, GT_R + 6.4, -Math.PI / 2 + 0.85, 1.5 * Math.PI - 0.85, X(429), X(307), GT_Y, 48), 'wood'],
-   [sectorX(GT_R + 0.3, GT_R + 3.2, -Math.PI / 2 + 0.6, 1.5 * Math.PI - 0.6, X(443), X(429), GT_Y, 32), 'blk'],
-   [sectorX(GT_R + 0.3, GT_R + 6.6, -Math.PI / 2 + 0.75, 1.5 * Math.PI - 0.75, X(307), X(298), GT_Y, 40), 'blk']], { shell: true });
+  'Real wood upper handguard (55M) over the gas tube. On the CM048M it is a flat-sided rounded box in section, open along the bottom so the tube shows between the handguards, with two vent notches in its lower edges that line up with the notches in the lower handguard. Steel caps close both ends (back cap 57 at the rear sight block, front cap on the tube). Released by the lever on the rear sight block.',
+  [...[[307, 325, 0], [325, 352, 2.6], [352, 387, 0], [387, 417, 2.6], [417, 429, 0]].map(([a, b, nt]) => [woodX(uhgShape(nt), X(b), X(a)), 'wood']),
+   [extrudeX(uhgCap(0.3), X(443), X(429), 0.3), 'blk'],
+   [extrudeX(uhgCap(0.4), X(307), X(298), 0.4), 'blk']], { shell: true });
 part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90, -165, 0],
   'Real wood AKM lower handguard (53M): two vent notches in the top edge, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
   [[lowerHGGeo(307, 486), 'wood'], [lowerHGGeo(486, 492, mm(0.6), false), 'blk']], { shell: true });
 part('hgRetainer', 'Lower handguard front cap (retainer)', 'frt', ['24'], [140, -60, 0],
-  'Handguard retainer (24): a thick D-shaped casting on the barrel with a hole for the cleaning rod below the bore and a cup behind it that holds the front tenon of the lower handguard. The lock lever (25) plugs through a hole in its left side, and an ear on the left carries the front sling slot.',
-  [[extrudeX(retainerShape(), X(301), X(HGF), 0.4), 'blk'],
-   // four rivet heads on the front face (Patrol Base spare photo)
-   ...[[12, 9], [-12, 9], [10, -12], [-10, -12]].map(([z, y]) => [cyl(mm(1.8), 1.2, 'x', X(HGF) + 0.7, mm(y), mm(z), 12), 'blk']),
+  'Handguard retainer (24), per the owner photos of the CM048M: a square collar block round the barrel at the front, a D-shaped plate behind it with a hole for the cleaning rod below the bore, and a cup at the back that holds the front tenon of the lower handguard. The lock lever (25) crosses the collar block above the bore; its arm lies back through a notch in the top right of the plate. A deep ear on the left carries a sling hole drilled from the top.',
+  [[extrudeX(retainerShape(), X(301), X(297.5), 0.4), 'blk'],
+   // four rivet heads on the front face (owner photo from the front, Patrol Base spare)
+   ...[[14, 11], [-12, 9], [10, -12], [-10, -12]].map(([z, y]) => [cyl(mm(1.8), 1.2, 'x', X(297.5) + 0.7, mm(y), mm(z), 12), 'blk']),
    [(() => { const s = retainerShape(0, false), h = new THREE.Path(), hw = mm(16), cy = mm(-2.5);
       h.moveTo(-hw, mm(17)); h.lineTo(-hw, cy); h.absarc(0, cy, hw, -Math.PI, 0, false); h.lineTo(hw, mm(17)); h.lineTo(-hw, mm(17)); s.holes.push(h);
       return extrudeX(s, X(310), X(301)); })(), 'blk'],
-   [(() => { const e = new THREE.Shape(), z0 = mm(-13), z1 = mm(-27), y0 = mm(-8), y1 = mm(15), r = mm(4);   // sling ear on the left
-      e.moveTo(z0, y1); e.lineTo(z1 + r, y1); e.absarc(z1 + r, y1 - r, r, Math.PI / 2, Math.PI, false); e.lineTo(z1, y0 + r);
-      e.absarc(z1 + r, y0 + r, r, Math.PI, 1.5 * Math.PI, false); e.lineTo(z0, y0); e.lineTo(z0, y1);
-      const h = new THREE.Path(), zc = mm(-20), hw = mm(3.5), hh = mm(3.6);
-      h.absarc(zc, mm(1.6) + hh, hw, 0, Math.PI, false); h.absarc(zc, mm(1.6) - hh, hw, Math.PI, 2 * Math.PI, false); e.holes.push(h);
-      return extrudeX(e, X(300.8), X(297.8), 0.3); })(), 'blk'],
-   ]);
-// Lock lever, sized from the CYMA lever print (Thingiverse 4785280: 5mm shaft 21mm long, 14 x 5 x 2.5mm arm, cam scoop 6 to
-// 12mm from the shaft's back end) and placed per the owner's mark-up: the shaft plugs front to back through a hole in the
-// left side of the retainer into the handguard cup, and the arm lies on the retainer's front face pointing down.
-part('hgRetLever', 'Lower handguard lock lever', 'frt', ['25'], [170, -20, -50],
-  'Lock lever (25, "front cap button" in the CYMA manual; a lever on the CYMA as on the real AKM). An L-shaped steel piece: a 5mm shaft 21mm long plugs front to back through a hole in the left side of the retainer, with a scoop cut along its back half that bears on the front tenon of the lower handguard inside the cup, and a flat arm on its front end. Locked, the arm lies on the front face of the retainer pointing down. Swing it round to turn the scoop clear of the tenon and the retainer slides forward off the wood.',
-  (() => { const xf = X(HGF), r = mm(2.5), T = mm(2.5), L = mm(21), z = HGL_Z;
-    return [[cyl(r, L, 'x', xf + T - L / 2, 0, z, 18), 'blk'],                                                         // shaft
-      [bx(xf + T - L + mm(6.2), xf + T - L + mm(12.3), -r - 0.05, -r + mm(1.4), z - mm(1.8), z + mm(1.8)), 'dark'],    // cam scoop
-      [bx(xf, xf + T, -mm(11.5) + r, 0, z - r, z + r), 'blk'],                                                          // arm, pointing down
-      [cyl(r, T, 'x', xf + T / 2, -mm(11.5) + r, z, 18), 'blk']];                                                       // rounded arm end
+   // collar block: square round the barrel, about 9.5mm deep, its walls thin either side of the bore
+   [(() => { const b = new THREE.Shape(), hw = mm(8.2), t = mm(11.5), bt = -mm(9.5), r = mm(1.5);
+      b.moveTo(-hw + r, bt); b.lineTo(hw - r, bt); b.quadraticCurveTo(hw, bt, hw, bt + r); b.lineTo(hw, t - r); b.quadraticCurveTo(hw, t, hw - r, t);
+      b.lineTo(-hw + r, t); b.quadraticCurveTo(-hw, t, -hw, t - r); b.lineTo(-hw, bt + r); b.quadraticCurveTo(-hw, bt, -hw + r, bt);
+      const h = new THREE.Path(); h.absarc(0, 0, mm(7.8), 0, Math.PI * 2, true); b.holes.push(h);
+      return extrudeX(b, X(297.5), X(286), 0.3); })(), 'blk'],
+   // left ear, as deep as plate and cup front together, with the sling hole drilled down from the top
+   [bx(X(305), X(297.5), -mm(8), mm(15), -mm(23), -mm(13)), 'blk'],
+   [cyl(mm(3.1), mm(23.1), 'y', X(301.25), mm(3.5), -mm(18.2), 20), 'black']]);
+// Lock lever, sized from the CYMA lever print (Thingiverse 4785280: 5mm shaft 21mm long, 14 x 5 x 2.5mm arm) and placed
+// from the owner photos: the shaft runs side to side through the collar block above the bore (its plain end shows on the
+// left), and the knurled arm on the right end lies back along the block and through the plate notch.
+part('hgRetLever', 'Lower handguard lock lever', 'frt', ['25'], [140, 40, 70],
+  'Lock lever (25, "front cap button" in the CYMA manual; a lever on the CYMA as on the real AKM). An L-shaped steel piece: a 5mm shaft runs side to side through the collar block of the retainer, just above the bore, where a scoop along it bears on a notch in the barrel; its end shows on the left side. A flat arm with a knurled outer face sits on the right end and, locked, lies back along the block and through a notch in the plate. Swing it up and over to point at the muzzle and the retainer slides forward off the barrel, freeing the lower handguard.',
+  (() => { const x = X(HGL.px), y = HGL.y, r = mm(2.5), za = -mm(9.4), zb = HGL.z1;
+    return [[cyl(r, zb - za, 'z', x, y, (za + zb) / 2, 18), 'blk'],                                                  // shaft
+      [bx(X(HGL.px) - mm(11.5), x, y - r, y + r, HGL.z0, HGL.z1), 'blk'],                                          // arm, lying back
+      [cyl(r, HGL.z1 - HGL.z0, 'z', x, y, (HGL.z0 + HGL.z1) / 2, 18), 'blk'],                                      // rounded front end
+      [bx(X(HGL.px) - mm(10.5), x - mm(0.5), y - r + mm(0.4), y + r - mm(0.4), HGL.z1, HGL.z1 + 0.15), 'checker']];   // knurled face
   })());
 function rsTower(e = 0) {   // front face of the rear sight block in (z, y): window for the gas tube, ring round the barrel; e = bevel inset
   const s = new THREE.Shape(), hw = mm(13) - e, top = Y(45.6) - e, r = mm(13) - e, c = mm(4);
@@ -778,6 +812,7 @@ function rearSightPieces() {
   const out = [
     [extrudeX(rsTower(1.4), X(453) + 1.4, X(441) - 1.4, 1.4), 'blk'],
     [extrudeX(coverLip(), X(522), X(518), 0.3), 'blk'],                                // rear lip the dust cover's front end tucks under
+    [bx(X(446.5), X(441.8), Y(45.6) - 0.02, Y(45.6) + 0.06, -mm(11.5), mm(11.5)), 'black'],   // open slot across the front of the tower top (owner photo)
     [prof(P([[453, 51], [517, 51.2], [520, 53.5], [520, 58], [498, 81], [453, 81]]), mm(24), 0.8), 'blk'],
     [prof(leafSide(461, 470, 0, T), mm(10.4), 0.3), 'blk'],                          // hinge tongue between the ears
     [prof(leafSide(469.5, 525, 1.0, T), mm(13), 0.3), 'blk'],                           // leaf floor
@@ -796,12 +831,12 @@ function rearSightPieces() {
     out.push([bx(X(px + 0.55), X(px - 0.55), Y(lt(px) + T - 0.3), Y(lt(px) + 0.3), sg > 0 ? mm(6.5) - 0.1 : -mm(6.5) - 0.15, sg > 0 ? mm(6.5) + 0.15 : -mm(6.5) + 0.1), 'black']);
   const sx0 = 494.5, sx1 = 502.5, sb = 51;                                            // slider: band round the leaf down to the base top
   out.push([prof(P([[sx0, lt(sx0) - 0.9], [sx1, lt(sx1) - 0.9], [sx1, sb], [sx0, sb]]), mm(15), 0.35), 'blk']);
-  for (const sg of [1, -1]) {
-    const yc = Y(41.9), zc = sg * mm(9.3);
-    out.push([cyl(mm(2.6), mm(8.6), 'x', X(500.2), yc, zc, 20), 'blk']);             // push button barrel, along the leaf
-    out.push([cyl(mm(2.2), mm(0.7), 'x', X(505.6), yc, zc, 20), 'checker']);        // checkered thumb end, facing rear
+  for (const sg of [1, -1]) {                                                         // push buttons stand out sideways from the
+    const yc = Y(41.9), xc = X((sx0 + sx1) / 2);                                       // slider, past the base, checkered ends outward
+    out.push([cyl(mm(3), mm(9), 'z', xc, yc, sg * mm(6.5 + 4.5), 20), 'blk']);
+    out.push([cyl(mm(2.5), mm(0.7), 'z', xc, yc, sg * mm(15.35), 20), 'checker']);
   }
-  const ns = new THREE.Shape(), nb = Y(lt(525) + T), nt = Y(38.8), hw = mm(7.2), nw = mm(1.2), nd = mm(2.2);
+  const ns = new THREE.Shape(), nb = Y(lt(525) + T), nt = Y(38.8), hw = mm(10.5), nw = mm(1.2), nd = mm(2.2);   // notch plate about 21mm wide (owner photo)
   ns.moveTo(-hw, nb); ns.lineTo(hw, nb); ns.lineTo(hw, nt - mm(1)); ns.lineTo(hw - mm(1), nt); ns.lineTo(nw, nt); ns.lineTo(nw, nt - nd);
   ns.absarc(0, nt - nd, nw, 0, -Math.PI, true); ns.lineTo(-nw, nt); ns.lineTo(-hw + mm(1), nt); ns.lineTo(-hw, nt - mm(1)); ns.lineTo(-hw, nb);
   out.push([extrudeX(ns, X(526.5), X(523), 0.25), 'blk']);                          // notch plate
