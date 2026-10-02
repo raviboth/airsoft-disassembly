@@ -595,23 +595,25 @@ function sectorX(rIn, rOut, a0, a1, xA, xB, cy, seg = 40) {
   for (let i = 0; i < P.count; i++) uv.setXY(i, P.getX(i) * 0.0035, Math.atan2(P.getY(i) - cy, P.getZ(i)) / Math.PI);
   return g;
 }
-// AKM lower handguard: superellipse section swept along x (photo px), with the vent notches in the top edge, the recessed
-// side panel that ends in the rear palm swell (RedWolf CM048M right side, Atlantic/Apex AKM side views) and a front tenon
+// AKM lower handguard: a U-section trough swept along x (photo px), open along the top for the barrel (1968 AKM repair manual
+// fig. 22 end view, owner photo from above with the upper handguard off). Outside: superellipse with the vent notches in
+// the top edges, the recessed side panel that ends in the rear palm swell (RedWolf CM048M right side, Atlantic/Apex AKM side
+// views) and a front tenon. Inside: straight walls down to a round-bottomed channel round the bore, leaving a thick floor.
 function lowerHGGeo(px0, px1, grow = 0, notches = true) {
   const K = (a, b, e, x) => Math.min(1, Math.max(0, (x - a) / e)) * Math.min(1, Math.max(0, (b - x) / e));
   const lerpT = (tab, x) => { for (let i = 0; i < tab.length - 1; i++) if (x <= tab[i + 1][0]) { const t = (x - tab[i][0]) / (tab[i + 1][0] - tab[i][0]), u = t * t * (3 - 2 * t); return tab[i][1] + (tab[i + 1][1] - tab[i][1]) * u; } return tab[tab.length - 1][1]; };
   const YB = [[307, 129], [325, 132], [345, 133], [440, 133], [460, 139], [476, 142], [484, 141.5], [492, 138.5]];
   const W = [[307, 35], [330, 37.5], [400, 40], [440, 42.5], [470, 43], [486, 42], [492, 40]];
-  const n = 3.2, seg = 160, pos = [], idx = [], xs = [];
+  const n = 3.2, M = 120, KW = 10, KA = 24, ci = mm(9.6) - grow, pos = [], idx = [], xs = [];
   for (let px = px0; px <= px1 + 1e-6; px += 0.5) xs.push(px);
   const sec = px => {
     const ten = 1 - Math.min(1, Math.max(0, (px - 311) / 1.5));                    // front tenon into the retainer cup
     const notch = notches ? 2.6 * (K(325, 352, 2, px) + K(387, 417, 2, px)) : 0;
     const yt = Y(83 + notch + ten * 1.2) + grow, yb = Y(lerpT(YB, px) - ten * 1.5) - grow;
     const hw = mm(lerpT(W, px) - ten * 3.5) / 2 + grow, yc = (yt + yb) / 2, hh = (yt - yb) / 2;
-    const out = [];
-    for (let i = 0; i < seg; i++) {
-      const t = i / seg * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+    const t0 = Math.acos(Math.min(1, (ci / hw) ** (n / 2))), out = [];
+    for (let i = 0; i < M; i++) {                                                     // outside: top of the right wall, down, round
+      const t = t0 + (-Math.PI - 2 * t0) * i / (M - 1), c = Math.cos(t), sn = Math.sin(t);   // the bottom, up to the top of the left wall
       const y = yc + hh * Math.sign(sn) * Math.abs(sn) ** (2 / n);
       let z = hw * Math.sign(c) * Math.abs(c) ** (2 / n);
       // recessed side panel: flat-bottomed oval pocket, rounded rear end, open toward the front cap
@@ -620,16 +622,22 @@ function lowerHGGeo(px0, px1, grow = 0, notches = true) {
       z -= Math.sign(c) * mm(2.2) * inPanel * Math.min(1, Math.abs(c) ** 2 * 1.6);
       out.push([y, z]);
     }
+    const yl = out[M - 1][0], yr = out[0][0];                                         // inside: left wall down, round bottom, right wall up
+    for (let i = 0; i < KW; i++) out.push([yl + (0 - yl) * i / (KW - 1), -ci]);
+    for (let i = 1; i < KA; i++) { const a = Math.PI + Math.PI * i / KA; out.push([ci * Math.sin(a), ci * Math.cos(a)]); }
+    for (let i = 0; i < KW; i++) out.push([0 + (yr - 0) * i / (KW - 1), ci]);
     return out;
   };
+  const N = M + 2 * KW + KA - 1;
   xs.forEach(px => sec(px).forEach(([y, z]) => pos.push(X(px), y, z)));
-  for (let k = 0; k < xs.length - 1; k++) for (let i = 0; i < seg; i++) {
-    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg; idx.push(a, c, b, b, c, d);
+  for (let k = 0; k < xs.length - 1; k++) for (let i = 0; i < N; i++) {
+    const a = k * N + i, b = k * N + (i + 1) % N, c = a + N, d = b + N; idx.push(a, c, b, b, c, d);
   }
-  for (const [k, flip] of [[0, false], [xs.length - 1, true]]) {
-    const base = pos.length / 3, ring = sec(xs[k]);
-    pos.push(X(xs[k]), ring.reduce((m, [y]) => m + y / seg, 0), 0);
-    for (let i = 0; i < seg; i++) { const a = k * seg + i, b = k * seg + (i + 1) % seg; flip ? idx.push(base, a, b) : idx.push(base, b, a); }
+  for (const [k, flip] of [[0, false], [xs.length - 1, true]]) {                     // end faces: the U outline, triangulated
+    const ring = sec(xs[k]), base = pos.length / 3;
+    ring.forEach(([y, z]) => pos.push(X(xs[k]), y, z));
+    THREE.ShapeUtils.triangulateShape(ring.map(([y, z]) => new THREE.Vector2(z, y)), []).forEach(([a, b, c]) =>
+      flip ? idx.push(base + a, base + c, base + b) : idx.push(base + a, base + b, base + c));
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setIndex(idx); g.computeVertexNormals();
@@ -717,7 +725,7 @@ part('upperHG', 'Upper handguard + gas tube', 'frt', ['55M', '56', '57', '58'], 
    [sectorX(GT_R + 0.3, GT_R + 3.2, -Math.PI / 2 + 0.6, 1.5 * Math.PI - 0.6, X(443), X(429), GT_Y, 32), 'blk'],
    [sectorX(GT_R + 0.3, GT_R + 6.6, -Math.PI / 2 + 0.75, 1.5 * Math.PI - 0.75, X(307), X(298), GT_Y, 40), 'blk']], { shell: true });
 part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90, -165, 0],
-  'Real wood AKM lower handguard (53M): two vent notches in the top edge, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
+  'Real wood AKM lower handguard (53M): a U-section trough, open along the top so the barrel lies in its channel between two wood walls on a thick floor, not a solid block. Two vent notches in the top edges, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear that wraps the open end. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
   [[lowerHGGeo(307, 486), 'wood'], [lowerHGGeo(486, 492, mm(0.6), false), 'blk']], { shell: true });
 part('hgRetainer', 'Lower handguard front cap (retainer)', 'frt', ['24'], [140, -60, 0],
   'Handguard retainer (24), per the owner photos of the CM048M: a square collar block round the barrel at the front, a D-shaped plate behind it with a hole for the cleaning rod below the bore, and a cup at the back that holds the front tenon of the lower handguard. The lock lever (25) crosses the collar block above the bore; its arm lies back through a notch in the top right of the plate. An ear on the left carries the front sling slot.',
