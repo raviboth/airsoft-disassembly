@@ -717,7 +717,7 @@ part('lowerHG', 'Lower handguard + retaining slices', 'frt', ['53M', '54'], [90,
   'Real wood AKM lower handguard (53M): two vent notches in the top edge, a recessed panel along each side that ends in the rear palm swell, and a steel U cap at the rear. The front sits in the retainer ferrule, the rear under the rear sight block. Measured AKM lower handguard models: about 167mm long, 35mm wide at the front growing to 43mm at the palm swells, 37 to 52mm tall. Slice 54 is the spring plate that takes up play.',
   [[lowerHGGeo(307, 486), 'wood'], [lowerHGGeo(486, 492, mm(0.6), false), 'blk']], { shell: true });
 part('hgRetainer', 'Lower handguard front cap (retainer)', 'frt', ['24'], [140, -60, 0],
-  'Handguard retainer (24): a D-shaped steel plate on the barrel with a collar in front, a hole for the cleaning rod below the bore, and a cup behind it that holds the front tenon of the lower handguard. The lock lever (25) runs down through the right side of the cup, and an ear on the left carries the front sling slot.',
+  'Handguard retainer (24): a D-shaped steel plate on the barrel with a collar in front, a hole for the cleaning rod below the bore, and a cup behind it that holds the front tenon of the lower handguard. The lock lever (25) crosses a raised block on top of the cup, and an ear on the left carries the front sling slot.',
   [[extrudeX(retainerShape(), X(301), X(297.5), 0.4), 'blk'],
    // four rivet heads on the front face (Patrol Base spare photo)
    ...[[12, 9], [-12, 9], [10, -12], [-10, -12]].map(([z, y]) => [cyl(mm(1.8), 1.2, 'x', X(297.5) + 0.7, mm(y), mm(z), 12), 'blk']),
@@ -730,17 +730,19 @@ part('hgRetainer', 'Lower handguard front cap (retainer)', 'frt', ['24'], [140, 
       const h = new THREE.Path(), zc = mm(-20), hw = mm(3.5), hh = mm(3.6);
       h.absarc(zc, mm(1.6) + hh, hw, 0, Math.PI, false); h.absarc(zc, mm(1.6) - hh, hw, Math.PI, 2 * Math.PI, false); e.holes.push(h);
       return extrudeX(e, X(300.8), X(297.8), 0.3); })(), 'blk'],
-   [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk']]);
+   [sectorX(mm(8.6), mm(10.4), 0, Math.PI * 2, X(297.5), X(292), 0, 32), 'blk'],
+   [bx(X(309), X(301), mm(15.4), mm(19.4), -mm(11), mm(11)), 'blk']]);   // top block the lock lever shaft crosses
 // Lock lever from the CYMA spare cap (Patrol Base, sold with its lever), Apex AKM parts and a CYMA lever print (Thingiverse
-// 4785280): an L of a round shaft standing upright in the right side of the cup and a flat arm across its top end.
+// 4785280): an L of a round shaft running across the top of the retainer cup, through its top block, and a flat arm on the
+// right-hand end that swings over the top. Locked, the arm lies back along the top right of the lower handguard.
 part('hgRetLever', 'Lower handguard lock lever', 'frt', ['25'], [140, 40, 60],
-  'Lock lever (25, "front cap button" in the CYMA manual; a lever on the CYMA as on the real AKM). An L-shaped steel piece: a round shaft stands upright in the right side of the retainer cup, with a flat cut along its middle that bears on the notch in the front tenon of the lower handguard, and a flat arm across its top. Locked, the arm lies over the handguard pointing back. Lift it and swing it 180 degrees to point at the muzzle: the flat turns clear of the tenon and the retainer slides forward off the wood.',
-  (() => { const sx = X(304), sz = mm(12), r = mm(1.5), y0 = -mm(4), y1 = mm(19), at2 = mm(21.5), tip = X(304 + 13 / S);
-    return [[cyl(r, y1 - y0, 'y', sx, (y0 + y1) / 2, sz, 16), 'blk'],                                                   // shaft
-      [bx(sx - mm(0.6), sx + mm(0.6), mm(4), mm(11), sz - r - 0.05, sz - r + mm(0.5)), 'dark'],                       // cam flat
-      [bx(tip, sx, y1, at2, sz - mm(1.3), sz + mm(1.3)), 'blk'],                                                       // arm, pointing back
-      [cyl(mm(1.3), at2 - y1, 'y', sx, (y1 + at2) / 2, sz, 16), 'blk'],                                                // rounded root over the shaft
-      [cyl(mm(1.3), at2 - y1, 'y', tip, (y1 + at2) / 2, sz, 16), 'blk']];                                              // rounded tip
+  'Lock lever (25, "front cap button" in the CYMA manual; a lever on the CYMA as on the real AKM). An L-shaped steel piece: a round shaft runs across the top of the retainer cup through its top block, with a flat cut along its middle that bears on the notch in the front tenon of the lower handguard, and a flat arm on its right-hand end. Locked, the arm lies back along the top right of the handguard. Lift it and swing it up and over, about 180 degrees, to point at the muzzle: the flat turns clear of the tenon and the retainer slides forward off the wood.',
+  (() => { const sx = X(304), sy = mm(17.2), r = mm(1.5), z0 = -mm(10), z1 = mm(13.6), az0 = mm(11.2), tip = X(304 + 14 / S), h = mm(1.25);
+    return [[cyl(r, z1 - z0, 'z', sx, sy, (z0 + z1) / 2, 16), 'blk'],                                                    // cross shaft
+      [bx(sx - mm(0.6), sx + mm(0.6), sy - r - 0.05, sy - r + mm(0.5), -mm(5), mm(5)), 'dark'],                        // cam flat, underneath
+      [bx(tip, sx, sy - h, sy + h, az0, z1), 'blk'],                                                                     // arm, pointing back
+      [cyl(mm(2), z1 - az0, 'z', sx, sy, (az0 + z1) / 2, 18), 'blk'],                                                    // arm root round the shaft
+      [cyl(h, z1 - az0, 'z', tip, sy, (az0 + z1) / 2, 14), 'blk']];                                                     // rounded tip
   })());
 function rsTower(e = 0) {   // front face of the rear sight block in (z, y): window for the gas tube, ring round the barrel; e = bevel inset
   const s = new THREE.Shape(), hw = mm(13) - e, top = Y(45.6) - e, r = mm(13) - e, c = mm(4);
