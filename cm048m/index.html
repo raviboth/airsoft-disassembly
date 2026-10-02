@@ -1451,6 +1451,8 @@ document.getElementById('xray').onchange = e => {
 const labelsCb = document.getElementById('labels');
 
 // ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
 const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
 const panelEl = id => document.getElementById(id);
 const isOpen = id => !panelEl(id).classList.contains('hidden');
@@ -1478,8 +1480,6 @@ document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
 info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
 
 // ---------- info panel ----------
-const info = document.getElementById('info');
-const infoBody = document.getElementById('infoBody');
 const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded view and parts list p14 to p16; scan via <a href="https://www.manualshelf.com/">manualshelf</a>),
 <a href="https://www.redwolfairsoft.com/cyma-akm-airsoft-aeg-rifle-metal-hi-power-wood-version-cm048m.html">RedWolf</a>,
 <a href="https://www.taiwangun.com/assault-rifle-aeg/cm-048m-cyma">Taiwangun</a>,
