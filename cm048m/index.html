@@ -1026,22 +1026,49 @@ part('innerBarrel', 'Inner barrel', 'hop', ['40'], [60, -60, 0],
 const GX = xm => X(610) + mm(xm - 99.6), GY = ym => mm(ym - 24.8);
 const G = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const GBZ = mm(12.5);
-const GB_OUT = G([[-67, 30], [-62, 37], [-57, 42.4], [-42, 42.4], [-42, 38], [97, 38], [99, 36.5], [99, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25],
-  [-5, -40], [-10, -45], [-31, -36], [-37, -31], [-42, -24], [-48, -12], [-48, 10], [-62, 10], [-66, 14]]);
-// cylinder window: a round-ended slot over the front two thirds (CYMA AK V3 photos)
-const GB_WIN = G([...Array.from({ length: 9 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 8; return [78 + 7.1 * Math.cos(a), 24.4 + 7.1 * Math.sin(a)]; }),
-  ...Array.from({ length: 9 }, (_, i) => { const a = Math.PI / 2 + i * Math.PI / 8; return [16.5 + 7.1 * Math.cos(a), 24.4 + 7.1 * Math.sin(a)]; })]).reverse();
-const GB_RACK = G([[-58, 18.5], [3, 18.5], [3, 22], [-58, 22]]).reverse();   // right half only: slot over the piston rack
 const BUSH = [[0, 0], [-21, -5.7], [-16.6, -25.8]];
-part('gearbox', 'Gear box (Version 3 shell + combine plate)', 'gbx', ['7'], [0, 360, 0],
-  'CYMA Version 3 gearbox (7): two metal shell halves (7mm bushings) held by screws and the slide-on top combine plate; the spring guide seats at the rear, the cylinder window is on top. Outline and bushing positions are traced from a flat SHS V3 shell photo scaled to 167mm long (Retro Arms lists 167 x 86 x 25mm): sector gear 21.8mm from the spur, spur 20.5mm from the bevel, cylinder axis 24.8mm above the sector axle. The manual gives no internal part numbers, so the internals use generic V3 names.',
-  [[at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN, GB_RACK]), 0, 0, GBZ - mm(1.1)), 'zinc'], [at(prof(GB_OUT, mm(2.2), 0.4, [GB_WIN]), 0, 0, -GBZ + mm(1.1)), 'zinc'],
-   [bx(GX(-42), GX(-56), GY(40), GY(42.4), -GBZ, GBZ), 'zinc'],
-   [bx(GX(-42), GX(97), GY(38), GY(39.6), -mm(10.5), mm(10.5)), 'black'],   // top plate along the cylinder section
-   [bx(GX(-49), GX(-61), GY(42.4), GY(44.6), -mm(5), mm(5)), 'black'],      // spring guide latch on the rear block
+// The shell reads as one closed body (CYMA / Arcturus V3 AK shell photos): a cylinder housing with flat sides and rounded top
+// corners, wider than the gear section, a solid gear section below it, and the round-ended cylinder window through both sides.
+const HZ = mm(14.6), HB = 12, HT = 40, HR = mm(13.2);   // housing half width, bottom and top (gearbox mm), cylinder bore radius
+function housingSec(yLo, yHi, bore = HR) {   // housing cross-section (z, y) between yLo and yHi, minus the bore
+  const cy = GY(24.8), rt = mm(6), y0 = GY(Math.max(yLo, HB)), y1 = GY(Math.min(yHi, HT)), top = yHi >= HT, sh = new THREE.Shape();
+  sh.moveTo(HZ, y0);
+  if (top) { sh.lineTo(HZ, y1 - rt); sh.absarc(HZ - rt, y1 - rt, rt, 0, Math.PI / 2, false); sh.lineTo(-HZ + rt, y1); sh.absarc(-HZ + rt, y1 - rt, rt, Math.PI / 2, Math.PI, false); }
+  else { sh.lineTo(HZ, y1); sh.lineTo(-HZ, y1); }
+  sh.lineTo(-HZ, y0); sh.lineTo(HZ, y0);
+  if (!bore) return sh;
+  if (yLo <= HB && top) { const h = new THREE.Path(); h.absarc(0, cy, bore, 0, Math.PI * 2, true); sh.holes.push(h); return sh; }
+  // window pieces: rebuild the outline with the bore arc as one edge (bore crosses the cut line)
+  const s2 = new THREE.Shape(), cut = top ? y0 : y1, a = Math.asin((cut - cy) / bore);
+  if (top) {
+    s2.moveTo(HZ, y0); s2.lineTo(HZ, y1 - rt); s2.absarc(HZ - rt, y1 - rt, rt, 0, Math.PI / 2, false); s2.lineTo(-HZ + rt, y1);
+    s2.absarc(-HZ + rt, y1 - rt, rt, Math.PI / 2, Math.PI, false); s2.lineTo(-HZ, y0); s2.lineTo(-bore * Math.cos(a), y0);
+    s2.absarc(0, cy, bore, Math.PI - a, a, true); s2.lineTo(HZ, y0);
+  } else {
+    s2.moveTo(HZ, y0); s2.lineTo(HZ, y1); s2.lineTo(bore * Math.cos(a), y1); s2.absarc(0, cy, bore, a, Math.PI - a, true);
+    // the bore dips below the housing floor: close along the floor on both sides of it
+    s2.lineTo(-HZ, y1); s2.lineTo(-HZ, y0); s2.lineTo(HZ, y0);
+  }
+  return s2;
+}
+const endCap = r => { const sh = housingSec(HB, HT, 0), h = new THREE.Path(); h.absarc(0, GY(24.8), r, 0, Math.PI * 2, true); sh.holes.push(h); return sh; };
+// gear section below the housing (one solid casting with the switch pocket open through it)
+const GB_LOW = G([[96, HB + 0.5], [96, 10], [82, 10], [82, -5], [40, -7], [7, -8], [6, -15], [-1, -25], [-5, -40], [-10, -45], [-31, -36], [-37, -31], [-42, -24], [-48, -12], [-48, 10], [-60, 10], [-60, HB + 0.5]]);
+const GB_POCKET = G([[45, -3.5], [79, -3.5], [79, 8], [45, 8]]).reverse();
+part('gearbox', 'Gear box (Version 3 shell)', 'gbx', ['7'], [0, 360, 0],
+  'CYMA Version 3 gearbox (7): a metal shell split down the middle (7mm bushings) that closes into one rounded body: the cylinder housing on top, wider than the gear section and rounded along its top, with a round-ended window on each side, the gear section below with the bushings, and the switch pocket at the front bottom. The spring guide seats at the rear under a small latch. Outline and bushing positions are traced from a flat SHS V3 shell photo scaled to 167mm long (Retro Arms lists 167 x 86 x 25mm): sector gear 21.8mm from the spur, spur 20.5mm from the bevel, cylinder axis 24.8mm above the sector axle. The manual gives no internal part numbers, so the internals use generic V3 names.',
+  [[extrudeX(endCap(mm(4.6)), GX(97), GX(99)), 'zinc'],
+   [extrudeX(housingSec(HB, HT), GX(85), GX(97)), 'zinc'],
+   [extrudeX(housingSec(31.5, HT), GX(9.5), GX(85)), 'zinc'],
+   [extrudeX(housingSec(HB, 17.3), GX(9.5), GX(85)), 'zinc'],
+   [extrudeX(housingSec(HB, HT), GX(-64), GX(9.5)), 'zinc'],
+   [extrudeX(endCap(mm(5)), GX(-67), GX(-64)), 'zinc'],
+   [prof(GB_LOW, 2 * GBZ, mm(1.2), [GB_POCKET]), 'zinc'],
+   [bx(GX(-49), GX(-61), GY(HT - 0.5), GY(HT + 2.4), -mm(5), mm(5)), 'black'],      // spring guide latch on the rear top
    [at(prof(G([[99, 33.5], [103.5, 33.5], [105.5, 35.5], [105.5, 37.5], [103.5, 39.5], [99, 39.5]]), mm(2.6), 0.2, [G(Array.from({ length: 10 }, (_, i) => [103.2 + 1.1 * Math.cos(-i * Math.PI / 5), 36.5 + 1.1 * Math.sin(-i * Math.PI / 5)]))]), 0, 0, 0), 'zinc'],
    ...BUSH.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(4.8), mm(1.4), 'z', GX(a), GY(b), s * (GBZ + mm(0.3)), 20), 'brass'])),
-   ...[[-9.9, -41.5], [-1.7, -33.4], [1.5, 17.4], [-42.4, -5.7], [82, 0], [-62, 30]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (GBZ + mm(0.2)), 12), 'dark']))], { shell: true });
+   ...[[-9.9, -41.5], [-1.7, -33.4], [-42.4, -5.7], [82, 0]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (GBZ + mm(0.2)), 12), 'dark'])),
+   ...[[-30, 16], [-56, 30]].flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(2.6), mm(1), 'z', GX(a), GY(b), s * (HZ + mm(0.2)), 12), 'dark']))], { shell: true });
 part('cylinder', 'Cylinder + cylinder head, nozzle', 'gbx', [], [250, 510, 0],
   'Ported metal cylinder (standard bore 23.6 to 23.8mm; AK AEGs use a full, type 0 cylinder) with the cylinder head and AK-length nozzle (aftermarket AK nozzles are 19.6 to 20.7mm).',
   [[tube(mm(11.9), mm(13), GX(-10), GX(97), 32), 'brass'], [tube(mm(3), mm(12.8), GX(97), GX(100), 32), 'dark'],
