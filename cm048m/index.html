@@ -20,20 +20,34 @@
   #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
   #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
   #list { overflow:auto; padding:0 6px 10px; flex:1; }
-  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
   .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
   .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
   .item:hover { background:#252a33; }
   .item.sel { background:#24365c; }
   .item.off { opacity:.35; }
   .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
-  #ctrl { right:12px; top:12px; width:250px; padding:12px 14px; }
+  #ctrl { right:12px; top:12px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
-  #info { right:12px; bottom:12px; width:360px; padding:12px 14px; max-height:50vh; overflow:auto; }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
   #info h2 { font-size:14px; margin:0 0 4px; }
   #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
   #info p { margin:6px 0; }
@@ -51,6 +65,27 @@
   #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
   .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
   .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; gap:4px; padding:4px; z-index:5; }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; justify-content:space-between; }
+    #bar button { flex:1; }
+    #side { left:8px; top:52px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:52px; width:min(86vw,270px); z-index:4; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -62,13 +97,25 @@
 <body>
 <div id="app"></div>
 
+<div id="bar" class="panel">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+</div>
+
 <div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
   <h1><a href="../" style="color:var(--dim);text-decoration:none">Airsoft disassembly</a> / CYMA CM048M (AKM)</h1>
-  <div class="sub">Part numbers from the CYMA CM.048/CM.048M manual exploded view. Shapes are approximate, dimensions in mm. Click a part to inspect. Tick a category to show or hide it.</div>
+  <div class="sub">Part numbers from the CYMA CM.048/CM.048M manual exploded view. Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search name or part # (press /)" autocomplete="off">
   <div id="list"></div>
+  <div id="nohit">No parts match.</div>
 </div>
 
 <div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
   <label>Explode <span id="exv">0%</span></label>
   <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
   <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
@@ -84,7 +131,7 @@
   </div>
 </div>
 
-<div id="info" class="panel"></div>
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
 <div id="tip"></div>
 
 <script type="module">
@@ -132,8 +179,10 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
-const HOME_POS = new THREE.Vector3(130, 250, 950);
 const HOME_TGT = new THREE.Vector3(0, -70, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(130, 250, 950), HOME_TGT);
 camera.position.copy(HOME_POS);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(HOME_TGT);
@@ -1302,30 +1351,79 @@ const byCat = {};
 for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
 const itemEls = new Map();
 const catOn = {};
+const catEls = {};
 let build = 'aeg';
+let isolated = null;
 function updateVis() {
   for (const p of parts) {
     const d = p.userData;
     const ok = !d.variant || d.variant === build;
-    p.visible = catOn[d.cat] && ok;
+    p.visible = isolated ? p === isolated : catOn[d.cat] && ok;
     itemEls.get(p).classList.toggle('off', !ok);
   }
 }
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-cm048m-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-cm048m-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
 for (const [key, label] of Object.entries(CATS)) {
   catOn[key] = true;
-  const head = document.createElement('label'); head.className = 'cat';
-  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
   cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
-  head.append(cb, label + ` (${byCat[key].length})`);
-  list.append(head);
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
   for (const p of byCat[key]) {
     const it = document.createElement('div'); it.className = 'item';
     const d = p.userData;
     it.innerHTML = `<span>${d.name}</span><span class="pn">${d.nos.length ? '#' + d.nos[0] : d.tag}</span>`;
-    it.onclick = () => select(p, true);
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
     list.append(it); itemEls.set(p, it);
   }
 }
+// Search: matches the name, any manual or VFC part number, or the tag. "39", "#39" and "akm-20" all work.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => { const d = p.userData; return [d.name, d.tag || '', ...d.nos.map(n => '#' + n), ...(VFC[d.id] || []).map(n => 'akm-' + n)].join(' ').toLowerCase(); };
+function matches(p, q) {
+  if (!q) return true;
+  const d = p.userData, n = q.replace(/^#/, '');
+  if (d.nos.some(x => x.toLowerCase() === n)) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
 const hpaCb = document.getElementById('hpa');
 hpaCb.onchange = () => { build = hpaCb.checked ? 'hpa' : 'aeg'; updateVis(); if (!selected) showOverview(); };
 updateVis();
@@ -1335,7 +1433,7 @@ const exSlider = document.getElementById('explode');
 let exTarget = 0, exCur = 0;
 exSlider.oninput = () => exTarget = +exSlider.value;
 document.getElementById('bAsm').onclick = () => { exTarget = 0; exSlider.value = 0; };
-const EXP_POS = new THREE.Vector3(120, 260, 1750), EXP_TGT = new THREE.Vector3(0, 20, 0);
+const EXP_TGT = new THREE.Vector3(0, 20, 0), EXP_POS = fit(new THREE.Vector3(120, 260, 1750), EXP_TGT);
 document.getElementById('bExp').onclick = () => { exTarget = 1; exSlider.value = 1; camTween = { pos: EXP_POS.clone(), tgt: EXP_TGT.clone() }; };
 let camTween = null;
 document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
@@ -1352,8 +1450,36 @@ document.getElementById('xray').onchange = e => {
 };
 const labelsCb = document.getElementById('labels');
 
+// ---------- panels ----------
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
 // ---------- info panel ----------
 const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
 const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded view and parts list p14 to p16; scan via <a href="https://www.manualshelf.com/">manualshelf</a>),
 <a href="https://www.redwolfairsoft.com/cyma-akm-airsoft-aeg-rifle-metal-hi-power-wood-version-cm048m.html">RedWolf</a>,
 <a href="https://www.taiwangun.com/assault-rifle-aeg/cm-048m-cyma">Taiwangun</a>,
@@ -1365,7 +1491,7 @@ selector lever shape from <a href="https://www.apexgunparts.com/">Apex Gun Parts
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
 <a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
-  info.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
+  infoBody.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
   <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
   <p>Manual spec: 915mm long (with orange tip), 3310g with battery, 120 m/s (about 394 fps) on 0.20g, 700 to 850 rounds/min, 600-round hi-cap. Steel receiver and dust cover, zinc alloy barrel and sights, real wood stock and handguards, polymer grip.</p>
   <ul>
@@ -1378,15 +1504,16 @@ function showOverview() {
     <li>Scale: traced from a side product photo at 0.823 mm/px (real AKM 880mm without tip, 915mm with it). Widths come from the Forbus AKM drawings and retail listings. The traced receiver is about 267mm against 259mm on the real AKM.</li>
     <li>Owner build (tick "Owner build" in the controls): ZCI 455mm 6.02 barrel, R-hop, G&amp;G green bucking and a Polarstar Kythera V3 HPA engine in place of the AEG cylinder, gears and motor.</li>
   </ul>
-  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan.</p>${SOURCES}`;
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info.</p>${SOURCES}`;
 }
 function showList(hitNos = []) {
   const rows = MANUAL.map(([no, name, note]) => {
     const mod = byNo.has(no);
     return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`;
   }).join('');
-  info.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Names as printed in the CYMA manual (English column, original spelling). Blue rows are modeled, click to find them. Unmarked numbers are the AK74 (CM.048) versions where an "M" version exists.</div><table>${rows}</table>`;
-  info.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+  infoBody.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Names as printed in the CYMA manual (English column, original spelling). Blue rows are modeled, click to find them. Unmarked numbers are the AK74 (CM.048) versions where an "M" version exists.</div><table>${rows}</table>`;
+  infoBody.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
 }
 document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
 document.getElementById('bInfo').onclick = () => select(null);
@@ -1399,33 +1526,64 @@ function setGlow(p, on, col = 0x2f6bff) {
     o.material.emissiveIntensity = on ? 0.55 : 1;
   } });
 }
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 60, 3500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
 function select(p, focus = false) {
   if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
   selected = p;
-  if (!p) { showOverview(); return; }
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
   setGlow(p, true);
-  itemEls.get(p).classList.add('sel');
-  itemEls.get(p).scrollIntoView({ block: 'nearest' });
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
   p.userData.label.element.classList.add('sel');
   const d = p.userData;
   const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
     .map(([no, name, note]) => `<tr><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`).join('');
   const note = d.nos.length ? '<p class="src">Names as printed in the CYMA manual.</p>' : '<p class="src">Not broken down in the CYMA manual (the gearbox is item 7); generic V3 / aftermarket name.</p>';
   const vfc = (VFC[d.id] || []).map(n => `AKM-${n} ${VFC_NAMES[n]}`).join(', ');
-  info.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}</div><p>${d.info}</p>
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>
     <table>${rows}</table>${note}${vfc ? `<p class="src">VFC AKM equivalent: ${vfc}.</p>` : ''}${SOURCES}`;
-  if (focus) {
-    const w = new THREE.Vector3(); d.label.getWorldPosition(w);
-    const dir = camera.position.clone().sub(controls.target).normalize();
-    camTween = { tgt: w, pos: w.clone().add(dir.multiplyScalar(700)) };
-  }
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
 }
 showOverview();
+initPanels();
 
 // ---------- picking ----------
 const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 const tip = document.getElementById('tip');
-let hovered = null, downAt = null;
+let downAt = null;
 function pick(e) {
   mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
   ray.setFromCamera(mouse, camera);
@@ -1435,9 +1593,7 @@ function pick(e) {
 }
 renderer.domElement.addEventListener('pointermove', e => {
   const p = pick(e);
-  if (hovered && hovered !== selected) setGlow(hovered, false);
-  hovered = p;
-  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+  hover(p);
   tip.style.display = p ? 'block' : 'none';
   if (p) { const d = p.userData; tip.textContent = `${d.nos.length ? '#' + d.nos[0] + ' ' : ''}${d.name}`; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
   renderer.domElement.style.cursor = p ? 'pointer' : 'default';
@@ -1447,6 +1603,21 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
   select(pick(e));
 });
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+});
+MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
