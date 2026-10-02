@@ -69,15 +69,24 @@
   .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
   .x:hover { color:var(--ink); }
   #side h1 { margin-right:30px; }
-  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; gap:4px; padding:4px; z-index:5; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
   #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
   #bar button.on { border-color:#3a4f78; background:#24365c; }
   @media (max-width:700px) {
-    #bar { left:8px; right:8px; top:8px; transform:none; justify-content:space-between; }
-    #bar button { flex:1; }
-    #side { left:8px; top:52px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
     #side .sub { display:none; }
-    #ctrl { left:auto; right:8px; top:52px; width:min(86vw,270px); z-index:4; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
     #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
     #info.peek { max-height:96px; }
     #info.peek #infoBody { overflow:hidden; }
@@ -98,15 +107,19 @@
 <div id="app"></div>
 
 <div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>CYMA CM048M</b><span>AKM electric rifle, V3 gearbox</span></div>
+  <div class="btns">
   <button id="tSide" title="Parts list (P)">Parts</button>
   <button id="tCtrl" title="View controls (V)">View</button>
   <button id="tInfo" title="Info panel (I)">Info</button>
   <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
 </div>
 
 <div id="side" class="panel">
   <button class="x" data-p="side" title="Close (P)">×</button>
-  <h1><a href="../" style="color:var(--dim);text-decoration:none">Airsoft disassembly</a> / CYMA CM048M (AKM)</h1>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
   <div class="sub">Part numbers from the CYMA CM.048/CM.048M manual exploded view. Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
   <input id="find" type="search" placeholder="Search name or part # (press /)" autocomplete="off">
   <div id="list"></div>
