@@ -972,7 +972,7 @@ part('magCatch', 'Magazine safety (magazine catch)', 'rcv', ['4'], [70, -130, 40
 // refs) to land on the model magazine top.
 const HOP_TOP = 84.1, HOP_BOT = 110.8, HOP_STEM = 600.3;
 part('hopChamber', 'HOP-UP chamber', 'hop', ['38', '49'], [60, -60, 0],
-  'AK hop-up chamber (38), zinc alloy on the CYMA C.03 pattern: a round tube that holds the bucking, a flat-sided box on top that carries the adjuster, a short stub at the rear that takes the gearbox nozzle and a feed stem that drops onto the magazine outlet. It sits at the rear of the barrel block and is held by two small side screws; a long window in the left wall lets the hop arm reach the bucking. Nail 49 locates it. Measured TM-spec chambers are about 51mm long, 42mm tall with the stem and 12mm thick; CYMA sells the metal chamber alone as C.03 (42g). VFC AKs differ: their chamber is built into the rear sight block.',
+  'AK hop-up chamber (38), zinc alloy on the CYMA C.03 pattern: a round tube that holds the bucking, a flat-sided box on top whose right wall carries the adjuster, a short stub at the rear that takes the gearbox nozzle and a feed stem that drops onto the magazine outlet. It sits at the rear of the barrel block and is held by two small side screws; a long window through the box walls lets the hop arm reach the bucking. Nail 49 locates it. Measured TM-spec chambers are about 51mm long, 42mm tall with the stem and 12mm thick; CYMA sells the metal chamber alone as C.03 (42g). VFC AKs differ: their chamber is built into the rear sight block.',
   [[latheX([[mm(3.3), X(612)], [mm(4.6), X(612)], [mm(4.6), X(611)], [mm(5.2), X(611)], [mm(5.2), X(608.4)], [mm(3.3), X(608.4)]], 32), 'zinc'],
    [tube(mm(4.9), mm(6), X(608.4), X(566), 32), 'zinc'],
    // side profile: flat-sided box over the full length, dropping to the tube bottom at the front, with the clip slot cut up from below,
@@ -984,18 +984,18 @@ part('hopChamber', 'HOP-UP chamber', 'hop', ['38', '49'], [60, -60, 0],
    [cyl(mm(2.9), 0.3, 'y', X(HOP_STEM), Y(124) - 0.1, 0, 20), 'black'],
    [bx(X(604), X(598), Y(106), Y(100.5), -mm(7), -mm(5.6)), 'zinc'],   // square lug on the left near the rear
    [cyl(mm(1), mm(3), 'z', X(586), Y(97), -mm(5.8), 10), 'steel']]);   // locating nail 49
-part('hopAdjuster', 'Hop-up adjuster: scale plate, slider, finger block, screws', 'hop', ['45', '46', '48', '50'], [60, -10, 0],
-  'Adjuster on the top deck: a black scale plate marked 2 6 10 / 4 8 12 over a black steel slider (45, "selector") with a long slot and a toothed edge that clicks against the scale. The finger block (46, fixed by M3x8 screw 50) stands up at the front end; the M2x4 washer-head screw 48 (5.5mm head) runs in the slot and holds the slider down. Pushing the slider forward wedges the hop arm down onto the bucking. Reach it with the dust cover off, or by locking the cocking lever back and reaching in through the ejection port.',
-  // slider under the scale plate, its front end and toothed left edge showing; finger block on the front end
-  [[bx(X(601), X(563), Y(HOP_TOP), Y(HOP_TOP) + mm(1), -mm(4), mm(4.5)), 'black'],
-   ...[0, 1, 2, 3].map(i => [bx(X(600 - i * 2.4), X(599 - i * 2.4), Y(HOP_TOP), Y(HOP_TOP) + mm(1), -mm(4.9), -mm(4)), 'black']),
-   [bx(X(572), X(565.5), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(4), -mm(3.2), mm(3.6)), 'black'],
-   [cyl(mm(2.6), mm(0.9), 'y', X(568.8), Y(HOP_TOP) + mm(4.45), mm(0.2), 16), 'dark'],
-   // scale plate over the rear half, slotted for washer-head screw 48
-   ...[[-mm(5), -mm(1.5)], [mm(1.5), mm(5.5)]].map(([z0, z1]) => [bx(X(604), X(575), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(2), z0, z1), 'black']),
-   ...[[604, 600], [579, 575]].map(([a, c]) => [bx(X(a), X(c), Y(HOP_TOP) + mm(1), Y(HOP_TOP) + mm(2), -mm(1.5), mm(1.5)), 'black']),
-   [(() => { const g = new THREE.PlaneGeometry(X(575) - X(604), mm(9.6)); g.rotateX(-Math.PI / 2); g.translate((X(575) + X(604)) / 2, Y(HOP_TOP) + mm(2) + 0.08, mm(0.25)); return g; })(), 'hopscale'],
-   [cyl(mm(2.75), mm(0.8), 'y', X(589), Y(HOP_TOP) + mm(2.4), 0, 20), 'dark']]);
+// adjuster on the right wall of the chamber box (RZA = wall face), stacked outward: slider, scale plate, screw heads
+const RZA = mm(6);
+const slotP = (x0, x1, yc, h) => P([[x0, yc - h], [x1, yc - h], [x1 + h, yc], [x1, yc + h], [x0, yc + h], [x0 - h, yc]]);
+part('hopAdjuster', 'Hop-up adjuster: scale plate, slider, finger block, screws', 'hop', ['45', '46', '48', '50'], [40, 0, 70],
+  'Adjuster on the right wall of the chamber: a black scale plate marked 2 6 10 / 4 8 12 over a black steel slider (45, "selector") with a long slot and a toothed top edge that clicks against the scale. The finger block (46, fixed by M3x8 screw 50) stands out from the front end of the slider; the M2x4 washer-head screw 48 (5.5mm head) runs in the slot and holds the slider to the wall. Sliding it forward wedges the hop arm down onto the bucking. Reach it from the right with the dust cover off, or by locking the cocking lever back and reaching in through the ejection port.',
+  [[at(prof(P([[601, 85.6], [563, 85.6], [563, 99], [601, 99]]), mm(1), 0.15, [slotP(578, 597, 92.3, 1.2)]), 0, 0, RZA + mm(0.5)), 'black'],
+   ...[0, 1, 2, 3].map(i => [bx(X(600 - i * 2.4), X(599 - i * 2.4), Y(85.6), Y(84.6), RZA, RZA + mm(1)), 'black']),
+   [bx(X(572), X(565.5), Y(87), Y(97.5), RZA + mm(1), RZA + mm(4)), 'black'],
+   [cyl(mm(2.6), mm(0.9), 'z', X(568.8), Y(92.3), RZA + mm(4.45), 16), 'dark'],
+   [at(prof(P([[604, 85], [575, 85], [575, 99.5], [604, 99.5]]), mm(1), 0.15, [slotP(580, 600, 92.3, 1.4)]), 0, 0, RZA + mm(1.5)), 'black'],
+   [(() => { const g = new THREE.PlaneGeometry(X(575) - X(604), Y(85) - Y(99.5)); g.translate((X(575) + X(604)) / 2, Y(92.25), RZA + mm(2) + 0.3); return g; })(), 'hopscale'],
+   [cyl(mm(2.75), mm(0.8), 'z', X(589), Y(92.3), RZA + mm(2.4), 20), 'dark']]);
 part('hopArm', 'Rubber selector (hop arm) + screws', 'hop', ['43', '47'], [60, -40, -55],
   'Hop arm (43) inside the chamber window, pressed down by the slider and held by the two M2x4 screws 47; it pushes the cylindrical rubber nub (44, shown with the bucking) down onto the bucking above the barrel window. Kept in the owner build, where it presses the G&G bucking over the R-hop patch with the nub removed.',
   [[bx(X(593), X(562), Y(91.6), Y(88.4), -mm(5.7), mm(5.7)), 'poly2'],
