@@ -1331,9 +1331,34 @@ part('buttPlate', 'Stock rear cap (butt plate) + screws', 'stk', ['71', '72'], [
   [[sweepX([{ x: X(1132), yt: Y(102), yb: Y(226), w: mm(42) }, { x: X(1122), yt: Y(102), yb: Y(226), w: mm(42) }], { n: 4, step: 20 }), 'blk'],
    [cyl(mm(3.4), mm(2), 'x', X(1133), Y(114), 0, 12), 'steel'], [cyl(mm(3.4), mm(2), 'x', X(1133), Y(214), 0, 12), 'steel']]);
 part('slingLoop', 'Rear gallus ring (sling loop) + screws', 'stk', ['67M', '68'], [-160, -90, 0],
-  'AKM-style wire sling loop (67M) under the stock toe, on a plate with two M4x8 screws (68). The AK74 version (67) is a side plate.',
-  [[torus(mm(6), mm(1.1), 'z', X(1055), Y(229), 0).scale(1, 1, 1), 'steel'], [bx(X(1068), X(1042), Y(216), Y(212), -mm(6), mm(6)), 'steel'],
-   [cyl(mm(2), mm(4), 'y', X(1064), Y(213), 0, 8), 'steel'], [cyl(mm(2), mm(4), 'y', X(1046), Y(213), 0, 8), 'steel']]);
+  'AKM rear sling swivel (67M) under the stock toe: a stamped strip plate with rounded ends, held by two M4x8 screws (68) through holes at each end, with its middle bent down into a strap tunnel round the straight leg of a D-shaped 3mm wire loop. The loop swings fore and aft about that leg and hangs down and back at rest. The AK74 version (67) is a side plate.',
+  // Apex AKM swivel photos (strip plate, strap tunnel, D loop; 34.5mm base), 1968 manual figs. 102 to 105 (3mm wire),
+  // Redwolf CM048M stock photo (position and hang). Built in a local frame (x along the stock, y down from the stock
+  // bottom, z across) and laid on the stock bottom, which drops 13 degrees toward the butt.
+  (() => {
+    const slope = Math.atan2(7, 30), o = [X(1057), Y(214.9), 0];
+    const put = g => { g.rotateZ(slope); g.translate(...o); return g; };
+    const PL = mm(34.5) / 2, PW = mm(5), t = mm(1.4), wr = mm(1.5), wy = -t - mm(1.8), hang = 45 * Math.PI / 180;
+    // strip plate with rounded ends and the two screw holes, lying flat against the stock bottom
+    const sh = new THREE.Shape(); sh.absarc(PL - PW, 0, PW, -Math.PI / 2, Math.PI / 2, false); sh.absarc(-PL + PW, 0, PW, Math.PI / 2, 1.5 * Math.PI, false);
+    for (const k of [-1, 1]) { const h = new THREE.Path(); h.absarc(k * (PL - PW), 0, mm(2.2), 0, 2 * Math.PI, true); sh.holes.push(h); }
+    const plate = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }); plate.rotateX(Math.PI / 2);   // shape (x, z) -> extrude down from y = 0
+    // strap tunnel: the middle of the strip bent down round the loop's straight leg
+    const ri = wr + mm(0.2), ro = ri + t, u = new THREE.Shape();
+    u.moveTo(-ro, -t); u.lineTo(-ro, wy); u.absarc(0, wy, ro, Math.PI, 2 * Math.PI, false); u.lineTo(ro, -t); u.lineTo(ri, -t); u.lineTo(ri, wy); u.absarc(0, wy, ri, 2 * Math.PI, Math.PI, true); u.lineTo(-ri, -t); u.lineTo(-ro, -t);
+    const strap = new THREE.ExtrudeGeometry(u, { depth: 2 * PW, bevelEnabled: false }); strap.translate(0, 0, -PW);
+    // D loop: straight leg along z through the tunnel, the bow swung down and back
+    const L = mm(13), Dp = mm(21), d = [-Math.sin(hang), -Math.cos(hang)], pts = [];
+    for (let i = 0; i <= 6; i++) pts.push([0, wy, -L + 2 * L * i / 6]);
+    for (let i = 1; i < 24; i++) { const th = Math.PI * i / 24, k = Dp * Math.sin(th) ** 0.8; pts.push([d[0] * k, wy + d[1] * k, L * Math.cos(th) * 1.1]); }
+    const loop = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(q => new THREE.Vector3(...q)), true), 96, wr, 8, true);
+    const screws = [-1, 1].flatMap(k => {
+      const head = new THREE.CylinderGeometry(mm(3.4), mm(3.6), mm(1.4), 16); head.translate(k * (PL - PW), -t - mm(0.7), 0);
+      const slot = new THREE.BoxGeometry(mm(5.4), mm(0.5), mm(0.9)); slot.translate(k * (PL - PW), -t - mm(1.3), 0);
+      return [[put(head), 'steel'], [put(slot), 'black']];
+    });
+    return [[put(plate), 'steel'], [put(strap), 'steel'], [put(loop), 'steel'], ...screws];
+  })());
 part('battery', 'Battery (9.6V NiMH stick, placeholder)', 'stk', [], [-200, -150, 0],
   'Battery goes in the stock cavity behind the butt plate: a small 9.6V NiMH stick or nunchuck with a mini Tamiya plug. The cavity is tight; its size is not published, so this block is a placeholder.',
   [[bx(X(1110), X(930), Y(158), Y(134), -mm(8.5), mm(8.5)), 'poly2'], [bx(X(1110), X(1100), Y(158), Y(134), -mm(8.7), mm(8.7)), 'red']], { tag: 'batt', variant: 'aeg' });
