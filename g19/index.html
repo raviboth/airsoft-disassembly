@@ -647,22 +647,24 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
     // outline traced from the photo (contour, then the checkering on the straps smoothed out), split into three widths
     const upper = P([[209, 219], [1632, 219], [1647, 243], [1640, 278], [1634, 283], [1618, 279], [1615, 286], [1573, 298], [1537, 329], [1514, 373], [1512, 380],
       [684, 380], [677, 390], [658, 372], [335, 361], [313, 347], [302, 348], [296, 357], [272, 355], [237, 346], [220, 327], [211, 301]]);
-    const guardO = P([[650, 368], [1104, 372], [1104, 560], [1100, 584], [1066, 574], [983, 601], [681, 594], [665, 585], [661, 569], [680, 498], [684, 411], [677, 390]]);
+    const guardO = P([[650, 368], [1104, 372], [1104, 560], [1120, 582], [1100, 587], [1066, 574], [983, 601], [681, 594], [665, 585], [661, 569], [680, 498], [684, 411], [677, 390]]);
     const guardH = P([[745, 377], [1000, 380], [1035, 395], [1052, 440], [1057, 480], [1050, 530], [1030, 560], [1000, 567], [770, 562], [742, 547], [732, 510], [732, 410]]);
-    const grip = P([[1030, 372], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
-      [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380]]);
+    const grip = P([[1030, 342], [1529, 342], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
+      [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380], [1030, 372]]);
     // grip: horizontal sections lofted down the traced outline (front and back edge per level), rounded-rectangle sections
     // narrowing at the front. The front edge runs up behind the trigger guard opening, where the grip forms the magwell's front
-    // wall. Width: 24.4 at the top, flush with the frame rails, swelling
+    // wall. Width: 24 at the top, flush with the frame rails, swelling
     // through the Gen3 thumb-rest area to 30 at the texture panel
     // (Gen3 grip width per GlockTalk), 28.5 at the bottom.
+    // The grip starts 4 mm up inside the frame top, so its flat top cap is hidden and the sides run straight into the
+    // frame rails. The trigger guard's tail reaches back into the grip far enough that its end faces stay buried.
     const span = y => { const xs = []; for (let k = 0; k < grip.length; k++) { const [x0, y0] = grip[k], [x1, y1] = grip[(k + 1) % grip.length];
       if ((y0 - y) * (y1 - y) <= 0 && y0 !== y1) xs.push(x0 + (x1 - x0) * (y - y0) / (y1 - y0)); } return [Math.max(...xs), Math.min(...xs)]; };
-    const W = [[-28, 24.4], [-31, 24.8], [-35, 26], [-40, 28], [-46, 29.4], [-70, 30], [-95, 29.5], [-106, 28.5]];
-    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 24.4 : 28.5; };
-    const GT = Y(374), GB = Y(1001) + 0.05, levels = [];
+    const W = [[-28, 24], [-31, 24.8], [-35, 26], [-40, 28], [-46, 29.4], [-70, 30], [-95, 29.5], [-106, 28.5]];
+    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 24 : 28.5; };
+    const GT = Y(344), GB = Y(1001) + 0.05, levels = [];
     // sections go from squarer under the frame rails (room for the mag's front corners) to rounder straps lower down
-    const shape = y => { const k = Math.min(1, Math.max(0, (-40 - y) / 15)); return { n: 3.2 - 0.6 * k, ft: 0.8 - 0.2 * k }; };
+    const shape = y => { const k = Math.min(1, Math.max(0, (-58 - y) / 15)); return { n: 3.2 - 0.6 * k, ft: 0.8 - 0.2 * k }; };
     for (let y = GT; y > GB; y -= 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y), ...shape(y) }); }
     { const [xf, xb] = span(GB); levels.push({ y: GB, xf, xb, w: wAt(GB), ...shape(GB) }); }
     const LO = { n: 3.2, frontTaper: 0.8 };
@@ -678,6 +680,11 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
     for (const yc of [Y(645), Y(800), Y(915)]) for (let k = 0; k < 4; k++) patch(-0.16, 0.16, yc + 3 - k * 2, yc + 2.1 - k * 2, 0.3, 'black', 0.15);
     for (let y = -46; y > -100; y -= 2.2) patch(0.86, 1.14, y, y - 0.9, 0.3, 'black', 0.15);
     for (const t of [0.925, 0.975, 1.025, 1.075]) patch(t - 0.006, t + 0.006, -46, -99, 0.3, 'black');
+    // mag release cut-out on the left side: a dark patch on the grip surface around the button, its angle range found
+    // from the section at mid height so it hugs the rounded front of the grip instead of a flat box poking through it
+    { const lv = levels.reduce((m, l) => Math.abs(l.y + 48.6) < Math.abs(m.y + 48.6) ? l : m), tx = x => { let best = 1.5, bd = 1e9;
+        for (let t = 1.5; t <= 2; t += 0.002) { const d = Math.abs(loftPoint(lv, t * Math.PI, 3.2, 0.8)[0] - x); if (d < bd) { bd = d; best = t; } } return best; };
+      patch(tx(-34.5), tx(-27.3), -44.1, -53.2, 0.08, 'black', 0.4); }
     out.push(
       // Gen3 single-slot accessory rail: a groove along each side of the dust cover and one cross slot underneath
       ...[1, -1].map(sd => [bx(X(640), X(232), Y(296), Y(284), sd * 12 - 0.3, sd * 12 + 0.3), 'black']),
@@ -687,8 +694,7 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       // serrations across the front of the trigger guard
       ...Array.from({ length: 9 }, (_, k) => { const py = 425 + k * 15, px = 684 - (684 - 661) * (py - 411) / (569 - 411);
         return [bx(X(px) - 0.4, X(px) + 0.35, Y(py) - 0.5, Y(py) + 0.5, -4.6, 4.6), 'black']; }),
-      // mag release cut-out, and the plug hole at the foot of the backstrap
-      [bx(-34.5, -27.3, -53.2, -44.1, -13.5, -12.8), 'black'],
+      // plug hole at the foot of the backstrap
       // pocket in the left wall that the slide stop paddle sits in, with the moulded ledge under it
       [bx(-36.6, -27.8, -19.3, FT, -12.15, -11.9), 'black'],
       [bx(X(1690) + 0.2, X(1690) + 3, Y(975), Y(955), -2.5, 2.5), 'black']);
