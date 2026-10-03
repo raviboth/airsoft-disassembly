@@ -1010,10 +1010,12 @@ function chargingHandle(x0, y0) {
 }
 part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60],
   'Right-side cocking lever (59): a flat blade 10mm wide at the root, about 27.5mm long, scalloped on the front face, ending in an upright paddle whose front face takes the finger when pulling back (Forbus AKM carrier drawing, real AKM photo). On the AEG it is a dummy that slides back against the recoil spring and can be locked back to reach the hop-up adjuster through the ejection port.',
-  // carrier side face seen through the ejection port, with the long groove along it (Taiwangun close-up)
-  [[bx(X(622), X(505), Y(97.5), Y(72), RZ - mm(4.2), RZ - mm(1.9)), 'blk'],
-   [bx(X(612), X(526), Y(84.6), Y(83.2), RZ - mm(1.95), RZ - mm(1.7)), 'black'],
-   [chargingHandle(X(522), Y(80.5)), 'dark']]);
+  // CYMA dummy carrier (Taiwangun / Patrol Base spare photos): a side plate with the handle on its front end, seen through
+  // the ejection port, with the long groove along it (Taiwangun close-up). Forward, the handle's front face sits just
+  // behind the rear sight base (RedWolf and Taiwangun on-gun shots), clear of it.
+  [[bx(X(622), X(521.5), Y(97.5), Y(72), RZ - mm(4.2), RZ - mm(1.9)), 'blk'],
+   [bx(X(612), X(532), Y(84.6), Y(83.2), RZ - mm(1.95), RZ - mm(1.7)), 'black'],
+   [chargingHandle(X(527.6), Y(80.5)), 'dark']]);
 // AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
 // Stamped plate: round pivot end at the rear, tapering arm, raised front tab with the finger hole; the top edge
 // closes the cut in the dust cover's right skirt when the lever is up (safe).
