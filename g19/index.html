@@ -494,9 +494,12 @@ const PORT0 = BREECH, PORT1 = BREECH + 28;   // ejection port over the barrel ho
 
 // magazine: built upright in its own frame (top rear corner at the origin side, axis along -y), then leaned back to the
 // grip angle and dropped into the frame. The photo puts the base plate centre at x -69, y -114.
-const MAG_A = 20.7 * D2R;
-const MD = 16.6, MW = 11.2;    // half depth and half width: G19 mag 33.2 x 22.9mm (holster maker's calipers); 22.4 here so it clears the frame walls
-const MAG_PIV = [-46 + MD * Math.cos(MAG_A), -11 - MD * Math.sin(MAG_A)];   // keeps the top rear corner at x -46, y -11
+const MAG_A = 23 * D2R;        // leaned back like the backstrap (22.7 deg in the photo)
+const MD = 16.3, MW = 10.9;    // half depth and half width before the 0.3mm rounded edge: 33.2 x 22.4mm, against 33.2 x 22.9 for the G19 mag (holster maker's calipers), so it clears the grip walls
+const MAG_PIV = [-48 + MD * Math.cos(MAG_A), -11 - MD * Math.sin(MAG_A)];   // top rear corner at x -48, y -11
+// mag body section (x front to back, z across): square at the back, front corners rounded like the Glock mag; extruded along y
+const magSec = (d, w, r) => [[-d + 1, -w], [d - r, -w], ...Array.from({ length: 5 }, (_, i) => { const t = -Math.PI / 2 + i / 4 * Math.PI / 2; return [d - r + r * Math.cos(t), r * Math.sin(t) - w + r]; }).slice(1), [d, w - r], ...Array.from({ length: 5 }, (_, i) => { const t = i / 4 * Math.PI / 2; return [d - r + r * Math.cos(t), w - r + r * Math.sin(t)]; }).slice(1), [-d + 1, w], [-d, w - 1], [-d, -w + 1]];
+const magExt = (d, w, r, y0, y1) => prof(magSec(d, w, r), y1 - y0, 0.3).rotateX(Math.PI / 2).translate(0, (y0 + y1) / 2, 0);
 const magT = g => g.rotateZ(-MAG_A).translate(MAG_PIV[0], MAG_PIV[1], 0);
 
 // ================= SLIDE =================
@@ -642,19 +645,20 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       [684, 380], [677, 390], [658, 372], [335, 361], [313, 347], [302, 348], [296, 357], [272, 355], [237, 346], [220, 327], [211, 301]]);
     const guardO = P([[650, 368], [1104, 372], [1104, 560], [1100, 584], [1066, 574], [983, 601], [681, 594], [665, 585], [661, 569], [680, 498], [684, 411], [677, 390]]);
     const guardH = P([[745, 377], [1000, 380], [1035, 395], [1052, 440], [1057, 480], [1050, 530], [1030, 560], [1000, 567], [770, 562], [742, 547], [732, 510], [732, 410]]);
-    const grip = P([[1100, 372], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
-      [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1095, 560]]);
+    const grip = P([[1030, 372], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
+      [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380]]);
     // grip: horizontal sections lofted down the traced outline (front and back edge per level), rounded-rectangle sections
-    // narrowing at the front. Width: 27 at the top, waisted to 26.5 at the Gen3 thumb-rest scallop, 30 at the texture panel
+    // narrowing at the front. The front edge runs up behind the trigger guard opening, where the grip forms the magwell's front
+    // wall. Width: 29 at the top, waisted to 28.5 at the Gen3 thumb-rest scallop, 30 at the texture panel
     // (Gen3 grip width per GlockTalk), 28.5 at the bottom.
     const span = y => { const xs = []; for (let k = 0; k < grip.length; k++) { const [x0, y0] = grip[k], [x1, y1] = grip[(k + 1) % grip.length];
       if ((y0 - y) * (y1 - y) <= 0 && y0 !== y1) xs.push(x0 + (x1 - x0) * (y - y0) / (y1 - y0)); } return [Math.max(...xs), Math.min(...xs)]; };
-    const W = [[-28, 27], [-36, 26.5], [-46, 29.5], [-70, 30], [-95, 29.5], [-106, 28.5]];
-    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 27 : 28.5; };
+    const W = [[-28, 29], [-36, 28.5], [-46, 29.5], [-70, 30], [-95, 29.5], [-106, 28.5]];
+    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 29 : 28.5; };
     const GT = Y(374), GB = Y(1001) + 0.05, levels = [];
     for (let y = GT; y > GB; y -= 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y) }); }
     { const [xf, xb] = span(GB); levels.push({ y: GB, xf, xb, w: wAt(GB) }); }
-    const LO = { n: 3.2, frontTaper: 0.62 };
+    const LO = { n: 3.2, frontTaper: 0.8 };
     const out = [[profR(upper, 24, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [loft(levels, { ...LO, seg: 56, step: 0.8 }), 'frame']];
     const patch = (t0, t1, y0, y1, lift, mat, step = 0.8) => out.push([loftPatch(levels, { ...LO, t0: t0 * Math.PI, t1: t1 * Math.PI, y0, y1, lift, step, cols: 20, uvScale: 0.09 }), mat]);
     // Gen3 stippled side panels (raised, both sides) with the plain logo square near the bottom rear
@@ -731,14 +735,14 @@ part('triggerPin', 'Trigger pin', 'trg', ['G-05'], [0, -100, 0],
 
 part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
   'Trigger bar G-18 runs back along the right side from the trigger to the hammer housing, where it trips the sear. Spring G-17 returns it.',
-  [[prof([[X(1000), Y(380)], [-54, -23.5], [-56, -26], [-55, -31], [-57, -32], [-58, -26.5], [-56, -24.6], [X(1000), Y(392)]], 1.2, 0.2).translate(0, 0, 5.4), 'steel'],
+  [[prof([[X(1000), Y(380)], [-57, -23.5], [-59, -26], [-58, -31], [-60, -32], [-61, -26.5], [-59, -24.6], [X(1000), Y(392)]], 1.2, 0.2).translate(0, 0, 5.4), 'steel'],
    [spring(0.9, 0.2, 5, 5, 'y', -40, -29, 5.4), 'spring']]);
 
-const HH = [[-55, FT], [-86.5, FT], [-86.5, -16.5], [-82.5, -19.5], [-76, -23.5], [-73, -29], [-72.6, -41], [-63, -41], [-55, -26]];
+const HH = [[-58, FT], [-86.5, FT], [-86.5, -16.5], [-82.5, -19.5], [-76, -23.5], [-73, -29], [-72.6, -41], [-66, -41], [-58, -26]];
 part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25', 'G-07'], [-45, 0, 0],
   'Metal hammer (fire control) housing in the rear of the frame. Carries the rear slide rails and holds the hammer, sear and valve knocker. Screw G-25 from above; rear frame pin G-07 (Gen3 and Gen4/5 pins differ).',
-  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-64, -13], [-62, -22], [-66, -33], [-70, -33], [-76, -26], [-82, -19]]]), sd * 7.6), 'zinc']),
-   [bx(-88, -60, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
+  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-67, -13], [-65, -22], [-68, -33], [-71, -33], [-77, -26], [-82, -19]]]), sd * 7.6), 'zinc']),
+   [bx(-86.5, -63, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
    ...[1, -1].map(sd => [bx(-88, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
    [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
    [cyl(1.5, 26, 'z', X(1483), Y(445), 0, 12), 'steel']]);
@@ -749,30 +753,30 @@ part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 
    [prof([[-72, -13.4], [-66, -12.6], [-61.6, -14], [-61, -18.5], [-63, -21], [-68, -21]], 7, 0.4), 'steel'],
    [cyl(1.3, 7.6, 'z', -64.5, -13.6, 0, 10), 'steel'],
    [torus(3, 0.4, 'z', -72, -18, 4.4), 'spring'], [torus(3, 0.4, 'z', -72, -18, -4.4), 'spring'],
-   [cyl(1, 16, 'z', -72, -18, 0, 8), 'steel'], [cyl(1, 16, 'z', -66, -30, 0, 8), 'steel']]);
+   [cyl(1, 16, 'z', -72, -18, 0, 8), 'steel'], [cyl(1, 16, 'z', -66, -30, 0, 8), 'steel']], { dx: -3 });
 
 part('sear', 'Hammer sear + spring', 'trg', ['G-23', 'G-24'], [-72, -14, 0],
   'Holds the hammer back until the trigger bar trips it; reset spring G-24.',
-  [[prof([[-68, -26], [-62, -24.5], [-58, -27], [-60, -32], [-66, -32]], 4, 0.3), 'steel'], [torus(1.6, 0.3, 'z', -66, -30, 2.5), 'spring']]);
+  [[prof([[-68, -26], [-62, -24.5], [-58, -27], [-60, -32], [-66, -32]], 4, 0.3), 'steel'], [torus(1.6, 0.3, 'z', -66, -30, 2.5), 'spring']], { dx: -3 });
 
 part('knocker', 'Valve knocker', 'trg', ['G-19'], [-62, 30, 0],
   'Valve knocker (shops also call it the valve striker or firing pin): a triangular plate with a slot, pivoting in the front of the hammer housing, with a round steel face. The hammer hits its back and the face strikes the outlet valve on the back of the magazine.',
   [[prof([[-58.5, -11.5], [-51.5, -13.5], [-51.5, -21], [-55, -23], [-58.5, -19]], 4, 0.3, [[[-57.2, -14], [-54.5, -14.8], [-55.5, -17.6], [-57.2, -17]]]), 'steel'],
-   [cyl(1.9, 1.4, 'x', -50.8, -15.6, 0, 16), 'steel']]);
+   [cyl(1.9, 1.4, 'x', -50.8, -15.6, 0, 16), 'steel']], { dx: -3 });
 
 part('popupSear', 'Valve knocker pop-up sear + spring', 'trg', ['G-27', 'G-28'], [-45, 30, 0],
   'Spring-loaded sear that pops up into the slide and blocks the knocker until the slide is back in battery, so the gun cannot vent gas with the slide open.',
-  [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']]);
+  [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']], { dx: -3 });
 
 // ================= MAGAZINE =================
 part('magBody', 'Magazine shell', 'mag', ['G-59'], [0, -108, 0],
   'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
-  [[magT(bx(-MD, MD, -97, -5, -MW, MW)), 'dark'],
+  [[magT(magExt(MD, MW, 5, -97, -5)), 'dark'],
    ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']])], { shell: true });
 
 part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [0, -90, 0],
   'Feed lips block G-62: the whole top cap of the mag, with the BB lips at the front and a window at the rear for the rubber gas route G-63, which seals against the bottom of the loading nozzle. Held by cross pin G-61.',
-  [[magT(bx(1, MD, -5, 7, -MW + 1, MW - 1)), 'dark'], [magT(bx(-MD, 1, -5, 4.5, -MW + 1, MW - 1)), 'dark'],
+  [[magT(bx(1, MD - 2, -5, 7, -MW + 1.5, MW - 1.5)), 'dark'], [magT(bx(-MD, 1, -5, 4.5, -MW + 1, MW - 1)), 'dark'],
    [magT(bx(-12, -3, 4.5, 7.6, -4, 4)), 'black'], [magT(bx(4, MD - 1, 6.2, 7.1, -1.6, 1.6)), 'black'],
    [magT(cyl(0.8, 2 * MW - 1.6, 'z', 9, -2, 0, 8)), 'steel']]);
 
@@ -786,7 +790,7 @@ part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
 
 part('magBase', 'Base cap + O-ring', 'mag', ['G-70', 'G-69'], [-60, -108, 0],
   'Base cap that closes the reservoir from below, sealed by O-ring G-69; the tube on it guides the follower spring.',
-  [[magT(bx(-MD + 0.6, MD - 0.6, -97, -92, -MW + 0.6, MW - 0.6)), 'dark'], [magT(cyl(1.6, 25, 'y', 8, -80, 0, 12)), 'dark'],
+  [[magT(magExt(MD - 0.6, MW - 0.6, 4.4, -97, -92)), 'dark'], [magT(cyl(1.6, 25, 'y', 8, -80, 0, 12)), 'dark'],
    [magT(torus(9, 0.6, 'y', 0, -92, 0)), 'black']]);
 
 part('fillValve', 'Fill valve', 'mag', ['G-68'], [-45, -140, 0],
