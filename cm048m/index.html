@@ -39,6 +39,8 @@
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  #ctrl .sub { margin:10px 0 0; color:var(--dim); font-size:12px; }
+  #ctrl .views { display:grid; grid-template-columns:repeat(3, 1fr); margin-top:4px; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
@@ -135,6 +137,16 @@
   <label><span>Labels</span><input id="labels" type="checkbox"></label>
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
   <label><span>Owner build (Kythera HPA)</span><input id="hpa" type="checkbox"></label>
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="sub">View from</div>
+  <div class="row views">
+    <button data-v="front" title="Front, muzzle on (1)">Front</button>
+    <button data-v="back" title="Back, butt on (2)">Back</button>
+    <button data-v="top" title="Top (3)">Top</button>
+    <button data-v="left" title="Left side (4)">Left</button>
+    <button data-v="right" title="Right side (5)">Right</button>
+    <button data-v="bottom" title="Bottom (6)">Bottom</button>
+  </div>
   <div class="row">
     <button id="bAsm">Assembled</button>
     <button id="bExp">Exploded</button>
@@ -199,6 +211,11 @@ const HOME_POS = fit(new THREE.Vector3(130, 250, 950), HOME_TGT);
 camera.position.copy(HOME_POS);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
 controls.enableDamping = true;
 
 scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
@@ -1671,7 +1688,7 @@ function showOverview() {
     <li>Owner build (tick "Owner build" in the controls): ZCI 455mm 6.02 barrel, R-hop, G&amp;G green bucking and a Polarstar Kythera V3 HPA engine in place of the AEG cylinder, gears and motor.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic.</p>${SOURCES}`;
 }
 function showList(hitNos = []) {
   const rows = MANUAL.map(([no, name, note]) => {
@@ -1752,7 +1769,7 @@ const tip = document.getElementById('tip');
 let downAt = null;
 function pick(e) {
   mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
-  ray.setFromCamera(mouse, camera);
+  ray.setFromCamera(mouse, viewCam());
   const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
     .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
   return hit ? hit.object.userData.part : null;
@@ -1771,6 +1788,19 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
 
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewFrom = v => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: new THREE.Vector3(...VIEWS[v]).normalize().multiplyScalar(d).add(controls.target) };
+};
+document.querySelectorAll('#ctrl [data-v]').forEach(b => b.onclick = () => viewFrom(b.dataset.v));
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
 // ---------- keys ----------
 addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
@@ -1782,6 +1812,8 @@ addEventListener('keydown', e => {
   else if (k === 'p') showPanel('side', !isOpen('side'));
   else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
   else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
 });
 MOBILE.addEventListener('change', initPanels);
 
@@ -1802,13 +1834,22 @@ renderer.setAnimationLoop(() => {
     p.position.copy(p.userData.explode).multiplyScalar(e);
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
-  if (camTween) {
-    controls.target.lerp(camTween.tgt, 0.1); camera.position.lerp(camTween.pos, 0.1);
-    if (camera.position.distanceTo(camTween.pos) < 2) camTween = null;
+  if (camTween) {   // swing round the target (not through it) while the target and distance ease over
+    const o0 = camera.position.clone().sub(controls.target), o1 = camTween.pos.clone().sub(camTween.tgt);
+    const len = THREE.MathUtils.lerp(o0.length(), o1.length(), 0.1);
+    const turn = new THREE.Quaternion().slerp(new THREE.Quaternion().setFromUnitVectors(o0.normalize(), o1.normalize()), 0.1);
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(o0.applyQuaternion(turn).multiplyScalar(len));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
   }
   controls.update();
-  renderer.render(scene, camera);
-  labelRenderer.render(scene, camera);
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
 });
 
 const fromHash = () => {
