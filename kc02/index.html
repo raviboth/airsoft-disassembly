@@ -63,6 +63,9 @@
   #info tr.mod td:nth-child(2) { color:#bcd2ff; }
   #info tr.mod:hover { background:#252a33; }
   #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; bottom:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #info:not(.hidden) ~ #cube { right:384px; }
   #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
   .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
   .lbl.sel { border-color:var(--acc); color:#fff; }
@@ -88,6 +91,7 @@
     #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
     #side .sub { display:none; }
     #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube, #info:not(.hidden) ~ #cube { top:100px; right:8px; bottom:auto; width:84px; height:84px; }
     #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
     #info.peek { max-height:96px; }
     #info.peek #infoBody { overflow:hidden; }
@@ -157,6 +161,7 @@
 </div>
 
 <div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
 <div id="tip"></div>
 
 <script type="module">
@@ -927,7 +932,7 @@ function showOverview() {
     <li>Generic vs specific: the rear stock, tube and grip are generic M4 parts. The front stock, receiver and internals are KC-02 specific. The barrel copies the real 10/22 .920 in bull profile.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
 }
 function showList(hitNos = []) {
   const rows = MANUAL.map(([no, name, price]) => {
@@ -1030,10 +1035,72 @@ renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p
 // toward the right side so the orbit controls keep the muzzle pointing right
 const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
 const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
-const viewFrom = v => {
+const viewDir = dir => {
   const d = camera.position.distanceTo(controls.target);
-  camTween = { tgt: controls.target.clone(), pos: new THREE.Vector3(...VIEWS[v]).normalize().multiplyScalar(d).add(controls.target) };
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
 };
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
 document.querySelectorAll('#ctrl [data-v]').forEach(b => b.onclick = () => viewFrom(b.dataset.v));
 const orthoCb = document.getElementById('ortho');
 orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
@@ -1093,11 +1160,13 @@ renderer.setAnimationLoop(() => {
   }
   renderer.render(scene, viewCam());
   labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
 });
 
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__kc02 = { parts, select, showList, THREE, scene, renderer, camera, floor, grid, labelRenderer, root, STOCK, STOCK_STEP, RENDER_POS };
+window.__kc02 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, STOCK, STOCK_STEP, RENDER_POS };
 </script>
 </body>
 </html>
