@@ -509,29 +509,42 @@ const magT = g => g.rotateZ(-MAG_A).translate(MAG_PIV[0], MAG_PIV[1], 0);
 part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
   'Metal slide (WE spec), G19 length: 174mm long and 25.5mm wide like the Glock. Ejection port on the right over the barrel hood, rear serrations on both sides, "19 AUSTRIA 9x19" roll marks on the Gen3 and Gen4. The blowback unit sits in its rear half and the recoil guide in its nose. Gen5 slides have the bevelled nose.',
   (() => {
-    const p = [];
-    const wall = port => {
-      const o = [[MUZ - 1.6, SL_TOP], [MUZ, SL_TOP - 1.6], [MUZ, SL_BOT + 1.2], [MUZ - 1.2, SL_BOT], [REAR + 1, SL_BOT], [REAR, SL_BOT + 1], [REAR, SL_TOP - 1.4], [REAR + 1.4, SL_TOP]];
-      if (port) o.push([PORT0, SL_TOP], [PORT0, BY + 1.5], [PORT1, BY + 1.5], [PORT1, SL_TOP]);
-      return o;
-    };
-    p.push([zAt(prof(wall(false), WALL, 0.6), -SW + WALL / 2), 'slide']);
-    p.push([zAt(prof(wall(true), WALL, 0.6), SW - WALL / 2), 'slide']);
-    // top plate, open over the port on the right
-    p.push([bx(PORT1, MUZ - 1, SL_TOP - 2.6, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
-    p.push([bx(REAR + 1, PORT0, SL_TOP - 2.6, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
-    p.push([bx(PORT0, PORT1, SL_TOP - 2.6, SL_TOP, -SW + WALL, -3), 'slide']);
-    // nose block: barrel hole, and the small hole under it for the recoil guide tip
-    p.push([secX(rr(-SW, SW, SL_BOT, SL_TOP, 1.2), MUZ - 11, MUZ - 0.4, 0.4, [circ(0, BY, 7.38, 32), circ(0, GY, 2.3, 16)]), 'slide']);
-    // breech block over the rear sight, closed at the back except for the rear plate opening
-    p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, -SW + WALL, -8.6), 'slide']);
-    p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, 8.6, SW - WALL), 'slide']);
-    // slide stop notch, bottom edge on the left: one slide travel ahead of the lever's tab, so the tab rises into it when the slide is locked back
-    p.push([bx(-35.2 + SLIDE_TRAVEL, -28.6 + SLIDE_TRAVEL, SL_BOT - 0.01, SL_BOT + 2.2, -SW - 0.01, -SW + WALL + 0.01), 'black']);
-    // rear serrations (10 per side, X(1385) to X(1560) in the photo)
+    // One cross-section run along the slide (SCT G19 drawing, section B-B): 25.5 wide, top corners rounded (about 2.5mm in
+    // the rear photo), 20mm channel inside, rail grooves 23mm across over 19mm lips at the bottom. The WE slide is thin on
+    // top (2.6mm) to make room for the blowback unit. Middle segments have no bevel, so the sides run unbroken from the
+    // breech block to the nose; only the rear face and the muzzle face get rounded edges.
+    const SR = 2.5, BR = 0.6, ROOF = SL_TOP - 2.6, IC = 1.5, LIP = SL_BOT + 1.75, GRV = SL_BOT + 3.15;
+    const arc = (cz, cy, r, a0, a1, n = 5) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [cz + r * Math.cos(t), cy + r * Math.sin(t)]; });
+    // outer outline from the left top corner, down the left side; `bottom` fills in between the two bottom corners
+    const outer = bottom => [...arc(-SW + SR, SL_TOP - SR, SR, 90, 180), ...arc(-SW + BR, SL_BOT + BR, BR, 180, 270), ...bottom,
+      ...arc(SW - BR, SL_BOT + BR, BR, 270, 360), ...arc(SW - SR, SL_TOP - SR, SR, 0, 90)];
+    const railL = [[-9.5, SL_BOT], [-9.5, LIP], [-11.5, LIP], [-11.5, GRV], [-10, GRV]];
+    const railR = railL.map(([z, y]) => [-z, y]).reverse();
+    // split at the port's left edge (z -3): the left part runs the whole length in one piece so its side has no joints;
+    // the ejection port is open on top from there to the right edge, and down the right side to the sill
+    const portL = [...arc(-SW + SR, SL_TOP - SR, SR, 90, 180), ...arc(-SW + BR, SL_BOT + BR, BR, 180, 270), ...railL, ...arc(-10 + IC, ROOF - IC, IC, 180, 90), [-3, ROOF], [-3, SL_TOP]];
+    // The wall below the port sill (9.65mm under the top, SCT drawing) runs the whole length in one piece too; the upper right
+    // part breaks for the port. Pieces overlap a little so their joints never show as lines.
+    const SILL = SL_TOP - 9.65;
+    const upperR = [[-3.6, SL_TOP], ...arc(SW - SR, SL_TOP - SR, SR, 90, 0), [SW, SILL - 0.6], [10, SILL - 0.6], ...arc(10 - IC, ROOF - IC, IC, 0, 90), [-3.6, ROOF]];
+    const portR = [[10, SILL], [10, GRV], [11.5, GRV], [11.5, LIP], [9.5, LIP], [9.5, SL_BOT], ...arc(SW - BR, SL_BOT + BR, BR, 270, 360), [SW, SILL]];
+    // breech block: solid except for the slot the rear cover plate drops into from below (18mm wide, top 5.4mm under the slide top)
+    const PT = SL_TOP - 5.4, PW = 9;
+    const rearSec = outer([[-PW, SL_BOT], ...arc(-PW + 1.5, PT - 1.5, 1.5, 180, 90), ...arc(PW - 1.5, PT - 1.5, 1.5, 90, 0), [PW, SL_BOT]]);
+    // same as secX but the rounded edge is cut inside the outline, so the section keeps its drawn size
+    const secXR = (pts, x0, x1, r, holes = []) => profR(pts, x1 - x0, r, holes).rotateY(-Math.PI / 2).translate((x0 + x1) / 2, 0, 0);
+    const p = [
+      [secXR(rearSec, REAR, REAR + 5, 0.5), 'slide'],
+      [secX(portL, REAR + 3, MUZ - 9, 0), 'slide'],
+      [secX(portR, REAR + 3, MUZ - 9, 0), 'slide'], [secX(upperR, REAR + 3, PORT0, 0), 'slide'], [secX(upperR, PORT1, MUZ - 9, 0), 'slide'],
+      // nose block: barrel hole, and the small hole under it for the recoil guide tip
+      [secXR(outer([]), MUZ - 11, MUZ, 0.6, [circ(0, BY, 7.38, 32), circ(0, GY, 2.3, 16)]), 'slide'],
+      // slide stop notch, bottom edge on the left: one slide travel ahead of the lever's tab, so the tab rises into it when the slide is locked back
+      [bx(-35.2 + SLIDE_TRAVEL, -28.6 + SLIDE_TRAVEL, SL_BOT - 0.01, SL_BOT + 2.2, -SW - 0.01, -SW + WALL + 0.01), 'black']];
+    // rear serrations (10 per side, X(1385) to X(1560) in the photo), running up to where the top corner starts to round
     for (let i = 0; i < 10; i++) {
       const x = X(1392) - i * 2.3;
-      for (const sd of [1, -1]) p.push([bx(x - 0.6, x + 0.6, SL_BOT + 3, SL_TOP - 1.5, sd * SW - 0.4, sd * SW + 0.4), 'black']);
+      for (const sd of [1, -1]) p.push([bx(x - 0.6, x + 0.6, SL_BOT + 0.8, SL_TOP - SR, sd * SW - 0.3, sd * SW + 0.03), 'black']);
     }
     return p;
   })(), { shell: true, slide: true });
@@ -567,11 +580,21 @@ part('bbuHousing', 'Blowback housing', 'bbu', ['G-54'], [-25, 48, 0],
    [bx(HB1 - 3, HB1, SL_TOP - 5.5, SL_TOP - 3, -9.6, 9.6), 'alu']], { slide: true });
 
 part('rearPlate', 'Rear slide plate', 'bbu', ['G-54-1'], [-45, 48, 0],
-  'Cover plate at the back of the slide with horizontal ridges and two feet at the bottom, like the firearm\'s slide cover plate. Pinned to the blowback housing (Ebog: only a punch is needed). Ebog number 54-1; not labelled on the WE drawing.',
-  [[bx(REAR, REAR + 2.4, SL_BOT + 1.2, SL_TOP - 5, -7, 7), 'dark'],
-   ...[1, -1].map(sd => [bx(REAR, REAR + 2.4, SL_BOT, SL_BOT + 1.3, sd * 5.2 - 1.8, sd * 5.2 + 1.8), 'dark']),
-   ...[0, 1, 2, 3, 4].map(i => [bx(REAR - 0.25, REAR + 0.1, -3 + i * 2.4, -2.2 + i * 2.4, -5.5, 5.5), 'black']),
-   [bx(REAR + 2.4, HB0, -6, SL_TOP - 6, -5, 5), 'dark']], { slide: true });
+  'Cover plate at the back of the slide, like the firearm\'s slide cover plate: it slides up into the slot in the breech block from below. Flat rim, a smooth panel with rounded top corners, five ridges across its lower half, and three tabs at the bottom that straddle the frame rails. Pinned to the blowback housing (Ebog: only a punch is needed). Ebog number 54-1; not labelled on the WE drawing.',
+  (() => {
+    const PT = SL_TOP - 5.4, PW = 9, FB = SL_BOT + 2.2;
+    // outline: rounded top corners, then the three tabs at the bottom (outer feet and a shorter centre tab)
+    const top = rr(-PW, PW, FB, PT, 1.5).slice(0, 10);
+    const outline = [...top, [-PW, FB], [-PW, SL_BOT], [-PW + 2.2, SL_BOT], [-PW + 2.2, FB], [-3, FB], [-3, SL_BOT + 0.6], [3, SL_BOT + 0.6], [3, FB], [PW - 2.2, FB], [PW - 2.2, SL_BOT], [PW, SL_BOT], [PW, FB]];
+    return [
+      [secX(outline, REAR + 0.25, REAR + 2.4, 0), 'dark'],
+      // raised smooth panel, flush with the slide's rear face
+      [secX(rr(-PW + 1, PW - 1, FB + 0.8, PT - 1, 3.2), REAR, REAR + 0.25, 0), 'dark'],
+      // ridges across the lower half of the panel
+      ...[0, 1, 2, 3, 4].map(i => [bx(REAR - 0.05, REAR + 0.05, FB + 1.6 + i * 1.5, FB + 2.1 + i * 1.5, -PW + 1.4, PW - 1.4), 'black']),
+      // stub that pins into the blowback housing
+      [bx(REAR + 2.4, HB0, -6, SL_TOP - 6, -5, 5), 'dark']];
+  })(), { slide: true });
 
 part('piston', 'Piston head + screw', 'bbu', ['G-56', 'G-55'], [12, 48, 0],
   'Round piston cup with an O-ring groove, fixed to the front of the housing\'s rear block by screw G-55. On firing, gas fills the nozzle cylinder and drives the nozzle back over it, which throws the slide. The newer MOS blowback unit uses a D-shaped cup instead.',
