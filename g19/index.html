@@ -311,7 +311,7 @@ function loftResample(levels, step) {
     const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
     for (let q = 0; q < steps; q++) {
       const t = q / steps, o = {};
-      for (const key of ['y', 'xf', 'xb', 'w']) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      for (const key of ['y', 'xf', 'xb', 'w', 'n', 'ft']) if (key in b) o[key] = cr(a[key], b[key], c[key], d[key], t);
       L.push(o);
     }
   }
@@ -319,6 +319,7 @@ function loftResample(levels, step) {
   return L;
 }
 function loftPoint(lv, t, n, frontTaper) {
+  if (lv.n) { n = lv.n; frontTaper = lv.ft; }
   const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
   const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
   return [cx + ax * px, lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
@@ -652,15 +653,18 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380]]);
     // grip: horizontal sections lofted down the traced outline (front and back edge per level), rounded-rectangle sections
     // narrowing at the front. The front edge runs up behind the trigger guard opening, where the grip forms the magwell's front
-    // wall. Width: 29 at the top, waisted to 28.5 at the Gen3 thumb-rest scallop, 30 at the texture panel
+    // wall. Width: 24.4 at the top, flush with the frame rails, swelling
+    // through the Gen3 thumb-rest area to 30 at the texture panel
     // (Gen3 grip width per GlockTalk), 28.5 at the bottom.
     const span = y => { const xs = []; for (let k = 0; k < grip.length; k++) { const [x0, y0] = grip[k], [x1, y1] = grip[(k + 1) % grip.length];
       if ((y0 - y) * (y1 - y) <= 0 && y0 !== y1) xs.push(x0 + (x1 - x0) * (y - y0) / (y1 - y0)); } return [Math.max(...xs), Math.min(...xs)]; };
-    const W = [[-28, 29], [-36, 28.5], [-46, 29.5], [-70, 30], [-95, 29.5], [-106, 28.5]];
-    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 29 : 28.5; };
+    const W = [[-28, 24.4], [-31, 24.8], [-35, 26], [-40, 28], [-46, 29.4], [-70, 30], [-95, 29.5], [-106, 28.5]];
+    const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 24.4 : 28.5; };
     const GT = Y(374), GB = Y(1001) + 0.05, levels = [];
-    for (let y = GT; y > GB; y -= 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y) }); }
-    { const [xf, xb] = span(GB); levels.push({ y: GB, xf, xb, w: wAt(GB) }); }
+    // sections go from squarer under the frame rails (room for the mag's front corners) to rounder straps lower down
+    const shape = y => { const k = Math.min(1, Math.max(0, (-40 - y) / 15)); return { n: 3.2 - 0.6 * k, ft: 0.8 - 0.2 * k }; };
+    for (let y = GT; y > GB; y -= 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y), ...shape(y) }); }
+    { const [xf, xb] = span(GB); levels.push({ y: GB, xf, xb, w: wAt(GB), ...shape(GB) }); }
     const LO = { n: 3.2, frontTaper: 0.8 };
     const out = [[profR(upper, 24, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [loft(levels, { ...LO, seg: 56, step: 0.8 }), 'frame']];
     const patch = (t0, t1, y0, y1, lift, mat, step = 0.8) => out.push([loftPatch(levels, { ...LO, t0: t0 * Math.PI, t1: t1 * Math.PI, y0, y1, lift, step, cols: 20, uvScale: 0.09 }), mat]);
