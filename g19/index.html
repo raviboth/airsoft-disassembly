@@ -474,9 +474,9 @@ const SL_TOP = 11.7, SL_BOT = -10;
 const SW = 25.5 / 2;           // Glock slide width 25.5mm
 const WALL = 2.6;
 const BY = 3.4;                // bore axis: 2mm of slide above the barrel hole
-const BREECH = MUZ - 102;      // Glock G19 barrel length 102mm puts the breech face here
+const BREECH = REAR + 75.4;    // breech face at the back of the ejection port (right-side photo); outer barrel 97mm
 const GY = -6.9;               // recoil guide axis: the rod tip passes through a small hole under the barrel hole
-const PORT0 = BREECH, PORT1 = BREECH + 33;   // ejection port over the barrel hood
+const PORT0 = BREECH, PORT1 = BREECH + 28;   // ejection port over the barrel hood, 28mm long in the photo
 
 // magazine: built upright in its own frame (top rear corner at the origin side, axis along -y), then leaned back to the
 // grip angle and dropped into the frame. The photo puts the base plate centre at x -69, y -114.
@@ -492,7 +492,7 @@ part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
     const p = [];
     const wall = port => {
       const o = [[MUZ - 1.6, SL_TOP], [MUZ, SL_TOP - 1.6], [MUZ, SL_BOT + 1.2], [MUZ - 1.2, SL_BOT], [REAR + 1, SL_BOT], [REAR, SL_BOT + 1], [REAR, SL_TOP - 1.4], [REAR + 1.4, SL_TOP]];
-      if (port) o.push([PORT0, SL_TOP], [PORT0, BY + 0.5], [PORT1, BY + 0.5], [PORT1, SL_TOP]);
+      if (port) o.push([PORT0, SL_TOP], [PORT0, BY + 1.5], [PORT1, BY + 1.5], [PORT1, SL_TOP]);
       return o;
     };
     p.push([zAt(prof(wall(false), WALL, 0.6), -SW + WALL / 2), 'slide']);
@@ -528,7 +528,7 @@ part('rearSight', 'Rear sight + screw', 'sld', ['G-46', 'G-58'], [0, 100, 0],
 
 part('extractor', 'Dummy extractor', 'sld', ['G-75'], [0, 80, 0],
   'Fixed dummy extractor on the right of the slide behind the ejection port. WE G-75 (G-83 on the auto sheet).',
-  [[bx(PORT0 - 14, PORT0 - 1, BY + 0.5, BY + 3.5, SW - 0.4, SW + 0.5), 'steel']], { slide: true });
+  [[bx(PORT0 - 18, PORT0 - 0.5, 2.1, 6.9, SW - 0.4, SW + 0.5), 'steel'], [bx(PORT0 - 16, PORT0 - 2, 3.5, 5.5, SW + 0.5, SW + 0.8), 'black']], { slide: true });
 
 part('slideSpacer', 'Spring guide slide spacer', 'sld', ['G-74'], [40, 80, 0],
   'Ring with tabs inside the slide nose that takes the head of the recoil guide; the MOS sheet calls it a buffer pad. Gen5 has its own. G-74 on the semi sheet, G-84 on the auto sheet.',
@@ -579,7 +579,7 @@ part('bbuBlock', 'Slide insert block', 'bbu', ['G-76'], [-25, 36, 0],
 // ================= BARREL, HOP-UP, RECOIL SPRING =================
 const HOOD1 = BREECH + 32;
 part('outerBarrel', 'Outer barrel', 'bar', ['G-39'], [45, 28, 0],
-  'Metal outer barrel, G19 length. Square hood over the chamber (it fills the ejection port) and a cam lug under it, like the firearm: it drops at the rear as the slide comes back. 102mm long like the real barrel. Threaded outer barrels are a common swap.',
+  'Metal outer barrel, G19 length. Square hood over the chamber (it fills the ejection port) and a cam lug under it, like the firearm: it drops at the rear as the slide comes back. About 97mm long here: the hood starts at the back of the ejection port, which the right-side photo puts 75mm from the slide rear (the firearm barrel is 102mm). Threaded outer barrels are a common swap.',
   [[tube(4.8, 6.25, HOOD1, MUZ - 0.3, 32, BY), 'dark'],
    // hood: a U open underneath (the hop chamber sits in it), legs running down into the cam lug
    [secX([[-6.9, BY + 6.1], [6.9, BY + 6.1], [7.4, BY + 5.6], [7.4, BY - 7], [5.8, BY - 7], [5.8, BY + 4.6], [-5.8, BY + 4.6], [-5.8, BY - 7], [-7.4, BY - 7], [-7.4, BY + 5.6]], BREECH, HOOD1, 0.3), 'dark'],
@@ -684,14 +684,14 @@ part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
   [[prof([[X(1000), Y(380)], [-54, -23.5], [-56, -26], [-55, -31], [-57, -32], [-58, -26.5], [-56, -24.6], [X(1000), Y(392)]], 1.2, 0.2).translate(0, 0, 5.4), 'steel'],
    [spring(0.9, 0.2, 5, 5, 'y', -40, -29, 5.4), 'spring']]);
 
-const HH = [[-55, FT], [-88, FT], [-88, -18], [-80, -24], [-74, -36], [-62, -36], [-55, -26]];
+const HH = [[-55, FT], [-86.5, FT], [-86.5, -16.5], [-82.5, -19.5], [-76, -23.5], [-73, -29], [-72.6, -41], [-63, -41], [-55, -26]];
 part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25', 'G-07'], [-45, 0, 0],
   'Metal hammer (fire control) housing in the rear of the frame. Carries the rear slide rails and holds the hammer, sear and valve knocker. Screw G-25 from above; rear frame pin G-07 (Gen3 and Gen4/5 pins differ).',
-  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-64, -13], [-62, -22], [-68, -31], [-76, -26], [-82, -19]]]), sd * 7.6), 'zinc']),
+  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-64, -13], [-62, -22], [-66, -33], [-70, -33], [-76, -26], [-82, -19]]]), sd * 7.6), 'zinc']),
    [bx(-88, -60, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
    ...[1, -1].map(sd => [bx(-88, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
    [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
-   [cyl(1.5, 26, 'z', -70, -31, 0, 12), 'steel']]);
+   [cyl(1.5, 26, 'z', X(1483), Y(445), 0, 12), 'steel']]);
 
 part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 'G-29', 'G-30'], [-72, 8, 0],
   'Drum-shaped hammer on upper pin G-29 with roller G-21 and torsion spring G-22; lower pin G-30 carries the sear. Cocked by the slide, it swings forward and its face hits the valve knocker. A steel hammer and sear set (CowCow, Guarder) replaces the pot-metal parts.',
@@ -717,7 +717,7 @@ part('popupSear', 'Valve knocker pop-up sear + spring', 'trg', ['G-27', 'G-28'],
 // ================= MAGAZINE =================
 part('magBody', 'Magazine shell', 'mag', ['G-59'], [0, -108, 0],
   'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
-  [[magT(bx(-MD, MD, -100, -5, -MW, MW)), 'dark'],
+  [[magT(bx(-MD, MD, -97, -5, -MW, MW)), 'dark'],
    ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']])], { shell: true });
 
 part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [0, -90, 0],
@@ -736,20 +736,21 @@ part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
 
 part('magBase', 'Base cap + O-ring', 'mag', ['G-70', 'G-69'], [-60, -108, 0],
   'Base cap that closes the reservoir from below, sealed by O-ring G-69; the tube on it guides the follower spring.',
-  [[magT(bx(-MD + 0.6, MD - 0.6, -100, -95, -MW + 0.6, MW - 0.6)), 'dark'], [magT(cyl(1.6, 25, 'y', 9, -85, 0, 12)), 'dark'],
-   [magT(torus(9, 0.6, 'y', 0, -95, 0)), 'black']]);
+  [[magT(bx(-MD + 0.6, MD - 0.6, -97, -92, -MW + 0.6, MW - 0.6)), 'dark'], [magT(cyl(1.6, 25, 'y', 8, -80, 0, 12)), 'dark'],
+   [magT(torus(9, 0.6, 'y', 0, -92, 0)), 'black']]);
 
 part('fillValve', 'Fill valve', 'mag', ['G-68'], [-45, -140, 0],
   'Gas fill valve, screwed into the base cap from below.',
-  [[magT(cyl(2.4, 6, 'y', -6, -100, 0, 16)), 'brass']]);
+  [[magT(cyl(2.4, 6, 'y', -6, -97, 0, 16)), 'brass']]);
 
 part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -118, 0],
   'Long screw up from the bottom through the base cap, with seals G-72 and G-73 (washer and O-ring, read from the drawing).',
-  [[magT(cyl(1.2, 70, 'y', 4, -66, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 4, -98, 0)), 'black']]);
+  [[magT(cyl(1.2, 66, 'y', 3, -62, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 3, -95, 0)), 'black']]);
 
 part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
-  'Slide-off base plate with the bumper stopper G-66 that locks it. Gen5 has its own plate.',
-  [[magT(bx(-21, 19, -107, -100, -14, 14)), 'poly'], [magT(bx(-6, 6, -100, -98.5, -5, 5)), 'black']]);
+  'Slide-off base plate with the bumper stopper G-66 that locks it. It sits level with the bottom of the grip rather than square to the mag (traced from the photo). Gen5 has its own plate.',
+  [[profR(P([[1262, 1002], [1652, 1002], [1652, 1026], [1642, 1036], [1325, 1071], [1302, 1066], [1285, 1040]]), 27, 2), 'poly'],
+   [bx(X(1500), X(1430), Y(1002), Y(997), -5, 5), 'black']]);
 
 
 // ---------- UI: list ----------
