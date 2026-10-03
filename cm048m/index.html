@@ -858,9 +858,10 @@ function hgLeverPieces() {
 // ================= RECEIVER AND CONTROLS =================
 // side walls stop where the dust cover skirts meet them (CM048M left side photo: wall top edge shows under the skirt at
 // py 90); the cover's skirts close everything above. The right wall is lower, level with the ejection port floor, so the
-// cocking lever and the carrier face run in the gap between the wall and the cover's notched right skirt.
+// carrier face shows in the gap between the wall and the cover's notched right skirt; the cocking lever comes out
+// through a slot cut down from the top of the wall, behind the rear sight base (Taiwangun CM048M right side close-up).
 const RCV_SIDE = P([[493, 90], [816.8, 90], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
-const RCV_RIGHT = P([[493, 95.4], [818, 95.4], [818, 143], [545, 143], [493, 132]]);
+const RCV_RIGHT = P([[493, 95.4], [518.5, 95.4], [518.5, 100.5], [600, 100.5], [600, 95.4], [818, 95.4], [818, 143], [545, 143], [493, 132]]);
 const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113]];
 part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
@@ -1013,9 +1014,10 @@ part('cockLever', 'Cocking lever (charging handle)', 'rcv', ['59'], [0, 120, 60]
   // CYMA dummy carrier (Taiwangun / Patrol Base spare photos): a side plate with the handle on its front end, seen through
   // the ejection port, with the long groove along it (Taiwangun close-up). Forward, the handle's front face sits just
   // behind the rear sight base (RedWolf and Taiwangun on-gun shots), clear of it.
-  [[bx(X(622), X(521.5), Y(97.5), Y(72), RZ - mm(4.2), RZ - mm(1.9)), 'blk'],
+  // The handle hangs low on the plate, well under the cover's skirt, about level with the front receiver rivets.
+  [[bx(X(622), X(521.5), Y(100), Y(70.5), RZ - mm(4.2), RZ - mm(1.9)), 'blk'],
    [bx(X(612), X(532), Y(84.6), Y(83.2), RZ - mm(1.95), RZ - mm(1.7)), 'black'],
-   [chargingHandle(X(527.6), Y(80.5)), 'dark']]);
+   [chargingHandle(X(527.6), Y(92.7)), 'dark']]);
 // AKM safety/selector lever, traced from the CYMA right-side close-ups (Taiwangun, RedWolf) and real AKM photos.
 // Stamped plate: round pivot end at the rear, tapering arm, raised front tab with the finger hole; the top edge
 // closes the cut in the dust cover's right skirt when the lever is up (safe).
