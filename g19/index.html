@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WE G19 disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the WE-Tech G19 (Glock 19 Gen3) gas blowback airsoft pistol, with every part number from the WE exploded view, specs and known weak points.">
+<meta property="og:title" content="WE G19 disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the WE G19 GBB pistol with WE part numbers, specs and known weak points.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/g19/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>WE G19 Gen3</b><span>Glock 19 gas blowback pistol</span></div>
+  <div class="btns">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
+</div>
+
+<div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
+  <div class="sub">Part numbers from the WE G-series exploded view (G-01 to G-76). Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search name or part # (press /)" autocomplete="off">
+  <div id="list"></div>
+  <div id="nohit">No parts match.</div>
+</div>
+
+<div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label>Slide <span id="spv">closed</span></label>
+  <input id="slidepos" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="row">
+    <button id="bReset">Reset view</button>
+    <button id="bList">Manual parts list</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// WE G-series semi exploded view (G17/G19/G27/G33/G34), part numbers G-01 to G-76. The sheet prints no names:
+// names come from shop listings (Ebog Designs, Socom Tactical, Hero Outdoors); the third field marks names read off the drawing.
+const MANUAL = [["G-01", "Lower frame", false], ["G-02", "Slide release lever (takedown lever)", false], ["G-03", "Serial number safety bar (serial plate)", false], ["G-04", "Magazine release spring", false], ["G-05", "Trigger locking pin (trigger pin)", false], ["G-06", "Magazine catch", false], ["G-07", "Hammer assembly locking pin (trigger housing pin)", false], ["G-08", "Front assembly housing (front chassis / locking block analog)", false], ["G-09", "Front assembly screw", false], ["G-10", "Front assembly housing pin", false], ["G-11", "Slide release retention spring (takedown lever spring)", false], ["G-12", "Slide catch (slide stop lever)", false], ["G-13", "Slide lock spring (slide stop spring)", false], ["G-14", "Trigger bar pin", false], ["G-15", "Trigger safety blade", true], ["G-16", "Trigger", false], ["G-17", "Trigger bar spring", false], ["G-18", "Trigger bar", false], ["G-19", "Valve knocker (valve striker / 'firing pin')", false], ["G-20", "Hammer", false], ["G-21", "Hammer roller", false], ["G-22", "Hammer spring", false], ["G-23", "Hammer sear", false], ["G-24", "Hammer reset spring (sear spring)", false], ["G-25", "Hammer unit screw", false], ["G-26", "Hammer housing", false], ["G-27", "Valve knocker pop-up sear", false], ["G-28", "Pop-up sear spring", false], ["G-29", "Hammer pin upper", false], ["G-30", "Hammer pin lower", false], ["G-31", "Recoil spring guide rod", false], ["G-32", "Recoil spring", false], ["G-33", "Recoil spring guide end / buffer ring", false], ["G-34", "Hop-up chamber screws (x2)", false], ["G-35", "Hop-up chamber left half", false], ["G-36", "Hop-up bucking", false], ["G-37", "Hop-up chamber arm", false], ["G-38", "Inner barrel", false], ["G-39", "Outer barrel", false], ["G-40", "Hop-up chamber right half", false], ["G-41", "Hop-up wheel O-ring / detent", true], ["G-42", "Hop-up adjustment wheel", false], ["G-43", "Slide", false], ["G-44", "Front sight", true], ["G-45", "Front sight screw", true], ["G-46", "Rear sight", false], ["G-47", "Loading nozzle", false], ["G-48", "Nozzle screw", false], ["G-49", "Nozzle (valve) spring", false], ["G-50", "Nozzle valve", false], ["G-51", "Nozzle valve blocker", false], ["G-53", "Nozzle return spring", false], ["G-54", "Blowback unit (BBU) nozzle housing", false], ["G-54-1", "Rear slide plate (cover plate)", false], ["G-55", "Piston head screw", false], ["G-56", "Piston head", false], ["G-58", "Rear sight screw", false], ["G-59", "Magazine shell (body)", false], ["G-60", "Magazine out (exhaust) valve", false], ["G-61", "Magazine feed lip pin", false], ["G-62", "Magazine feed lips", false], ["G-63", "Magazine gas route (rubber gasket)", false], ["G-64", "Magazine follower", false], ["G-65", "Magazine spring", false], ["G-66", "Magazine bumper stopper (baseplate catch)", false], ["G-67", "Magazine base plate", false], ["G-68", "Magazine fill (intake) valve", false], ["G-69", "Magazine gas tank O-ring / gasket", true], ["G-70", "Magazine base (gas tank base)", false], ["G-71", "Magazine screw", false], ["G-72", "Magazine screw O-ring / washer (lower)", true], ["G-73", "Magazine screw O-ring / washer (upper)", true], ["G-74", "Spring guide slide spacer (front slide cushion)", false], ["G-75", "Slide piece (dummy extractor)", false], ["G-76", "Small slide insert block", false]];
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_TGT = new THREE.Vector3(-5, -45, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(-90, 40, -420), HOME_TGT);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-200, 700, -350);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -400, right: 400, top: 400, bottom: -400, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -260; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(1600, 64, 0x2a2f38, 0x1d2027);
+grid.position.y = -259.5; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x383b41, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
+  nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
+  frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w']) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  return [cx + ax * px, lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    pos.push(x, y, z + Math.sign(z) * lift); uv.push(x * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    pos.push((lv.xf + lv.xb) / 2, lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// ---------- part registry ----------
+const CATS = {
+  sld: 'Slide',
+  bbu: 'Blowback unit and nozzle',
+  bar: 'Barrel, hop-up and recoil spring',
+  frm: 'Frame and controls',
+  trg: 'Trigger and hammer group',
+  mag: 'Magazine',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, slide: opts.slide === true ? Infinity : (opts.slide || 0) };
+  for (const [geo, matKey] of pieces) {
+    if (opts.dx) geo.translate(opts.dx, 0, 0);
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout: world units are mm. x = along the gun (muzzle +), y = up, z = right side.
+// Side profiles are traced from WE's official Gen3 left-side product photo (1920px) at 8.22 px/mm. At that scale the photo
+// gives 185mm overall (WE spec 185mm) and a 174mm slide (Glock spec 174mm). Internal parts are placed from the WE exploded
+// view, the field-strip photos and the few published sizes (84mm inner barrel, 40mm hop chamber), so they are approximate.
+const K = 8.22, OX = 900, OY = 135;
+const X = px => (OX - px) / K, Y = py => (OY - py) / K;
+const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
+const D2R = Math.PI / 180;
+
+// extrude a (z, y) section along x from x0 to x1
+function secX(pts, x0, x1, bevel = 0.3, holes = []) {
+  const g = prof(pts, x1 - x0, bevel, holes);
+  g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0);
+  return g;
+}
+// rounded rectangle outline, corners of radius r
+function rr(a0, a1, b0, b1, r, n = 4) {
+  const pts = [];
+  for (const [ca, cb, s] of [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]])
+    for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
+  return pts;
+}
+const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
+const zAt = (g, z) => g.translate(0, 0, z);
+// like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
+function profR(pts, depth, r, holes = []) {
+  const s = new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const h of holes) s.holes.push(new THREE.Path(h.map(([a, b]) => new THREE.Vector2(a, b))));
+  const g = new THREE.ExtrudeGeometry(s, { depth: depth - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 4 });
+  g.translate(0, 0, -(depth - 2 * r) / 2);
+  return g;
+}
+
+const MUZ = X(213);            // slide front face, 83.6
+const REAR = X(1633);          // slide rear face, -89.2
+const SL_TOP = 11.7, SL_BOT = -10;
+const SW = 25.5 / 2;           // Glock slide width 25.5mm
+const WALL = 2.6;
+const BY = 2.5;                // bore axis
+const BREECH = MUZ - 102;      // Glock G19 barrel length 102mm puts the breech face here
+const GY = -8.6;               // recoil spring axis, under the barrel and half in the frame channel
+const PORT0 = BREECH, PORT1 = BREECH + 33;   // ejection port over the barrel hood
+
+// magazine: built upright in its own frame (top rear corner at the origin side, axis along -y), then leaned back to the
+// grip angle and dropped into the frame. The photo puts the base plate centre at x -69, y -114.
+const MAG_A = 20.7 * D2R;
+const MAG_PIV = [-32.2, -16.2];
+const magT = g => g.rotateZ(-MAG_A).translate(MAG_PIV[0], MAG_PIV[1], 0);
+const MD = 14.8, MW = 11;      // half depth (front to back) and half width of the mag body
+
+// ================= SLIDE =================
+part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
+  'Metal slide (WE spec), G19 length: 174mm long and 25.5mm wide like the Glock. Ejection port on the right over the barrel hood, rear serrations on both sides, "19 AUSTRIA 9x19" roll marks on the Gen3 and Gen4. The blowback unit sits in its rear half and the recoil guide in its nose. Gen5 slides have the bevelled nose.',
+  (() => {
+    const p = [];
+    const wall = port => {
+      const o = [[MUZ - 1.6, SL_TOP], [MUZ, SL_TOP - 1.6], [MUZ, SL_BOT + 1.2], [MUZ - 1.2, SL_BOT], [REAR + 1, SL_BOT], [REAR, SL_BOT + 1], [REAR, SL_TOP - 1.4], [REAR + 1.4, SL_TOP]];
+      if (port) o.push([PORT0, SL_TOP], [PORT0, BY + 0.5], [PORT1, BY + 0.5], [PORT1, SL_TOP]);
+      return o;
+    };
+    p.push([zAt(prof(wall(false), WALL, 0.6), -SW + WALL / 2), 'slide']);
+    p.push([zAt(prof(wall(true), WALL, 0.6), SW - WALL / 2), 'slide']);
+    // top plate, open over the port on the right
+    p.push([bx(PORT1, MUZ - 1, SL_TOP - 3, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
+    p.push([bx(REAR + 1, PORT0, SL_TOP - 3, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
+    p.push([bx(PORT0, PORT1, SL_TOP - 3, SL_TOP, -SW + WALL, -3), 'slide']);
+    // nose block: barrel hole and a notch underneath for the recoil guide
+    const nose = [[SW - 1, SL_TOP], [-SW + 1, SL_TOP], [-SW, SL_TOP - 1], [-SW, SL_BOT], [-4.6, SL_BOT], ...Array.from({ length: 9 }, (_, i) => { const t = Math.PI - i / 8 * Math.PI; return [4.6 * Math.cos(t), GY + 4.6 * Math.sin(t)]; }), [4.6, SL_BOT], [SW, SL_BOT], [SW, SL_TOP - 1]];
+    p.push([secX(nose, MUZ - 11, MUZ - 0.4, 0.4, [circ(0, BY, 6.4)]), 'slide']);
+    // breech block over the rear sight, closed at the back except for the rear plate opening
+    p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, -SW + WALL, -8.6), 'slide']);
+    p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, 8.6, SW - WALL), 'slide']);
+    // rear serrations (8 per side)
+    for (let i = 0; i < 8; i++) {
+      const x = X(1395) - i * 2.6;
+      for (const sd of [1, -1]) p.push([bx(x - 0.6, x + 0.6, SL_BOT + 3, SL_TOP - 1.5, sd * SW - 0.4, sd * SW + 0.4), 'black']);
+    }
+    return p;
+  })(), { shell: true, slide: true });
+
+part('frontSight', 'Front sight + screw', 'sld', ['G-44', 'G-45'], [0, 100, 0],
+  'Polymer dot front sight, screwed in from inside the slide (G-45; the MOS sheet gives an M2x4 self-tapping screw with washer). Glock lists 153mm sight radius.',
+  [[secX([[-1.6, SL_TOP], [1.6, SL_TOP], [1.4, SL_TOP + 2.8], [0.8, SL_TOP + 3.2], [-0.8, SL_TOP + 3.2], [-1.4, SL_TOP + 2.8]], X(300), X(262), 0.3), 'poly'],
+   [cyl(0.5, 0.3, 'x', X(262) + 0.2, SL_TOP + 2.2, 0, 12), 'white'],
+   [cyl(1, 4, 'y', X(281), SL_TOP - 2.5, 0, 10), 'steel']], { slide: true });
+
+part('rearSight', 'Rear sight + screw', 'sld', ['G-46', 'G-58'], [0, 100, 0],
+  'Polymer U-notch rear sight in a dovetail. Screw G-58 runs up from under the slide through the rear of the blowback housing into the sight, so the one screw holds both (read from the WE drawing; the MOS sheet gives M2.5x10). Remove it first to drop the blowback unit.',
+  [[secX([[-SW + 3, SL_TOP], [SW - 3, SL_TOP], [SW - 4, SL_TOP + 3.6], [1.6, SL_TOP + 3.6], [1.2, SL_TOP + 1.8], [-1.2, SL_TOP + 1.8], [-1.6, SL_TOP + 3.6], [-SW + 4, SL_TOP + 3.6]], X(1560), X(1490), 0.3), 'poly'],
+   [cyl(0.4, 0.3, 'x', X(1490) + 0.1, SL_TOP + 2.6, 2.6, 10), 'white'], [cyl(0.4, 0.3, 'x', X(1490) + 0.1, SL_TOP + 2.6, -2.6, 10), 'white'],
+   [cyl(1.25, 10, 'y', X(1525), SL_TOP - 4, 0, 10), 'steel']], { slide: true });
+
+part('extractor', 'Dummy extractor', 'sld', ['G-75'], [0, 80, 0],
+  'Fixed dummy extractor on the right of the slide behind the ejection port. WE G-75 (G-83 on the auto sheet).',
+  [[bx(PORT0 - 14, PORT0 - 1, BY + 0.5, BY + 3.5, SW - 0.4, SW + 0.5), 'steel']], { slide: true });
+
+part('slideSpacer', 'Spring guide slide spacer', 'sld', ['G-74'], [40, 80, 0],
+  'Ring with tabs inside the slide nose that takes the head of the recoil guide; the MOS sheet calls it a buffer pad. Gen5 has its own. G-74 on the semi sheet, G-84 on the auto sheet.',
+  [[tube(4.6, 6, MUZ - 13, MUZ - 11, 24, GY), 'black']], { slide: true });
+
+// ================= BLOWBACK UNIT AND NOZZLE =================
+const HB0 = REAR + 4, HB1 = BREECH - 8;      // housing runs from the rear plate to just behind the nozzle tip
+part('bbuHousing', 'Blowback housing', 'bbu', ['G-54'], [-25, 48, 0],
+  'Metal blowback unit (nozzle housing), dropped in from under the slide and held by the rear sight screw. The rear block carries the fixed piston head; the loading nozzle rides in the channel in front of it. Ebog notes cracks around the piston bore as a known failure.',
+  [[bx(HB0, HB0 + 20, -8, SL_TOP - 3, -8.4, 8.4), 'alu'],
+   [bx(HB0 + 20, HB1, SL_TOP - 4.5, SL_TOP - 3, -8.4, 8.4), 'alu'],
+   ...[1, -1].map(sd => [bx(HB0 + 20, HB1, -4.5, SL_TOP - 4.5, sd * 7.6 - 0.8, sd * 7.6 + 0.8), 'alu']),
+   [bx(HB1 - 4, HB1, -8, -4.5, -8.4, 8.4), 'alu'],
+   [bx(HB0 + 20, HB0 + 30, -8, -6.5, -8.4, 8.4), 'alu']], { slide: true });
+
+part('rearPlate', 'Rear slide plate', 'bbu', ['G-54-1'], [-45, 48, 0],
+  'Cover plate at the back of the slide, pinned to the blowback housing (Ebog: only a punch is needed). Ebog number 54-1; not labelled on the WE drawing.',
+  [[bx(REAR, HB0, -7.5, SL_TOP - 3.5, -8.4, 8.4), 'dark'],
+   ...[0, 1, 2, 3, 4, 5].map(i => [bx(REAR - 0.2, REAR + 0.2, -6 + i * 2.6, -5 + i * 2.6, -7, 7), 'black'])], { slide: true });
+
+part('piston', 'Piston head + screw', 'bbu', ['G-56', 'G-55'], [12, 48, 0],
+  'Round piston head fixed to the housing by screw G-55. On firing, gas drives the loading nozzle back over it, which throws the slide. The newer MOS blowback unit uses a D-shaped cup instead.',
+  [[cyl(1.6, 16, 'x', HB0 + 28, BY, 0, 12), 'steel'], [cyl(4.6, 3, 'x', HB0 + 37, BY, 0, 24), 'dark']], { slide: true });
+
+part('returnSpring', 'Nozzle return spring', 'bbu', ['G-53'], [-25, 62, 0],
+  'Long straight spring in the channel on top of the housing that pulls the nozzle forward again after each shot (drawn as a single spring on the semi sheet; auto models use the 52/53/85 set).',
+  [[spring(1.2, 0.3, 42, 30, 'x', HB0 + 22, SL_TOP - 5.6, 3.5), 'spring']], { slide: true });
+
+part('nozzle', 'Loading nozzle', 'bbu', ['G-47', 'G-48'], [48, 48, 0],
+  'Polymer loading nozzle on screw G-48. Its rear bore slides over the piston head; the tip seats in the back of the bucking to load a BB. Shared by the G17, G19, G27 and G34 (the G18/G23/G26/G35 nozzle differs). Stock WE nozzles crack: the usual first upgrade is a reinforced one (Guarder, CowCow).',
+  [[bx(HB0 + 34, BREECH - 7, BY - 6, BY + 5, -6.6, 6.6), 'nylon'],
+   [tube(2.7, 3.6, BREECH - 7, BREECH - 0.3, 20, BY), 'nylon'],
+   [bx(BREECH - 14, BREECH - 7, BY + 5, BY + 6.5, -2, 2), 'nylon'],
+   [cyl(0.8, 3, 'y', BREECH - 12, BY + 6, 0, 8), 'steel']], { slide: true });
+
+part('nozzleValve', 'Nozzle valve + spring, blocker', 'bbu', ['G-50', 'G-49', 'G-51'], [78, 48, 0],
+  'Floating valve inside the nozzle with spring G-49 and blocker G-51. Gas first pushes the valve forward to fire the BB; once pressure drops it lets the gas blow the nozzle back. Comes out after nozzle screw G-48.',
+  [[cyl(2.4, 5, 'x', BREECH - 11, BY, 0, 16), 'brass'], [spring(2, 0.3, 5, 4, 'x', BREECH - 19, BY, 0), 'spring'], [bx(BREECH - 22, BREECH - 19, BY - 3, BY + 3, -3, 3), 'nylon']], { slide: true });
+
+part('bbuBlock', 'Slide insert block', 'bbu', ['G-76'], [-25, 36, 0],
+  'Small wedge-shaped block drawn under the blowback unit. No source names it (G-86 on the auto sheet).',
+  [[bx(HB0 + 22, HB0 + 30, SL_BOT, -8, -5, 5), 'dark']], { slide: true });
+
+// ================= BARREL, HOP-UP, RECOIL SPRING =================
+const HOOD1 = BREECH + 32;
+part('outerBarrel', 'Outer barrel', 'bar', ['G-39'], [45, 28, 0],
+  'Metal outer barrel, G19 length. Square hood over the chamber (it fills the ejection port) and a cam lug under it, like the firearm: it drops at the rear as the slide comes back. 102mm long like the real barrel. Threaded outer barrels are a common swap.',
+  [[tube(4.8, 6.25, HOOD1, MUZ - 0.3, 32, BY), 'dark'],
+   [secX([[-6.9, BY + 6.1], [6.9, BY + 6.1], [7.4, BY + 5.6], [7.4, BY - 6.9], [-7.4, BY - 6.9], [-7.4, BY + 5.6]], BREECH, HOOD1, 0.3, [rr(-5.6, 5.6, BY - 5.6, BY + 4.8, 1.5)]), 'dark'],
+   [prof([[BREECH + 2, BY - 6.9], [BREECH + 18, BY - 6.9], [BREECH + 14, BY - 12.5], [BREECH + 6, BY - 12.5]], 8, 0.4), 'dark']], { slide: 3 });
+
+part('innerBarrel', 'Inner barrel', 'bar', ['G-38'], [45, 10, 0],
+  'Brass inner barrel, about 84mm for the G19 (WE does not state it; aftermarket sets for the WE G19 and G19 Gen5 are 84mm, the G17 one is 97mm). Bore not published. A tightbore (Maple Leaf, Prometheus, Madbull) is a common upgrade, best done with a new bucking.',
+  [[tube(3.03, 3.95, BREECH + 4, BREECH + 88, 24, BY), 'brass']], { slide: 3 });
+
+part('hopChamber', 'Hop-up chamber halves + screws', 'bar', ['G-35', 'G-40', 'G-34'], [12, 10, 0],
+  'Two aluminum halves, left G-35 and right G-40, joined by two G-34 screws (M2x6 countersunk per the MOS sheet). It rides inside the outer barrel hood; aftermarket chambers for this pistol are 40mm long.',
+  [[secX(rr(-5.4, 0, BY - 5.4, BY + 4.6, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
+   [secX(rr(0, 5.4, BY - 5.4, BY + 4.6, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
+   ...[BREECH + 8, BREECH + 22].map(x => [cyl(1, 11, 'z', x, BY - 3.6, 0, 10), 'steel'])], { slide: 3 });
+
+part('bucking', 'Hop-up bucking', 'bar', ['G-36'], [-12, 10, 0],
+  'Rubber bucking on the back of the inner barrel; the nozzle tip seals in its rear. The Maple Leaf Autobot or Decepticon with an omega nub is the usual accuracy upgrade.',
+  [[tube(3.03, 4.1, BREECH + 0.5, BREECH + 13, 24, BY), 'rubber']], { slide: 3 });
+
+part('hopArm', 'Hop arm', 'bar', ['G-37'], [12, 22, 0],
+  'Bent sheet-metal arm that presses down on the bucking nub through the window in the chamber top. Driven by the wheel.',
+  [[bx(BREECH + 6, BREECH + 12, BY + 4, BY + 4.8, -2.4, 2.4), 'steel'], [bx(BREECH + 6, BREECH + 7, BY - 1, BY + 4.8, 2.4, 3.2), 'steel']], { slide: 3 });
+
+part('hopWheel', 'Hop wheel + washer', 'bar', ['G-42', 'G-41'], [12, 10, -14],
+  'Knurled wheel on the right face of the chamber with shim G-41 (MOS item 126). Turned with the slide off. G-41 is not named by any shop.',
+  [[cyl(3.4, 1.6, 'z', BREECH + 15, BY + 1, 6.4, 18), 'steel'], [cyl(2.2, 0.4, 'z', BREECH + 15, BY + 1, 5.5, 14), 'steel']], { slide: 3 });
+
+part('guideRod', 'Recoil guide rod + spring stop', 'bar', ['G-31', 'G-33'], [100, -22, 0],
+  'Captured recoil guide: rod G-31 with flange at the rear (it bears on the barrel lug) and spring stop G-33 at the front. G19 length; Gen5 has its own set with a front cap (part 34). Aluminum or tungsten guide rods with a flat spring are common upgrades.',
+  [[cyl(1.9, 72, 'x', BREECH + 52, GY, 0, 14), 'nylon'], [cyl(5, 1.6, 'x', BREECH + 17, GY, 0, 24), 'nylon'],
+   [cyl(4.4, 3.4, 'x', MUZ - 9, GY, 0, 20), 'black']], { slide: 3 });
+
+part('recoilSpring', 'Recoil spring', 'bar', ['G-32'], [100, -36, 0],
+  'Recoil spring on the guide rod.',
+  [[spring(4.3, 0.45, 60, 26, 'x', BREECH + 18, GY, 0), 'spring']], { slide: 3 });
+
+// ================= FRAME AND CONTROLS =================
+const FT = Y(220);   // frame top under the slide
+part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
+  'Polymer lower frame (Gen3: finger grooves, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
+  (() => {
+    const upper = P([[212, 220], [1630, 220], [1648, 250], [1645, 282], [1600, 300], [1555, 315], [1520, 345], [1512, 376], [700, 376], [650, 368], [640, 360], [255, 355], [222, 345], [212, 330]]);
+    const guardO = P([[640, 356], [1110, 372], [1122, 575], [1100, 582], [1060, 592], [1000, 598], [690, 596], [668, 590], [662, 575], [670, 520], [680, 400], [650, 372]]);
+    const guardH = P([[745, 377], [1000, 380], [1035, 395], [1052, 440], [1057, 480], [1050, 530], [1030, 560], [1000, 565], [770, 560], [742, 545], [732, 510], [732, 410]]);
+    const grip = P([[1100, 370], [1515, 370], [1510, 400], [1520, 450], [1575, 620], [1700, 850], [1720, 915], [1675, 975], [1650, 1000], [1252, 1000], [1252, 950], [1240, 905], [1215, 890], [1205, 850], [1205, 800], [1190, 770], [1180, 750], [1160, 720], [1150, 700], [1145, 660], [1140, 630], [1120, 590], [1105, 560]]);
+    return [[profR(upper, 23, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [profR(grip, 30, 5), 'frame']];
+  })(), { shell: true });
+
+part('serialPlate', 'Serial plate', 'frm', ['G-03'], [0, -42, 0],
+  'Flat metal plate set into the dust cover in front of the trigger guard, with a centre hole (the serial number plate on the firearm).',
+  [[bx(X(690), X(560), Y(357), Y(352), -4, 4), 'steel']]);
+
+part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10'], [100, 0, 0],
+  'Metal front assembly housing: carries the front slide rails and the locking block lugs the barrel cams on. Held by screw G-09 from above and pin G-10 across the frame, where the firearm\'s locking block pin goes. Gen5 has its own.',
+  [...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 5.5, FT, sd * 9.2 - 1, sd * 9.2 + 1), 'zinc']),
+   ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 10.6 - 0.6, sd * 10.6 + 0.6), 'zinc']),
+   [bx(MUZ - 6, MUZ - 2, FT - 5.5, FT - 3, -8.2, 8.2), 'zinc'],
+   [bx(-13, 2, FT - 6, FT + 1.5, -8.2, 8.2), 'zinc'],
+   [cyl(1.4, 3, 'y', -5, FT + 0.5, 0, 10), 'steel'],
+   [cyl(1.5, 24, 'z', X(1000), Y(262), 0, 12), 'steel']]);
+
+part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0],
+  'Takedown latch (slide lock): pull it down on both sides with the slide a few mm back, then run the slide off forward (WE manual). Flat V-spring G-11. Ebog sells it as a "slide release lever", which is wrong.',
+  [[bx(X(832), X(797), Y(312), Y(250), -12.6, -10.6), 'steel'], [bx(X(832), X(797), Y(312), Y(250), 10.6, 12.6), 'steel'],
+   [bx(X(824), X(805), Y(300), Y(262), -10.6, 10.6), 'steel'],
+   ...[0, 1, 2].map(i => [bx(X(830), X(799), Y(266 + i * 14), Y(262 + i * 14), -12.9, -12.5), 'black']),
+   [bx(X(840), X(800), Y(320), Y(316), -6, 6), 'spring']]);
+
+part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50, 0],
+  'Slide stop on the left, pivoting on the trigger pin. Locks the slide back on an empty mag and releases it. Gen5 has a two-sided one.',
+  [[bx(X(1182), X(1145), Y(275), Y(220), -13, -11), 'steel'],
+   [prof([[X(950), Y(298)], [X(1150), Y(268)], [X(1150), Y(250)], [X(950), Y(312)]], 1, 0.2).translate(0, 0, -10.2), 'steel'],
+   [spring(0.8, 0.2, 5, 4, 'y', X(1100), Y(310), -9.6), 'spring']]);
+
+part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
+  'Cross-bolt magazine catch at the top of the front strap; the button is on the left. Wire spring G-04. Gen3 has the small catch, Gen4 and Gen5 the enlarged one.',
+  [[bx(X(1180), X(1128), Y(560), Y(497), -14.4, 11.5), 'poly2'],
+   ...[0, 1, 2, 3, 4].map(i => [bx(X(1178), X(1130), Y(503 + i * 12), Y(500 + i * 12), -14.8, -14.4), 'black']),
+   [cyl(0.5, 22, 'y', X(1130) - 1.5, Y(520), 0, 6), 'spring']]);
+
+// ================= TRIGGER AND HAMMER GROUP =================
+part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'], [10, -72, 0],
+  'Trigger shoe G-16 with the safety blade G-15 in its face, on pins G-14. Linked to the trigger bar; comes out with the front chassis.',
+  [[prof(P([[950, 377], [965, 430], [960, 470], [945, 530], [940, 545], [950, 552], [970, 540], [985, 510], [1000, 470], [1030, 450], [1035, 430], [1040, 410], [1020, 385], [1010, 376]]), 5.6, 0.6), 'poly2'],
+   [prof(P([[952, 440], [960, 445], [956, 500], [948, 530], [943, 528]]), 1.8, 0.2), 'black'],
+   [cyl(1, 8, 'z', X(985), Y(395), 0, 8), 'steel']]);
+
+part('triggerPin', 'Trigger pin', 'trg', ['G-05'], [0, -100, 0],
+  'Middle frame pin (the firearm\'s trigger pin position). Holds the trigger group and the slide stop.',
+  [[cyl(1.5, 26, 'z', X(955), Y(305), 0, 12), 'steel']]);
+
+part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
+  'Trigger bar G-18 runs back along the right side from the trigger to the hammer housing, where it trips the sear. Spring G-17 returns it.',
+  [[prof([[X(1000), Y(380)], [-56, -24], [-58, -27], [-56, -29], [X(1000), Y(392)]], 1.2, 0.2).translate(0, 0, 5.4), 'steel'],
+   [spring(0.9, 0.2, 5, 5, 'y', -40, -29, 5.4), 'spring']]);
+
+const HH = [[-55, FT], [-88, FT], [-88, -18], [-80, -24], [-74, -36], [-62, -36], [-55, -26]];
+part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25', 'G-07'], [-45, 0, 0],
+  'Metal hammer (fire control) housing in the rear of the frame. Carries the rear slide rails and holds the hammer, sear and valve knocker. Screw G-25 from above; rear frame pin G-07 (Gen3 and Gen4/5 pins differ).',
+  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2), sd * 7.6), 'zinc']),
+   [bx(-88, -60, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
+   ...[1, -1].map(sd => [bx(-88, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
+   [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
+   [cyl(1.5, 26, 'z', -70, -31, 0, 12), 'steel']]);
+
+part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 'G-29', 'G-30'], [-72, 8, 0],
+  'Hammer on upper pin G-29 with roller G-21 and torsion spring G-22; lower pin G-30 carries the sear. Cocked by the slide, it swings forward and hits the valve knocker. A steel hammer and sear set (CowCow, Guarder) replaces the pot-metal parts.',
+  [[prof([[-77.5, -14], [-72, -12.5], [-63, -13.5], [-62, -18], [-64, -21], [-70, -23.5], [-76, -21]], 5, 0.4), 'steel'],
+   [cyl(1.4, 4, 'z', -63.5, -16, 0, 10), 'steel'],
+   [torus(2.6, 0.4, 'z', -72, -18, 3.4), 'spring'],
+   [cyl(1, 16, 'z', -72, -18, 0, 8), 'steel'], [cyl(1, 16, 'z', -66, -30, 0, 8), 'steel']]);
+
+part('sear', 'Hammer sear + spring', 'trg', ['G-23', 'G-24'], [-72, -14, 0],
+  'Holds the hammer back until the trigger bar trips it; reset spring G-24.',
+  [[prof([[-68, -26], [-62, -24.5], [-58, -27], [-60, -32], [-66, -32]], 4, 0.3), 'steel'], [torus(1.6, 0.3, 'z', -66, -30, 2.5), 'spring']]);
+
+part('knocker', 'Valve knocker', 'trg', ['G-19'], [-62, 30, 0],
+  'Valve knocker (shops also call it the valve striker or firing pin): the hammer hits it and it strikes the outlet valve on the back of the magazine.',
+  [[prof([[-61, -14], [-55.5, -14], [-55.5, -21], [-59, -22], [-61, -19]], 4, 0.3), 'steel']]);
+
+part('popupSear', 'Valve knocker pop-up sear + spring', 'trg', ['G-27', 'G-28'], [-45, 30, 0],
+  'Spring-loaded sear that pops up into the slide and blocks the knocker until the slide is back in battery, so the gun cannot vent gas with the slide open.',
+  [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']]);
+
+// ================= MAGAZINE =================
+part('magBody', 'Magazine shell', 'mag', ['G-59'], [0, -108, 0],
+  'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
+  [[magT(bx(-MD, MD, -100, -3, -MW, MW)), 'dark'],
+   ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']])], { shell: true });
+
+part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [0, -90, 0],
+  'Feed lips G-62 at the top front, held by pin G-61. Rubber gas route G-63 sits at the top rear and seals against the nozzle inlet.',
+  [[magT(bx(0, MD, -3, 0, -6, 6)), 'dark'], [magT(bx(-MD + 2, -2, -3, 0.6, -4.5, 4.5)), 'black'], [magT(cyl(0.8, 13, 'z', 10, -2, 0, 8)), 'steel']]);
+
+part('outletValve', 'Outlet valve', 'mag', ['G-60'], [-28, -100, 0],
+  'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key. Placed per the WE drawing (on the witness-hole face); one teardown video calls that face the front.',
+  [[magT(cyl(3.2, 3, 'x', -MD - 1.4, -10, 0, 20)), 'brass'], [magT(cyl(1, 2, 'x', -MD - 3.8, -10, 0, 10)), 'steel']]);
+
+part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
+  'Follower and spring in the BB channel at the front of the mag.',
+  [[magT(bx(6, 12, -10, -5, -3, 3)), 'orange'], [magT(spring(1.6, 0.25, 60, 22, 'y', 9, -70, 0)), 'spring']]);
+
+part('magBase', 'Base cap + O-ring', 'mag', ['G-70', 'G-69'], [-60, -108, 0],
+  'Base cap that closes the reservoir from below, sealed by O-ring G-69; the tube on it guides the follower spring.',
+  [[magT(bx(-MD + 0.6, MD - 0.6, -100, -95, -MW + 0.6, MW - 0.6)), 'dark'], [magT(cyl(1.6, 25, 'y', 9, -85, 0, 12)), 'dark'],
+   [magT(torus(9, 0.6, 'y', 0, -95, 0)), 'black']]);
+
+part('fillValve', 'Fill valve', 'mag', ['G-68'], [-45, -140, 0],
+  'Gas fill valve, screwed into the base cap from below.',
+  [[magT(cyl(2.4, 6, 'y', -6, -100, 0, 16)), 'brass']]);
+
+part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -118, 0],
+  'Long screw up from the bottom through the base cap, with seals G-72 and G-73 (washer and O-ring, read from the drawing).',
+  [[magT(cyl(1.2, 70, 'y', 4, -66, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 4, -98, 0)), 'black']]);
+
+part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
+  'Slide-off base plate with the bumper stopper G-66 that locks it. Gen5 has its own plate.',
+  [[magT(bx(-21, 19, -107, -100, -14, 14)), 'poly'], [magT(bx(-6, 6, -100, -98.5, -5, 5)), 'black']]);
+
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+const catEls = {};
+let isolated = null;
+function updateVis() {
+  for (const p of parts) p.visible = isolated ? p === isolated : catOn[p.userData.cat];
+}
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-g19-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-g19-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span><span class="pn">#${p.userData.nos[0]}</span>`;
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+// Search: matches the name or any manual part number. "112" and "#112" both work.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => { const d = p.userData; return [d.name, ...d.nos.map(n => '#' + n)].join(' ').toLowerCase(); };
+function matches(p, q) {
+  if (!q) return true;
+  const d = p.userData, n = q.replace(/^#/, '');
+  if (d.nos.some(x => x.toLowerCase() === n)) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
+// ---------- info panel ----------
+const SOURCES = `<p class="src">Sources: <a href="https://weairsoft.com/download.html">WE exploded views</a> (G-series semi manual, 19-V and MOS sheets),
+<a href="https://weairsoft.com/guns/pistols-gas-blowback/g-series/19-series.html">WE G19 product pages</a>,
+<a href="https://us.glock.com/en/products/law-enforcement/pistols/g19">Glock G19 specs</a>,
+<a href="https://lantredudingo.canalblog.com/pages/review-we-g19-3e-generation-gbb-/26670286.html">lantredudingo Gen3 review</a>,
+<a href="https://bravo1.blog.jp/archives/16279822.html">bravo1 G19X review</a>,
+<a href="https://www.ebog-designs.co.uk/">Ebog Designs OEM parts</a>, <a href="https://www.socomtactical.net/">Socom Tactical</a>,
+Non Existent's WE G19 teardown videos on YouTube. Outside shapes are traced from WE's Gen3 side photo; internal shapes and positions are approximate.</p>`;
+function showOverview() {
+  infoBody.innerHTML = `<h2>WE-Tech G19 Gen3 (Glock 19)</h2>
+  <div class="meta">Gas blowback pistol, semi-auto. Metal slide, polymer frame with metal front and rear chassis.</div>
+  <p>185mm long (WE). Weight with mag: Gen3 697g, Gen4 686g, Gen5 674g (WE). Mag 23 BBs (WE). Glock G19 for comparison: 174mm slide, 25.5mm slide width, 102mm barrel, 128mm high with mag.</p>
+  <ul>
+    <li>Field strip (WE manual): drop the mag, pull the slide back a few mm, pull the takedown latch down on both sides, run the slide off forward. Then the recoil guide, the outer barrel, and the inner barrel with the hop chamber out of the back of the outer barrel.</li>
+    <li>Hop is set with the wheel on the side of the chamber, slide off.</li>
+    <li>Gen3 and Gen4 share the internals; Gen4 changes the frame texture, adds backstraps and a bigger mag catch. Gen5 has its own frame, slide, front chassis, slide stop, recoil guide set and base plate.</li>
+    <li>Known weak points: the polymer loading nozzle cracks (reinforced Guarder or CowCow nozzles fix it), pot-metal hammer and sear wear, and the blowback housing can crack around the piston bore (Ebog).</li>
+    <li>The Slide slider in the View panel racks the slide: the slide, sights and blowback unit move, the barrel only a few mm.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} WE part numbers. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+}
+function showList(hitNos = []) {
+  const rows = MANUAL.map(([no, name, guess]) => {
+    const mod = byNo.has(no);
+    return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>${no}</td><td>${name}</td><td>${guess ? '*' : ''}</td></tr>`;
+  }).join('');
+  infoBody.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">WE prints numbers only; names are from shop listings, * marks names read off the drawing. Blue rows are modeled, click to find them.</div><table>${rows}</table>`;
+  infoBody.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+}
+document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 25, 1500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
+  setGlow(p, true);
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
+    .map(([no, name, guess]) => `<tr><td>${no}</td><td>${name}</td><td>${guess ? '*' : ''}</td></tr>`).join('');
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>
+    <table>${rows}</table><p class="src">Part names from shop listings; * read off the WE drawing.</p>${SOURCES}`;
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
+}
+showOverview();
+initPanels();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, viewCam());
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  hover(p);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = `#${p.userData.nos[0]} ${p.userData.name}`; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewDir = dir => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
+};
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+});
+MOBILE.addEventListener('change', initPanels);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+const slideCtl = document.getElementById('slidepos'), spv = document.getElementById('spv');
+const SLIDE_TRAVEL = 27;   // mm the slide runs back to lock open (approximate)
+const SLIDE = { pos: 0 };
+const showSlide = () => { SLIDE.pos = +slideCtl.value; spv.textContent = SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed'; };
+slideCtl.oninput = showSlide; showSlide();
+let slideOff = 0;
+renderer.setAnimationLoop(() => {
+  exCur += (exTarget - exCur) * 0.12;
+  if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
+  exv.textContent = Math.round(exCur * 100) + '%';
+  slideOff += (SLIDE.pos * SLIDE_TRAVEL - slideOff) * 0.15;
+  const e = exCur * exCur * (3 - 2 * exCur);
+  for (const p of parts) {
+    p.position.copy(p.userData.explode).multiplyScalar(e);
+    if (p.userData.slide) p.position.x -= Math.min(slideOff, p.userData.slide);
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
+  }
+  controls.update();
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
+});
+
+const EX_TGT = new THREE.Vector3(-5, -60, 0), EX_POS = fit(new THREE.Vector3(-160, 10, -800), EX_TGT);
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__g19 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, SLIDE };
+</script>
+</body>
+</html>
