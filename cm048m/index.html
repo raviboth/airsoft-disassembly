@@ -770,14 +770,14 @@ function rsTower(e = 0) {   // front face of the rear sight block in (z, y): win
   const b = new THREE.Path(); b.absarc(0, 0, mm(8.6) + e, 0, Math.PI * 2, true); s.holes.push(b);
   return s;
 }
-part('rearSight', 'Rear sight: base, leaf, spring panel, slider', 'frt', ['16', '19', '18', '20', '21', '22', '23'], [60, 170, 0],
-  'Rear sight base (16) with the tangent leaf (19, "staff guage"), its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
+part('rearSight', 'Rear sight: leaf, spring panel, slider', 'frt', ['19', '18', '20', '21', '22', '23'], [60, 200, 0],
+  'Tangent leaf (19, "staff guage") on the rear sight base, with its leaf spring (18) and the range slider (20 to 22), pinned by 23. AKM leaf reads 1 to 10 (100 to 1000m) plus the "П" battle setting; sight radius 378mm on the real rifle.',
   // CYMA rear sight block (Patrol Base / Asia Airsoft spare photos): a front tower with the gas tube window over the barrel
   // ring, then a lower body whose top falls away toward the rear under the leaf; lower rear corner cut on the diagonal.
   // Leaf, slider and notch from the CM048M top close-up and CYMA / VFC spare leaves: a grooved leaf with the range scale
   // in two rows and ratchet slots down both sides, a slider with a checkered push button on each side, the notch
   // plate standing up at the rear end. Leaf drawn at the battle setting, slider at П.
-  rearSightPieces());
+  rearSightPieces().leaf);
 // rear face of the rear sight block, as wide as the dust cover and shaped to its section (crown, shoulders, top of the skirts),
 // so the cover's open front end is closed off where it meets the block
 function coverLip() {
@@ -792,16 +792,18 @@ function rearSightPieces() {
   const k = 0, lt = px => 43 - (px - 463.5) * k, T = 2.2;             // leaf top line (photo px, lies flat at the battle setting) and thickness
   const leafSide = (a, b, y0, y1) => P([[a, lt(a) + y0], [b, lt(b) + y0], [b, lt(b) + y1], [a, lt(a) + y1]]);
   const zAt = (g, z) => { g.translate(0, 0, z); return g; };
-  const out = [
+  const base = [
     [extrudeX(rsTower(1.4), X(453) + 1.4, X(441) - 1.4, 1.4), 'blk'],
     [extrudeX(coverLip(), X(522), X(518), 0.3), 'blk'],                                // rear lip the dust cover's front end tucks under
     [bx(X(446.5), X(441.8), Y(45.6) - 0.02, Y(45.6) + 0.06, -mm(11.5), mm(11.5)), 'black'],   // open slot across the front of the tower top (owner photo)
-    [prof(P([[453, 51], [517, 51.2], [520, 53.5], [520, 58], [498, 81], [453, 81]]), mm(24), 0.8), 'blk'],
+    [prof(P([[453, 51], [517, 51.2], [520, 53.5], [520, 82.8], [453, 82.8]]), mm(24), 0.8), 'blk'],   // body, square down to the trunnion
+    [cyl(mm(2.8), mm(1), 'z', X(444.5), Y(51.2), -mm(13) - 0.9, 16), 'dark'],
+  ];
+  const out = [
     [prof(leafSide(461, 470, 0, T), mm(10.4), 0.3), 'blk'],                          // hinge tongue between the ears
     [prof(leafSide(469.5, 525, 1.0, T), mm(13), 0.3), 'blk'],                           // leaf floor
     ...[1, -1].map(sg => [zAt(prof(leafSide(469.5, 525, 0, 1.05), mm(5.8), 0.2), sg * mm(3.6)), 'blk']),   // rails either side of the groove
     [cyl(mm(1.6), mm(19), 'z', X(463.5), Y(44), 0, 12), 'steel'],                          // hinge pin
-    [cyl(mm(2.8), mm(1), 'z', X(444.5), Y(51.2), -mm(13) - 0.9, 16), 'dark'],
   ];
   for (const sg of [1, -1]) {                                                         // hinge ears, round topped
     out.push([cyl(mm(3.5), mm(3), 'z', X(463.5), Y(44), sg * mm(7), 20), 'blk']);
@@ -809,7 +811,7 @@ function rearSightPieces() {
     out.push([cyl(mm(2.1), mm(0.8), 'z', X(463.5), Y(44), sg * mm(9.1), 14), 'steel']);
   }
   for (const sg of [1, -1])                                                         // base cheeks either side of the leaf: their top is the cam the slider rides on
-    out.push([at(prof(P([[466, 45.3], [475, 45.5], [484, 46.1], [491, 47], [497, 48.3], [500, 51], [466, 51]]), mm(2.4), 0.3), 0, 0, sg * mm(7.8)), 'blk']);
+    base.push([at(prof(P([[466, 45.3], [475, 45.5], [484, 46.1], [491, 47], [497, 48.3], [500, 51], [466, 51]]), mm(2.4), 0.3), 0, 0, sg * mm(7.8)), 'blk']);
   for (let px = 505.5; px <= 521; px += 2.2) for (const sg of [1, -1])               // ratchet: square slots down both leaf sides (Arsenal leaf side view)
     out.push([bx(X(px + 0.55), X(px - 0.55), Y(lt(px) + T - 0.3), Y(lt(px) + 0.3), sg > 0 ? mm(6.5) - 0.1 : -mm(6.5) - 0.15, sg > 0 ? mm(6.5) + 0.15 : -mm(6.5) + 0.1), 'black']);
   const sx0 = 494.5, sx1 = 502.5, sb = 51;                                            // slider: band round the leaf down to the base top
@@ -825,7 +827,7 @@ function rearSightPieces() {
   out.push([extrudeX(ns, X(526.5), X(523), 0.25), 'blk']);                          // notch plate
   const sc = new THREE.PlaneGeometry(24.5, mm(12)); sc.rotateX(-Math.PI / 2); sc.rotateZ(-Math.atan(k));
   out.push([at(sc, X(482), Y(lt(482)) + 0.26, 0), 'scale']);                         // range scale over both rails, hinge to slider
-  return out;
+  return { base, leaf: out };
 }
 part('hgLever', 'Upper handguard locating lever', 'frt', ['17'], [60, 170, 60],
   'Gas tube lock lever (17) on the right side of the rear sight block. Its cross shaft runs through the top front corner of the block, just above the gas tube, and a flat on the shaft holds the rear of the tube down. Locked, the arm lies against the side pointing down and back at about 40 degrees; swing it up to vertical to lift out the gas tube with the upper handguard. The shaft head shows on the left side.',
@@ -865,12 +867,16 @@ part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
    ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
    [at(new THREE.PlaneGeometry(mm(26), mm(26)), X(619), Y(124), RZ + mm(0.6) + 0.45), 'stamp'],
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
-part('frontTrunnion', 'Gun body connector (front trunnion)', 'rcv', ['5', '51', '52'], [40, -10, -170],
-  'Front trunnion (5): receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it. Shaft 51 (7x30) and screw 52 tie it in. Real AKM trunnion block is 65mm long, flush with the receiver front.',
-  [[bx(X(572), X(496), Y(128), Y(95.5), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
+part('frontTrunnion', 'Rear sight base + gun body connector (front trunnion)', 'rcv', ['16', '5', '52'], [60, 110, 0],
+  'One casting on the CYMA (owner photo): the rear sight base (16) on top, a front tower with the gas tube window over the barrel ring and a square body behind it carrying the leaf, joined to the gun body connector (5, front trunnion) that drops into the front of the receiver. The trunnion receives the outer barrel and houses the hop-up chamber; the magazine front lug hooks into it, and screw 52 ties it in. The barrel lock pin (51) runs through it side to side. Real AKM trunnion block is 65mm long, flush with the receiver front.',
+  [...rearSightPieces().base,
+   [bx(X(572), X(496), Y(128), Y(95.5), -RZ + mm(1.3), RZ - mm(1.3)), 'dark'],
    [bx(X(572), X(496), Y(95.5), Y(76), -RZ + mm(1.3), RZ - mm(4.4)), 'dark'],   // stepped in on the right where the carrier runs past the ejection port
-   [bx(X(522), X(497), Y(77), Y(58.5), -RZ + mm(1.3), RZ - mm(1.3)), 'blk'],   // top stands above the walls behind the rear sight block (Ultimak cover-off photo)
-   [cyl(mm(3.5), mm(30), 'z', X(515), Y(122), 0, 12), 'steel']], { shell: true });
+   [bx(X(520), X(496), Y(95.5), Y(82.8), -mm(12), mm(12)), 'blk']], { shell: true });   // neck under the sight base, shows above the receiver walls
+// the big cross pin through the front of the trunnion, under the rear of the sight base (owner photo); knock it out to pull the outer barrel
+part('barrelPin', 'Barrel lock pin', 'rcv', ['51'], [0, 0, 130],
+  'Ø7x30 shaft (51) through the front trunnion, just under the rear sight base, side to side. It locks the outer barrel into the trunnion; push it out and the outer barrel with the front end pulls forward out of the receiver.',
+  [[cyl(mm(3.5), mm(30), 'z', X(508), Y(82), 0, 20), 'steel']]);
 part('rearTrunnion', 'Gun stock connector (rear trunnion)', 'rcv', ['6'], [-40, -10, -170],
   'Rear trunnion (6), the CYMA "stock adapter": a block inside the rear of the receiver that the gearbox rear seats against, a hollow box out the back that carries the power cable into the stock, a long upper tang with two screw holes under the stock comb and a short lower tang with one. Held by the hex screws through the receiver sides. Hidden once the stock is on.',
   // CYMA CY-0040 spare photos (Airsoft Gang side profile, 18airsoft, Asia Airsoft): block, hollow box, long upper and short lower tang. Kept inside the receiver
