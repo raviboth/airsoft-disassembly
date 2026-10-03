@@ -473,17 +473,17 @@ const REAR = X(1633);          // slide rear face, -89.2
 const SL_TOP = 11.7, SL_BOT = -10;
 const SW = 25.5 / 2;           // Glock slide width 25.5mm
 const WALL = 2.6;
-const BY = 3.4;                // bore axis: 2mm of slide above the barrel hole
+const BY = 2.4;                // bore axis: Glock barrel 14.45mm OD in a 14.76mm nose bore (Faxon, SCT drawing)
 const BREECH = REAR + 75.4;    // breech face at the back of the ejection port (right-side photo); outer barrel 97mm
-const GY = -6.9;               // recoil guide axis: the rod tip passes through a small hole under the barrel hole
+const GY = -7.5;               // recoil guide axis: the rod tip passes through a small hole under the barrel hole
 const PORT0 = BREECH, PORT1 = BREECH + 28;   // ejection port over the barrel hood, 28mm long in the photo
 
 // magazine: built upright in its own frame (top rear corner at the origin side, axis along -y), then leaned back to the
 // grip angle and dropped into the frame. The photo puts the base plate centre at x -69, y -114.
 const MAG_A = 20.7 * D2R;
-const MAG_PIV = [-32.2, -16.2];
+const MD = 16.6, MW = 11.2;    // half depth and half width: G19 mag 33.2 x 22.9mm (holster maker's calipers); 22.4 here so it clears the frame walls
+const MAG_PIV = [-46 + MD * Math.cos(MAG_A), -11 - MD * Math.sin(MAG_A)];   // keeps the top rear corner at x -46, y -11
 const magT = g => g.rotateZ(-MAG_A).translate(MAG_PIV[0], MAG_PIV[1], 0);
-const MD = 14.8, MW = 11;      // half depth (front to back) and half width of the mag body
 
 // ================= SLIDE =================
 part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
@@ -498,11 +498,11 @@ part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
     p.push([zAt(prof(wall(false), WALL, 0.6), -SW + WALL / 2), 'slide']);
     p.push([zAt(prof(wall(true), WALL, 0.6), SW - WALL / 2), 'slide']);
     // top plate, open over the port on the right
-    p.push([bx(PORT1, MUZ - 1, SL_TOP - 3, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
-    p.push([bx(REAR + 1, PORT0, SL_TOP - 3, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
-    p.push([bx(PORT0, PORT1, SL_TOP - 3, SL_TOP, -SW + WALL, -3), 'slide']);
+    p.push([bx(PORT1, MUZ - 1, SL_TOP - 2.6, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
+    p.push([bx(REAR + 1, PORT0, SL_TOP - 2.6, SL_TOP, -SW + WALL, SW - WALL), 'slide']);
+    p.push([bx(PORT0, PORT1, SL_TOP - 2.6, SL_TOP, -SW + WALL, -3), 'slide']);
     // nose block: barrel hole, and the small hole under it for the recoil guide tip
-    p.push([secX(rr(-SW, SW, SL_BOT, SL_TOP, 1.2), MUZ - 11, MUZ - 0.4, 0.4, [circ(0, BY, 6.35, 28), circ(0, GY, 2.9, 16)]), 'slide']);
+    p.push([secX(rr(-SW, SW, SL_BOT, SL_TOP, 1.2), MUZ - 11, MUZ - 0.4, 0.4, [circ(0, BY, 7.38, 32), circ(0, GY, 2.3, 16)]), 'slide']);
     // breech block over the rear sight, closed at the back except for the rear plate opening
     p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, -SW + WALL, -8.6), 'slide']);
     p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, 8.6, SW - WALL), 'slide']);
@@ -553,7 +553,7 @@ part('rearPlate', 'Rear slide plate', 'bbu', ['G-54-1'], [-45, 48, 0],
 
 part('piston', 'Piston head + screw', 'bbu', ['G-56', 'G-55'], [12, 48, 0],
   'Round piston cup with an O-ring groove, fixed to the front of the housing\'s rear block by screw G-55. On firing, gas fills the nozzle cylinder and drives the nozzle back over it, which throws the slide. The newer MOS blowback unit uses a D-shaped cup instead.',
-  [[cyl(1.6, 4, 'x', HB0 + 12.5, BY, 0, 12), 'steel'], [cyl(6.1, 4.5, 'x', HB0 + 16.5, BY, 0, 28), 'dark'], [torus(6.1, 0.55, 'x', HB0 + 17.6, BY, 0), 'black']], { slide: true });
+  [[cyl(1.6, 4, 'x', HB0 + 12.5, BY, 0, 12), 'steel'], [cyl(5.5, 4.5, 'x', HB0 + 16.5, BY, 0, 28), 'dark'], [torus(5.5, 0.5, 'x', HB0 + 17.6, BY, 0), 'black']], { slide: true });
 
 part('returnSpring', 'Nozzle return spring', 'bbu', ['G-53'], [-25, 62, 0],
   'Long thin spring in the channel along the top of the housing that pulls the nozzle forward again after each shot (a single spring on the semi sheet; auto models use the 52/53/85 set).',
@@ -561,7 +561,7 @@ part('returnSpring', 'Nozzle return spring', 'bbu', ['G-53'], [-25, 62, 0],
 
 part('nozzle', 'Loading nozzle + screw', 'bbu', ['G-47', 'G-48'], [48, 48, 0],
   'Polymer loading nozzle on screw G-48, about 47mm long: a round cylinder at the back that slides over the piston head, a narrower front body holding the valve, and the tip that seats in the back of the bucking. Shared by the G17, G19, G27 and G34 (the G18/G23/G26/G35 nozzle differs). Stock WE nozzles crack: the usual first upgrade is a reinforced one (Guarder, CowCow).',
-  [[tube(6.2, 7.3, HB0 + 13, -38, 28, BY), 'nylon'],
+  [[tube(5.6, 6.6, HB0 + 13, -38, 28, BY), 'nylon'],
    [bx(-38, BREECH - 5, BY - 5.6, BY + 5.4, -5.6, 5.6), 'nylon'],
    [tube(2.6, 3.4, BREECH - 5, BREECH - 0.3, 20, BY), 'nylon'],
    [bx(BREECH - 14, BREECH - 7, BY + 5.4, BY + 7.2, -2, 2), 'nylon'],
@@ -580,12 +580,12 @@ part('bbuBlock', 'Slide insert block', 'bbu', ['G-76'], [-25, 36, 0],
 const HOOD1 = BREECH + 32;
 part('outerBarrel', 'Outer barrel', 'bar', ['G-39'], [45, 28, 0],
   'Metal outer barrel, G19 length. Square hood over the chamber (it fills the ejection port) and a cam lug under it, like the firearm: it drops at the rear as the slide comes back. About 97mm long here: the hood starts at the back of the ejection port, which the right-side photo puts 75mm from the slide rear (the firearm barrel is 102mm). Threaded outer barrels are a common swap.',
-  [[tube(4.8, 6.25, HOOD1, MUZ - 0.3, 32, BY), 'dark'],
+  [[tube(5.2, 7.2, HOOD1, MUZ - 0.3, 32, BY), 'dark'],
    // hood: a U open underneath (the hop chamber sits in it), legs running down into the cam lug
-   [secX([[-6.9, BY + 6.1], [6.9, BY + 6.1], [7.4, BY + 5.6], [7.4, BY - 7], [5.8, BY - 7], [5.8, BY + 4.6], [-5.8, BY + 4.6], [-5.8, BY - 7], [-7.4, BY - 7], [-7.4, BY + 5.6]], BREECH, HOOD1, 0.3), 'dark'],
-   [secX(circ(0, BY, 6.25, 28), HOOD1 - 4, HOOD1 + 0.5, 0, [circ(0, BY, 4.8, 20)]), 'dark'],
-   ...[1, -1].map(sd => [zAt(prof([[BREECH + 1, BY - 7], [BREECH + 19, BY - 7], [BREECH + 15, BY - 12.5], [BREECH + 5, BY - 12.5]], 1.6, 0.3), sd * 6.6), 'dark']),
-   [bx(BREECH + 14, BREECH + 19, BY - 9, BY - 7, -7.4, 7.4), 'dark']], { slide: 3 });
+   [secX([[-7.3, BY + 6.6], [7.3, BY + 6.6], [7.8, BY + 6.1], [7.8, BY - 7.5], [6.2, BY - 7.5], [6.2, BY + 5], [-6.2, BY + 5], [-6.2, BY - 7.5], [-7.8, BY - 7.5], [-7.8, BY + 6.1]], BREECH, HOOD1, 0.3), 'dark'],
+   [secX(circ(0, BY, 7.2, 28), HOOD1 - 4, HOOD1 + 0.5, 0, [circ(0, BY, 5.2, 20)]), 'dark'],
+   ...[1, -1].map(sd => [zAt(prof([[BREECH + 1, BY - 7.5], [BREECH + 19, BY - 7.5], [BREECH + 15, BY - 12], [BREECH + 5, BY - 12]], 1.6, 0.3), sd * 7), 'dark']),
+   [bx(BREECH + 14, BREECH + 19, BY - 9.5, BY - 7.5, -7.8, 7.8), 'dark']], { slide: 3 });
 
 part('innerBarrel', 'Inner barrel', 'bar', ['G-38'], [45, 10, 0],
   'Brass inner barrel, about 84mm for the G19 (WE does not state it; aftermarket sets for the WE G19 and G19 Gen5 are 84mm, the G17 one is 97mm). Bore not published. A tightbore (Maple Leaf, Prometheus, Madbull) is a common upgrade, best done with a new bucking.',
@@ -593,8 +593,8 @@ part('innerBarrel', 'Inner barrel', 'bar', ['G-38'], [45, 10, 0],
 
 part('hopChamber', 'Hop-up chamber halves + screws', 'bar', ['G-35', 'G-40', 'G-34'], [12, 10, 0],
   'Two aluminum halves, left G-35 and right G-40, joined by two G-34 screws (M2x6 countersunk per the MOS sheet). It rides inside the outer barrel hood; aftermarket chambers for this pistol are 40mm long.',
-  [[secX(rr(-5.4, 0, BY - 5.4, BY + 4.6, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
-   [secX(rr(0, 5.4, BY - 5.4, BY + 4.6, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
+  [[secX(rr(-5.8, 0, BY - 6, BY + 4.8, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
+   [secX(rr(0, 5.8, BY - 6, BY + 4.8, 1), BREECH + 0.3, BREECH + 30, 0.2), 'alu'],
    ...[BREECH + 8, BREECH + 22].map(x => [cyl(1, 11, 'z', x, BY - 3.6, 0, 10), 'steel'])], { slide: 3 });
 
 part('bucking', 'Hop-up bucking', 'bar', ['G-36'], [-12, 10, 0],
@@ -616,7 +616,7 @@ part('guideRod', 'Recoil guide rod + spring stop', 'bar', ['G-31', 'G-33'], [100
 
 part('recoilSpring', 'Recoil spring', 'bar', ['G-32'], [100, -36, 0],
   'Recoil spring on the guide rod.',
-  [[spring(3.6, 0.45, MUZ - 15.2 - (BREECH + 18), 26, 'x', BREECH + 18, GY, 0), 'spring']], { slide: 3 });
+  [[spring(3.4, 0.45, MUZ - 15.2 - (BREECH + 18), 26, 'x', BREECH + 18, GY, 0), 'spring']], { slide: 3 });
 
 // ================= FRAME AND CONTROLS =================
 const FT = Y(220);   // frame top under the slide
@@ -630,9 +630,9 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
     const guardH = P([[745, 377], [1000, 380], [1035, 395], [1052, 440], [1057, 480], [1050, 530], [1030, 560], [1000, 567], [770, 562], [742, 547], [732, 510], [732, 410]]);
     const grip = P([[1100, 372], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
       [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1095, 560]]);
-    return [[profR(upper, 23, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [profR(grip, 30, 5), 'frame'],
+    return [[profR(upper, 24, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [profR(grip, 30, 5), 'frame'],
       // Gen3 single-slot accessory rail: a groove along each side of the dust cover and one cross slot underneath
-      ...[1, -1].map(sd => [bx(X(640), X(232), Y(296), Y(284), sd * 11.5 - 0.3, sd * 11.5 + 0.3), 'black']),
+      ...[1, -1].map(sd => [bx(X(640), X(232), Y(296), Y(284), sd * 12 - 0.3, sd * 12 + 0.3), 'black']),
       [bx(X(338), X(322), Y(362), Y(358), -8, 8), 'black']];
   })(), { shell: true });
 
@@ -646,6 +646,8 @@ part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10
    ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 10.6 - 0.6, sd * 10.6 + 0.6), 'zinc']),
    [bx(MUZ - 6, MUZ - 2, FT - 5.5, FT - 3, -8.2, 8.2), 'zinc'],
    [bx(-13, 2, FT - 6, FT + 1.5, -8.2, 8.2), 'zinc'],
+   // locking block uprights either side of the barrel lug (frame-top photo)
+   ...[1, -1].map(sd => [bx(-1.5, 2, FT + 1.5, -3.5, sd * 8.1 - 0.6, sd * 8.1 + 0.6), 'zinc']),
    [cyl(1.4, 3, 'y', -5, FT + 0.5, 0, 10), 'steel'],
    [cyl(1.5, 24, 'z', X(1000), Y(262), 0, 12), 'steel']]);
 
@@ -660,6 +662,8 @@ part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50,
   'Slide stop on the left, pivoting on the trigger pin. Locks the slide back on an empty mag and releases it. Gen5 has a two-sided one.',
   [[bx(X(1182), X(1145), Y(275), Y(220), -13, -11), 'steel'],
    [prof([[X(950), Y(298)], [X(1150), Y(268)], [X(1150), Y(250)], [X(950), Y(312)]], 1, 0.2).translate(0, 0, -10.2), 'steel'],
+   [tube(1.5, 2.6, -0.5, 0.5, 16).rotateY(Math.PI / 2).translate(X(955), Y(305), -10.2), 'steel'],
+   ...[0, 1, 2, 3].map(i => [bx(X(1178), X(1148), Y(228 + i * 12), Y(225 + i * 12), -13.4, -13), 'black']),
    [spring(0.8, 0.2, 5, 4, 'y', X(1100), Y(310), -9.6), 'spring']]);
 
 part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
@@ -727,7 +731,7 @@ part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [
    [magT(cyl(0.8, 2 * MW - 1.6, 'z', 9, -2, 0, 8)), 'steel']]);
 
 part('outletValve', 'Outlet valve', 'mag', ['G-60'], [-28, -100, 0],
-  'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key. Placed per the WE drawing (on the witness-hole face); one teardown video calls that face the front.',
+  'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key. It sits on the witness-hole face, the rear, as in the WE drawing and the owner-review photos, behind which the knocker waits.',
   [[magT(cyl(3.2, 3, 'x', -MD - 1.4, -3, 0, 20)), 'brass'], [magT(cyl(1, 2, 'x', -MD - 3.8, -3, 0, 10)), 'steel']]);
 
 part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
@@ -749,7 +753,7 @@ part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -11
 
 part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
   'Slide-off base plate with the bumper stopper G-66 that locks it. It sits level with the bottom of the grip rather than square to the mag (traced from the photo). Gen5 has its own plate.',
-  [[profR(P([[1262, 1002], [1652, 1002], [1652, 1026], [1642, 1036], [1325, 1071], [1302, 1066], [1285, 1040]]), 27, 2), 'poly'],
+  [[profR(P([[1262, 1002], [1652, 1002], [1652, 1026], [1642, 1036], [1325, 1071], [1302, 1066], [1285, 1040]]), 27, 2), 'frame'],
    [bx(X(1500), X(1430), Y(1002), Y(997), -5, 5), 'black']]);
 
 
