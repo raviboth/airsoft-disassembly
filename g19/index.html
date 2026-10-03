@@ -496,7 +496,7 @@ const PORT0 = BREECH, PORT1 = BREECH + 28;   // ejection port over the barrel ho
 // grip angle and dropped into the frame. The photo puts the base plate centre at x -69, y -114.
 const MAG_A = 23 * D2R;        // leaned back like the backstrap (22.7 deg in the photo)
 const MD = 16.3, MW = 10.9;    // half depth and half width before the 0.3mm rounded edge: 33.2 x 22.4mm, against 33.2 x 22.9 for the G19 mag (holster maker's calipers), so it clears the grip walls
-const MAG_PIV = [-48 + MD * Math.cos(MAG_A), -11 - MD * Math.sin(MAG_A)];   // top rear corner at x -48, y -11
+const MAG_PIV = [-50 + MD * Math.cos(MAG_A), -11 - MD * Math.sin(MAG_A)];   // top rear corner at x -50, y -11: puts the catch notch under the catch bar
 // mag body section (x front to back, z across): square at the back, front corners rounded like the Glock mag; extruded along y
 const magSec = (d, w, r) => [[-d + 1, -w], [d - r, -w], ...Array.from({ length: 5 }, (_, i) => { const t = -Math.PI / 2 + i / 4 * Math.PI / 2; return [d - r + r * Math.cos(t), r * Math.sin(t) - w + r]; }).slice(1), [d, w - r], ...Array.from({ length: 5 }, (_, i) => { const t = i / 4 * Math.PI / 2; return [d - r + r * Math.cos(t), w - r + r * Math.sin(t)]; }).slice(1), [-d + 1, w], [-d, w - 1], [-d, -w + 1]];
 const magExt = (d, w, r, y0, y1) => prof(magSec(d, w, r), y1 - y0, 0.3).rotateX(Math.PI / 2).translate(0, (y0 + y1) / 2, 0);
@@ -681,7 +681,7 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       ...Array.from({ length: 9 }, (_, k) => { const py = 425 + k * 15, px = 684 - (684 - 661) * (py - 411) / (569 - 411);
         return [bx(X(px) - 0.4, X(px) + 0.35, Y(py) - 0.5, Y(py) + 0.5, -4.6, 4.6), 'black']; }),
       // mag release cut-out, and the plug hole at the foot of the backstrap
-      [bx(X(1186), X(1122), Y(566), Y(491), -13.6, -13.2), 'black'],
+      [bx(-34.5, -27.3, -53.2, -44.1, -13.5, -12.8), 'black'],
       [bx(X(1690) + 0.2, X(1690) + 3, Y(975), Y(955), -2.5, 2.5), 'black']);
     return out;
   })(), { shell: true });
@@ -717,10 +717,12 @@ part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50,
    [spring(0.8, 0.2, 5, 4, 'y', X(1100), Y(310), -9.6), 'spring']]);
 
 part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
-  'Cross-bolt magazine catch at the top of the front strap; the button is on the left. Wire spring G-04. Gen3 has the small catch, Gen4 and Gen5 the enlarged one.',
-  [[bx(X(1180), X(1128), Y(532), Y(497), -14.6, 9), 'poly2'], [bx(X(1172), X(1136), Y(497), Y(450), 6, 9), 'poly2'],
-   ...[0, 1, 2, 3, 4].map(i => [bx(X(1178), X(1130), Y(503 + i * 12), Y(500 + i * 12), -14.8, -14.4), 'black']),
-   [cyl(0.5, 22, 'y', X(1130) - 1.5, Y(520), 0, 6), 'spring']]);
+  'Glock-pattern L-shaped catch: a bar across the top of the front strap, with the grooved button on the left, sitting in the notch on the front of the magazine; at its right end an arm rises in front of the mag, and the wire spring G-04 in the front strap pushes on it to hold the catch out. Press the button and the bar leaves the notch. Gen3 has the small button; Gen4 and Gen5 the enlarged, reversible one (WE: Gen3 and Gen4/5 catches are separate parts).',
+  [[bx(-33.6, -28.2, -52.3, -45, -14.8, 9.4), 'poly2'],
+   ...[0, 1, 2, 3].map(i => [bx(-33.3, -28.5, -51.4 + i * 1.7, -51 + i * 1.7, -14.95, -14.7), 'black']),
+   [prof([[-29.4, -46], [-25.9, -46], [-24.4, -35], [-25.2, -33.6], [-27.6, -33.6], [-28.2, -35]], 2.6, 0.3).translate(0, 0, 8.1), 'poly2'],
+   [bx(-29.4, -25.9, -52.3, -45, 6.8, 9.4), 'poly2'],
+   [cyl(0.45, 15, 'y', -23.6, -43, 8.1, 6), 'spring'], [bx(-24.2, -23, -36, -35, 7.6, 8.6), 'spring']]);
 
 // ================= TRIGGER AND HAMMER GROUP =================
 part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'], [10, -72, 0],
@@ -762,17 +764,18 @@ part('sear', 'Hammer sear + spring', 'trg', ['G-23', 'G-24'], [-72, -14, 0],
 part('knocker', 'Valve knocker', 'trg', ['G-19'], [-62, 30, 0],
   'Valve knocker (shops also call it the valve striker or firing pin): a triangular plate with a slot, pivoting in the front of the hammer housing, with a round steel face. The hammer hits its back and the face strikes the outlet valve on the back of the magazine.',
   [[prof([[-58.5, -11.5], [-51.5, -13.5], [-51.5, -21], [-55, -23], [-58.5, -19]], 4, 0.3, [[[-57.2, -14], [-54.5, -14.8], [-55.5, -17.6], [-57.2, -17]]]), 'steel'],
-   [cyl(1.9, 1.4, 'x', -50.8, -15.6, 0, 16), 'steel']], { dx: -3 });
+   [cyl(1.9, 1.4, 'x', -50.8, -15.6, 0, 16), 'steel']], { dx: -5 });
 
 part('popupSear', 'Valve knocker pop-up sear + spring', 'trg', ['G-27', 'G-28'], [-45, 30, 0],
   'Spring-loaded sear that pops up into the slide and blocks the knocker until the slide is back in battery, so the gun cannot vent gas with the slide open.',
-  [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']], { dx: -3 });
+  [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']], { dx: -5 });
 
 // ================= MAGAZINE =================
 part('magBody', 'Magazine shell', 'mag', ['G-59'], [0, -108, 0],
-  'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
+  'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. Catch notches on both front corners, as on the Glock mag, so the catch can be reversed. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
   [[magT(magExt(MD, MW, 5, -97, -5)), 'dark'],
-   ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']])], { shell: true });
+   ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']]),
+   ...[1, -1].map(sd => [magT(bx(MD - 2, MD + 0.4, -31, -23.5, sd * (MW - 2.6) - 3.2, sd * (MW - 2.6) + 3.2)), 'black'])], { shell: true });
 
 part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [0, -90, 0],
   'Feed lips block G-62: the whole top cap of the mag, with the BB lips at the front and a window at the rear for the rubber gas route G-63, which seals against the bottom of the loading nozzle. Held by cross pin G-61.',
@@ -782,7 +785,7 @@ part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [
 
 part('outletValve', 'Outlet valve', 'mag', ['G-60'], [-28, -100, 0],
   'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key. It sits on the witness-hole face, the rear, as in the WE drawing and the owner-review photos, behind which the knocker waits.',
-  [[magT(cyl(3.2, 3, 'x', -MD - 1.4, -3, 0, 20)), 'brass'], [magT(cyl(1, 2, 'x', -MD - 3.8, -3, 0, 10)), 'steel']]);
+  [[magT(cyl(3.2, 3, 'x', -MD - 1.4, -7, 0, 20)), 'brass'], [magT(cyl(1, 2, 'x', -MD - 3.8, -7, 0, 10)), 'steel']]);
 
 part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
   'Follower and spring in the BB channel at the front of the mag.',
