@@ -33,13 +33,11 @@
   .item:hover { background:#252a33; }
   .item.sel { background:#24365c; }
   .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
-  #ctrl { right:12px; top:12px; width:250px; padding:10px 14px 12px; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
   .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-  #ctrl .sub { margin:10px 0 0; color:var(--dim); font-size:12px; }
-  #ctrl .views { display:grid; grid-template-columns:repeat(3, 1fr); margin-top:4px; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
@@ -63,9 +61,8 @@
   #info tr.mod td:nth-child(2) { color:#bcd2ff; }
   #info tr.mod:hover { background:#252a33; }
   #info tr.hit td { background:#24365c; }
-  #cube { position:fixed; right:12px; bottom:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
   #cube.drag { cursor:grabbing; }
-  #info:not(.hidden) ~ #cube { right:384px; }
   #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
   .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
   .lbl.sel { border-color:var(--acc); color:#fff; }
@@ -91,7 +88,7 @@
     #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
     #side .sub { display:none; }
     #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
-    #cube, #info:not(.hidden) ~ #cube { top:100px; right:8px; bottom:auto; width:84px; height:84px; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
     #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
     #info.peek { max-height:96px; }
     #info.peek #infoBody { overflow:hidden; }
@@ -142,18 +139,7 @@
   <label>Stock position <span id="spv">1</span></label>
   <input id="stockpos" type="range" min="1" max="5" step="1" value="1">
   <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
-  <div class="sub">View from</div>
-  <div class="row views">
-    <button data-v="front" title="Front, muzzle on (1)">Front</button>
-    <button data-v="back" title="Back, butt on (2)">Back</button>
-    <button data-v="top" title="Top (3)">Top</button>
-    <button data-v="left" title="Left side (4)">Left</button>
-    <button data-v="right" title="Right side (5)">Right</button>
-    <button data-v="bottom" title="Bottom (6)">Bottom</button>
-  </div>
   <div class="row">
-    <button id="bAsm">Assembled</button>
-    <button id="bExp">Exploded</button>
     <button id="bReset">Reset view</button>
     <button id="bList">Manual parts list</button>
     <button id="bInfo">Overview</button>
@@ -867,8 +853,6 @@ applyFilter();
 const exSlider = document.getElementById('explode');
 let exTarget = 0, exCur = 0;
 exSlider.oninput = () => exTarget = +exSlider.value;
-document.getElementById('bAsm').onclick = () => { exTarget = 0; exSlider.value = 0; };
-document.getElementById('bExp').onclick = () => { exTarget = 1; exSlider.value = 1; };
 let camTween = null;
 document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
 const spin = document.getElementById('spin');
@@ -1101,7 +1085,6 @@ cubeEl.addEventListener('pointerup', e => {
 cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
 const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
 cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
-document.querySelectorAll('#ctrl [data-v]').forEach(b => b.onclick = () => viewFrom(b.dataset.v));
 const orthoCb = document.getElementById('ortho');
 orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
 
@@ -1144,12 +1127,14 @@ renderer.setAnimationLoop(() => {
     if (p.userData.slide) p.position.x += stockOff;
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
-  if (camTween) {   // swing round the target (not through it) while the target and distance ease over
-    const o0 = camera.position.clone().sub(controls.target), o1 = camTween.pos.clone().sub(camTween.tgt);
-    const len = THREE.MathUtils.lerp(o0.length(), o1.length(), 0.1);
-    const turn = new THREE.Quaternion().slerp(new THREE.Quaternion().setFromUnitVectors(o0.normalize(), o1.normalize()), 0.1);
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
     controls.target.lerp(camTween.tgt, 0.1);
-    camera.position.copy(controls.target).add(o0.applyQuaternion(turn).multiplyScalar(len));
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
     if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
   }
   controls.update();
