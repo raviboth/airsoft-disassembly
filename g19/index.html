@@ -490,6 +490,7 @@ const WALL = 2.6;
 const BY = 2.4;                // bore axis: Glock barrel 14.45mm OD in a 14.76mm nose bore (Faxon, SCT drawing)
 const BREECH = REAR + 75.4;    // breech face at the back of the ejection port (right-side photo); outer barrel 97mm
 const GY = -7.5;               // recoil guide axis: the rod tip passes through a small hole under the barrel hole
+const SLIDE_TRAVEL = 27;        // mm the slide runs back to lock open (approximate)
 const PORT0 = BREECH, PORT1 = BREECH + 28;   // ejection port over the barrel hood, 28mm long in the photo
 
 // magazine: built upright in its own frame (top rear corner at the origin side, axis along -y), then leaned back to the
@@ -523,6 +524,8 @@ part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
     // breech block over the rear sight, closed at the back except for the rear plate opening
     p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, -SW + WALL, -8.6), 'slide']);
     p.push([bx(REAR + 0.5, REAR + 5, SL_BOT, SL_TOP - 3, 8.6, SW - WALL), 'slide']);
+    // slide stop notch, bottom edge on the left: one slide travel ahead of the lever's tab, so the tab rises into it when the slide is locked back
+    p.push([bx(-35.2 + SLIDE_TRAVEL, -28.6 + SLIDE_TRAVEL, SL_BOT - 0.01, SL_BOT + 2.2, -SW - 0.01, -SW + WALL + 0.01), 'black']);
     // rear serrations (10 per side, X(1385) to X(1560) in the photo)
     for (let i = 0; i < 10; i++) {
       const x = X(1392) - i * 2.3;
@@ -682,6 +685,8 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
         return [bx(X(px) - 0.4, X(px) + 0.35, Y(py) - 0.5, Y(py) + 0.5, -4.6, 4.6), 'black']; }),
       // mag release cut-out, and the plug hole at the foot of the backstrap
       [bx(-34.5, -27.3, -53.2, -44.1, -13.5, -12.8), 'black'],
+      // pocket in the left wall that the slide stop paddle sits in, with the moulded ledge under it
+      [bx(-36.6, -27.8, -19.3, FT, -12.15, -11.9), 'black'],
       [bx(X(1690) + 0.2, X(1690) + 3, Y(975), Y(955), -2.5, 2.5), 'black']);
     return out;
   })(), { shell: true });
@@ -709,12 +714,20 @@ part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0]
    [bx(X(840), X(800), Y(320), Y(316), -6, 6), 'spring']]);
 
 part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50, 0],
-  'Slide stop on the left, pivoting on the trigger pin. Locks the slide back on an empty mag and releases it. Gen5 has a two-sided one.',
-  [[bx(X(1182), X(1145), Y(275), Y(220), -13, -11), 'steel'],
-   [prof([[X(950), Y(298)], [X(1150), Y(268)], [X(1150), Y(250)], [X(950), Y(312)]], 1, 0.2).translate(0, 0, -10.2), 'steel'],
-   [tube(1.5, 2.6, -0.5, 0.5, 16).rotateY(Math.PI / 2).translate(X(955), Y(305), -10.2), 'steel'],
-   ...[0, 1, 2, 3].map(i => [bx(X(1178), X(1148), Y(228 + i * 12), Y(225 + i * 12), -13.4, -13), 'black']),
-   [spring(0.8, 0.2, 5, 4, 'y', X(1100), Y(310), -9.6), 'spring']]);
+  'Stamped steel slide stop on the left (Gen3 is left side only). An eye at the front rides on the trigger pin; the bar runs back inside a slot in the frame wall and rises to a tab that comes up into the notch in the slide, and the paddle is bent outward with grooves for the thumb. The follower pushes it up on an empty mag to lock the slide open; wire spring G-13, hooked on the small tab on top, holds it down. Gen5 has a two-sided one.',
+  (() => {
+    const PX = X(955), PY = Y(305), Z0 = -10.8;
+    const eye = Array.from({ length: 13 }, (_, i) => { const t = -Math.PI / 2 + i / 12 * Math.PI; return [PX + 2.6 * Math.cos(t), PY + 2.6 * Math.sin(t)]; });
+    // side profile: eye at the front, bar rising rearward to the slide-notch tab and the paddle root
+    const bar = [[PX, PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [PX, PY - 2.6], ...eye.slice(1, -1)];
+    const spr = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-18.6, -15.9], [-12, -15.6], [-6, -14.4], [-2.5, -15.2], [-1.6, -17.4]].map(([a, b]) => new THREE.Vector3(a, b, Z0 + 0.7))), 24, 0.25, 6, false);
+    return [[prof(bar, 1, 0.15, [circ(PX, PY, 1.55, 14)]).translate(0, 0, Z0), 'steel'],
+      // paddle, bent out of the frame wall
+      [bx(-34.4, -29.8, -16.8, -10.9, -13.1, -11.5), 'steel'], [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'steel'],
+      ...[0, 1, 2, 3].map(k => [bx(-34.1, -30.1, -15.9 + k * 1.35, -15.45 + k * 1.35, -13.2, -13.05), 'black']),
+      // spring hook tab and the wire spring
+      [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'steel'], [spr, 'spring']];
+  })());
 
 part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
   'Glock-pattern L-shaped catch: a bar across the top of the front strap, with the grooved button on the left, sitting in the notch on the front of the magazine; at its right end an arm rises in front of the mag, and the wire spring G-04 in the front strap pushes on it to hold the catch out. Press the button and the bar leaves the notch. Gen3 has the small button; Gen4 and Gen5 the enlarged, reversible one (WE: Gen3 and Gen4/5 catches are separate parts).',
@@ -1147,7 +1160,6 @@ addEventListener('resize', () => {
 // ---------- loop ----------
 const exv = document.getElementById('exv');
 const slideCtl = document.getElementById('slidepos'), spv = document.getElementById('spv');
-const SLIDE_TRAVEL = 27;   // mm the slide runs back to lock open (approximate)
 const SLIDE = { pos: 0 };
 const showSlide = () => { SLIDE.pos = +slideCtl.value; spv.textContent = SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed'; };
 slideCtl.oninput = showSlide; showSlide();
@@ -1158,9 +1170,16 @@ renderer.setAnimationLoop(() => {
   exv.textContent = Math.round(exCur * 100) + '%';
   slideOff += (SLIDE.pos * SLIDE_TRAVEL - slideOff) * 0.15;
   const e = exCur * exCur * (3 - 2 * exCur);
+  // slide stop: turns up about the trigger pin into the slide notch over the last 2mm of travel
+  const lockA = -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1);
   for (const p of parts) {
     p.position.copy(p.userData.explode).multiplyScalar(e);
     if (p.userData.slide) p.position.x -= Math.min(slideOff, p.userData.slide);
+    if (p.userData.id === 'slideStop') {
+      p.rotation.z = lockA;
+      p.position.x += X(955) - (X(955) * Math.cos(lockA) - Y(305) * Math.sin(lockA));
+      p.position.y += Y(305) - (X(955) * Math.sin(lockA) + Y(305) * Math.cos(lockA));
+    }
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
