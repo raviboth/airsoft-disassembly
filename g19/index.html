@@ -511,22 +511,22 @@ part('slide', 'Slide', 'sld', ['G-43'], [0, 80, 0],
   (() => {
     // One cross-section run along the slide (SCT G19 drawing, section B-B): 25.5 wide, top corners rounded (about 2.5mm in
     // the rear photo), 20mm channel inside, rail grooves 23mm across over 19mm lips at the bottom. The WE slide is thin on
-    // top (2.6mm) to make room for the blowback unit. Middle segments have no bevel, so the sides run unbroken from the
+    // top (1.9mm) to make room for the blowback unit and the barrel. Middle segments have no bevel, so the sides run unbroken from the
     // breech block to the nose; only the rear face and the muzzle face get rounded edges.
-    const SR = 2.5, BR = 0.6, ROOF = SL_TOP - 2.6, IC = 1.5, LIP = SL_BOT + 1.75, GRV = SL_BOT + 3.15;
+    const SR = 2.5, BR = 0.6, ROOF = SL_TOP - 1.9, IC = 1.5, LIP = SL_BOT + 1.75, GRV = SL_BOT + 3.15;
     const arc = (cz, cy, r, a0, a1, n = 5) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [cz + r * Math.cos(t), cy + r * Math.sin(t)]; });
     // outer outline from the left top corner, down the left side; `bottom` fills in between the two bottom corners
     const outer = bottom => [...arc(-SW + SR, SL_TOP - SR, SR, 90, 180), ...arc(-SW + BR, SL_BOT + BR, BR, 180, 270), ...bottom,
       ...arc(SW - BR, SL_BOT + BR, BR, 270, 360), ...arc(SW - SR, SL_TOP - SR, SR, 0, 90)];
     const railL = [[-9.5, SL_BOT], [-9.5, LIP], [-11.5, LIP], [-11.5, GRV], [-10, GRV]];
     const railR = railL.map(([z, y]) => [-z, y]).reverse();
-    // split at the port's left edge (z -3): the left part runs the whole length in one piece so its side has no joints;
+    // split at the port's left edge (z -7.8, leaving a 5mm strip on the left as in the top photo): the left part runs the whole length in one piece so its side has no joints;
     // the ejection port is open on top from there to the right edge, and down the right side to the sill
-    const portL = [...arc(-SW + SR, SL_TOP - SR, SR, 90, 180), ...arc(-SW + BR, SL_BOT + BR, BR, 180, 270), ...railL, ...arc(-10 + IC, ROOF - IC, IC, 180, 90), [-3, ROOF], [-3, SL_TOP]];
+    const portL = [...arc(-SW + SR, SL_TOP - SR, SR, 90, 180), ...arc(-SW + BR, SL_BOT + BR, BR, 180, 270), ...railL, ...arc(-10 + IC, ROOF - IC, IC, 180, 90), [-7.8, ROOF], [-7.8, SL_TOP]];
     // The wall below the port sill (9.65mm under the top, SCT drawing) runs the whole length in one piece too; the upper right
     // part breaks for the port. Pieces overlap a little so their joints never show as lines.
     const SILL = SL_TOP - 9.65;
-    const upperR = [[-3.6, SL_TOP], ...arc(SW - SR, SL_TOP - SR, SR, 90, 0), [SW, SILL - 0.6], [10, SILL - 0.6], ...arc(10 - IC, ROOF - IC, IC, 0, 90), [-3.6, ROOF]];
+    const upperR = [[-8.4, SL_TOP], ...arc(SW - SR, SL_TOP - SR, SR, 90, 0), [SW, SILL - 0.6], [10, SILL - 0.6], ...arc(10 - IC, ROOF - IC, IC, 0, 90), [-8.4, ROOF]];
     const portR = [[10, SILL], [10, GRV], [11.5, GRV], [11.5, LIP], [9.5, LIP], [9.5, SL_BOT], ...arc(SW - BR, SL_BOT + BR, BR, 270, 360), [SW, SILL]];
     // breech block: solid except for the slot the rear cover plate drops into from below (18mm wide, top 5.4mm under the slide top)
     const PT = SL_TOP - 5.4, PW = 9;
@@ -622,15 +622,25 @@ part('bbuBlock', 'Slide insert block', 'bbu', ['G-76'], [-25, 36, 0],
   [[bx(HB0 + 22, HB0 + 30, SL_BOT, -8, -5, 5), 'dark']], { slide: true });
 
 // ================= BARREL, HOP-UP, RECOIL SPRING =================
-const HOOD1 = BREECH + 32;
+// outer barrel sections measured off the WE G17 outer barrel (G-39) mesh: 14.4mm tube, 16.6mm wide hood 27.5mm long (the
+// port's length), a 10mm block ahead of it, hood walls 1.55mm. The hood top is set flush with the slide top here.
+const HOOD1 = BREECH + 27.5, BLK1 = BREECH + 37.5, HT = SL_TOP - 0.15;
 part('outerBarrel', 'Outer barrel', 'bar', ['G-39'], [45, 28, 0],
-  'Metal outer barrel, G19 length. Square hood over the chamber (it fills the ejection port) and a cam lug under it, like the firearm: it drops at the rear as the slide comes back. About 97mm long here: the hood starts at the back of the ejection port, which the right-side photo puts 75mm from the slide rear (the firearm barrel is 102mm). Threaded outer barrels are a common swap.',
-  [[tube(5.2, 7.2, HOOD1, MUZ - 0.3, 32, BY), 'dark'],
-   // hood: a U open underneath (the hop chamber sits in it), legs running down into the cam lug
-   [secX([[-7.3, BY + 6.6], [7.3, BY + 6.6], [7.8, BY + 6.1], [7.8, BY - 7.5], [6.2, BY - 7.5], [6.2, BY + 5], [-6.2, BY + 5], [-6.2, BY - 7.5], [-7.8, BY - 7.5], [-7.8, BY + 6.1]], BREECH, HOOD1, 0.3), 'dark'],
-   [secX(circ(0, BY, 7.2, 28), HOOD1 - 4, HOOD1 + 0.5, 0, [circ(0, BY, 5.2, 20)]), 'dark'],
-   ...[1, -1].map(sd => [zAt(prof([[BREECH + 1, BY - 7.5], [BREECH + 19, BY - 7.5], [BREECH + 15, BY - 12], [BREECH + 5, BY - 12]], 1.6, 0.3), sd * 7), 'dark']),
-   [bx(BREECH + 14, BREECH + 19, BY - 9.5, BY - 7.5, -7.8, 7.8), 'dark']], { slide: 3 });
+  'Metal outer barrel, G19 length. Square hood over the chamber, flush with the slide top in the ejection port, with chamfered top edges; a lower block ahead of it, then the tube. Like the WE part the hood is a U open underneath (the hop chamber sits in it) with the cam lug on one leg, on the right: it drops at the rear as the slide comes back. About 97mm long here: the hood starts at the back of the ejection port, which the right-side photo puts 75mm from the slide rear (the firearm barrel is 102mm). Threaded outer barrels are a common swap.',
+  (() => {
+    const secXR = (pts, x0, x1, r) => profR(pts, x1 - x0, r).rotateY(-Math.PI / 2).translate((x0 + x1) / 2, 0, 0);
+    const WB = BY - 5.5;   // bottom of the hood walls
+    return [
+      // tube with a rounded-off muzzle crown, starting inside the block
+      [latheX([[5.2, BLK1 - 1], [7.2, BLK1 - 1], [7.2, MUZ - 0.7], [6.8, MUZ - 0.3], [5.7, MUZ - 0.3], [5.2, MUZ - 0.8], [5.2, BLK1 - 1]], 40, BY), 'dark'],
+      // hood: inverted U, top edges chamfered so the slide's left strip can run over the corner
+      [secXR([[-8.3, WB], [-8.3, HT - 2.2], [-6.1, HT], [6.1, HT], [8.3, HT - 2.2], [8.3, WB], [6.75, WB], [6.75, HT - 1.5], [-6.75, HT - 1.5], [-6.75, WB]], BREECH, HOOD1, 0.3), 'dark'],
+      // block ahead of the hood, lower so it passes under the slide top in front of the port
+      [secXR([[-8.3, BY - 5.7], [-8.3, BY + 6], [-7.1, BY + 7.2], [7.1, BY + 7.2], [8.3, BY + 6], [8.3, BY - 5.7], [6.75, BY - 5.7], [6.75, BY + 5.6], [-6.75, BY + 5.6], [-6.75, BY - 5.7]], HOOD1 - 0.2, BLK1, 0.4), 'dark'],
+      // cam lug on the right leg: the wall bends in to a 1.9mm fin, kept behind the recoil guide head
+      [secX([[8.3, WB], [6.9, WB], [5.3, BY - 6.4], [4.5, BY - 7.2], [3.1, BY - 9], [5, BY - 9], [5.7, BY - 8], [6.5, BY - 7], [7.2, BY - 6.2]], BREECH + 0.5, BREECH + 15.5, 0), 'dark'],
+      [zAt(prof([[BREECH + 0.5, BY - 8.8], [BREECH + 15.5, BY - 8.8], [BREECH + 15.5, BY - 7.4], [BREECH + 11, BY - 11.1], [BREECH + 2, BY - 11.1], [BREECH + 0.5, BY - 10.3]], 1.6, 0.15), 4.05), 'dark']];
+  })(), { slide: 3 });
 
 part('innerBarrel', 'Inner barrel', 'bar', ['G-38'], [45, 10, 0],
   'Brass inner barrel, about 84mm for the G19 (WE does not state it; aftermarket sets for the WE G19 and G19 Gen5 are 84mm, the G17 one is 97mm). Bore not published. A tightbore (Maple Leaf, Prometheus, Madbull) is a common upgrade, best done with a new bucking.',
@@ -1200,6 +1210,7 @@ const SLIDE = { pos: 0 };
 const showSlide = () => { SLIDE.pos = +slideCtl.value; spv.textContent = SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed'; };
 slideCtl.oninput = showSlide; showSlide();
 let slideOff = 0;
+const TILT = new Set(['outerBarrel', 'innerBarrel', 'hopChamber', 'bucking', 'hopArm', 'hopWheel']);
 renderer.setAnimationLoop(() => {
   exCur += (exTarget - exCur) * 0.12;
   if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
@@ -1208,9 +1219,17 @@ renderer.setAnimationLoop(() => {
   const e = exCur * exCur * (3 - 2 * exCur);
   // slide stop: turns up about the trigger pin into the slide notch over the last 2mm of travel
   const lockA = -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1);
+  // barrel unlock: after riding back with the slide, the barrel group pivots about the nose and the breech drops about
+  // 2.6mm, so the hood comes down out of the ejection port and passes under the slide top (Glock tilt-barrel action)
+  const tiltA = 0.027 * THREE.MathUtils.clamp((slideOff - 2.5) / 1.5, 0, 1);
   for (const p of parts) {
     p.position.copy(p.userData.explode).multiplyScalar(e);
     if (p.userData.slide) p.position.x -= Math.min(slideOff, p.userData.slide);
+    if (TILT.has(p.userData.id)) {
+      p.rotation.z = tiltA;
+      p.position.x += MUZ - (MUZ * Math.cos(tiltA) - BY * Math.sin(tiltA));
+      p.position.y += BY - (MUZ * Math.sin(tiltA) + BY * Math.cos(tiltA));
+    }
     if (p.userData.id === 'slideStop') {
       p.rotation.z = lockA;
       p.position.x += X(955) - (X(955) * Math.cos(lockA) - Y(305) * Math.sin(lockA));
