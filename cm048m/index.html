@@ -851,18 +851,17 @@ function hgLeverPieces() {
 }
 
 // ================= RECEIVER AND CONTROLS =================
-// top rear corner cut along the dust cover's rake so it stays under the cover; the receiver's rear edge shows only below it
-const RCV_SIDE = P([[493, 77], [801.3, 77], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
-// right wall: the ejection port, a cut down from the top edge behind the rear sight block that the carrier and its charging
-// handle show through; the selector lever's top edge closes its rear end (Taiwangun CM048M right-side close-up, real AKM)
-const RCV_RIGHT = P([[493, 77], [521.5, 77], [521.5, 93], [524, 95.4], [613.5, 95.4], [616.5, 93], [616.5, 77], [801.3, 77], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
+// side walls stop where the dust cover skirts meet them (CM048M left side photo: wall top edge shows under the skirt at
+// py 90); the cover's skirts close everything above. The right wall is lower, level with the ejection port floor, so the
+// cocking lever and the carrier face run in the gap between the wall and the cover's notched right skirt.
+const RCV_SIDE = P([[493, 90], [816.8, 90], [817.3, 90.4], [818, 91.6], [818, 143], [545, 143], [493, 132]]);
+const RCV_RIGHT = P([[493, 95.4], [818, 95.4], [818, 143], [545, 143], [493, 132]]);
 const RIVETS = [[505, 101], [525, 101], [563, 120], [752, 113]];
 part('receiver', 'Receiver (gun body)', 'rcv', ['1'], [0, 0, 0],
   'Stamped sheet steel receiver (1). Real AKM: 259mm long, 34.2mm wide, 1mm sheet, riveted to the trunnions; the CYMA body traces about 267mm. AKM magazine guide dimples above the mag well. Holds the gearbox, hop-up and trunnions.',
   [[at(prof(RCV_RIGHT, mm(1.2), 0.3), 0, 0, RZ), 'blk'], [at(prof(RCV_SIDE, mm(1.2), 0.3), 0, 0, -RZ), 'blk'],
    [bx(X(818), X(636), Y(143) - mm(1.2), Y(143), -RZ, RZ), 'blk'],
    [bx(X(553), X(496), Y(135), Y(132), -RZ, RZ), 'blk'],
-   ...[1, -1].map(s => [bx(X(794), X(521), Y(79), Y(77), s * (RZ - mm(4)), s * RZ), 'blk']),
    ...[1, -1].map(s => [at(new THREE.SphereGeometry(mm(4), 16, 8).scale(1.6, 0.8, 0.35), X(597), Y(120), s * RZ), 'blk']),
    [at(new THREE.PlaneGeometry(mm(26), mm(26)), X(619), Y(124), RZ + mm(0.6) + 0.45), 'stamp'],
    ...RIVETS.flatMap(([a, b]) => [1, -1].map(s => [cyl(mm(3.2), mm(1.4), 'z', X(a), Y(b), s * (RZ + mm(0.6)), 12), 'dark']))], { shell: true });
