@@ -236,6 +236,10 @@ const MAT = {
   blue:   { color: 0x3d6fd1, metalness: 0.3,  roughness: 0.45 },
   tan:    { color: 0x7d6442, metalness: 0.0,  roughness: 0.97 },
   anod:   { color: 0x1f2125, metalness: 0.55, roughness: 0.48 },
+  wrap:   { color: 0x1f2633, metalness: 0.1,  roughness: 0.5 },
+  plug:   { color: 0xd2ea5c, metalness: 0.0,  roughness: 0.5 },
+  tan2:   { color: 0x6c5537, metalness: 0.0,  roughness: 0.97 },
+  olive:  { color: 0x4f4e43, metalness: 0.6,  roughness: 0.42 },
 };
 
 // ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
@@ -551,16 +555,32 @@ function fixTJunctions(g) {
   return o;
 }
 
+// white roll marks: text drawn on a canvas, laid flat on a side face. alphaTest (not transparency) keeps the letters crisp
+// and lets the x-ray toggle fade them with the shell they sit on.
+function decal(key, lines, x0, x1, y0, y1, z, { align = 'center', bold = true } = {}) {
+  const W = 512, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'), lh = H / lines.length;
+  c.fillStyle = '#e4e6e8'; c.textAlign = align; c.textBaseline = 'middle';
+  c.font = `${bold ? 'bold ' : ''}${Math.round(lh * 0.8)}px Arial, Helvetica, sans-serif`;
+  lines.forEach((t, i) => c.fillText(t, align === 'center' ? W / 2 : 4, lh * (i + 0.5), W - 8));
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  MAT[key] = { color: 0xffffff, map: tex, alphaTest: 0.45, metalness: 0, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -4 };
+  const g = new THREE.PlaneGeometry(x1 - x0, y1 - y0);
+  if (z < 0) g.rotateY(Math.PI);                // left-side marks face -z and still read left to right
+  return [g.translate((x0 + x1) / 2, (y0 + y1) / 2, z), key];
+}
+
 const MUZ = X(6);              // muzzle face, 324mm ahead of the receiver front
 const HG0 = X(474), HG1 = X(226);   // handguard rear and front faces
-const HG_Y = -12, HG_W = 31, HG_H = 39;   // handguard section centre, half width and half height
+const HG_Y = -12, HG_W = 34, HG_H = 39;   // handguard section centre, half width and half height
 const RW = 28;                 // receiver half width (approximate, no top view published)
 const GT_Y = Y(370);           // gas tube axis
 const SHELL_Z = 15;            // gearbox shell half width
 const BUF_Y = Y(334);          // buffer tube axis
 const MAG_Z = -40, MAG_HZ = 75;   // box mag centre and half length across the gun: it hangs out to the left, the belt side
 const MAG_X0 = X(707), MAG_X1 = X(600);
-const MAG_TOP = Y(400), MAG_FR = Y(430), MAG_BOT = Y(560);
+const MAG_TOP = Y(401), MAG_FR = Y(413), MAG_BOT = Y(560);
 
 // ================= BARREL AND FRONT END =================
 part('flashHider', 'Flash hider (birdcage)', 'frt', [], [70, 0, 0],
@@ -572,6 +592,7 @@ part('frontSight', 'Front sight block + folding post', 'frt', [], [40, 60, 0],
   'Front sight block clamped over the outer barrel and the gas tube, with a folding front sight post on top. The post folds back flat for optics.',
   [[profR(P([[121, 300], [153, 300], [153, 345], [148, 352], [153, 358], [153, 386], [121, 386], [121, 358], [126, 352], [121, 345]]), 24, 2), 'blued'],
    [profR(P([[122, 230], [151, 230], [153, 236], [153, 301], [121, 301], [121, 236]]), 9, 1.2, [P([[128, 247], [146, 247], [146, 290], [128, 290]])]), 'blued'],
+   [profR(P([[128, 247], [146, 247], [146, 290], [128, 290]]), 4, 0.6), 'blued'],
    [cyl(1.2, 13, 'y', X(137), Y(268), 0), 'steel']]);
 
 part('outerBarrel', 'Outer barrel', 'frt', [], [20, 30, 0],
@@ -586,22 +607,23 @@ part('gasTube', 'Gas cylinder (dummy)', 'frt', [], [20, -40, 0],
 part('handguard', 'Handguard + end caps', 'frt', [], [30, 0, 0],
   'Round aluminium handguard with four Picatinny rails and two rows of through-holes each side between rows of blind dimples. It holds the battery (7.4V or 8.4V stick, Tamiya plug, not included): the plug shows through the upper holes. On the Stoner the handguard, barrel and front sight come off as one group.',
   (() => {
-    const sec = rr(-HG_W, HG_W, HG_Y - HG_H, HG_Y + HG_H, 16, 6);
-    const inner = rr(-HG_W + 3, HG_W - 3, HG_Y - HG_H + 3, HG_Y + HG_H - 3, 13, 6).reverse();
+    const sec = rr(-HG_W, HG_W, HG_Y - HG_H, HG_Y + HG_H, 25, 8);
+    const hz = y => { const c = HG_Y + HG_H - 25, d = HG_Y - HG_H + 25, e = y > c ? y - c : y < d ? y - d : 0; return HG_W - 25 + Math.sqrt(625 - e * e); };   // side surface at height y
+    const inner = rr(-HG_W + 3, HG_W - 3, HG_Y - HG_H + 3, HG_Y + HG_H - 3, 22, 8).reverse();
     const XS = [270, 302, 335, 368, 400].map(X), XD = [290, 322, 355, 388].map(X);
     const slot = (x, y, l, h) => prof(rr(x - l / 2, x + l / 2, y - h / 2, y + h / 2, h / 2 - 0.01, 4), 90, 0);
     const body = cut(secX(sec, HG0 + 5, HG1 - 7, 0, [inner]), [
       ...XS.map(x => slot(x, Y(301), 11, 6.5)), ...XS.map(x => slot(x, Y(392), 11, 6.5)),
       ...XS.map(x => cyl(7.2, 90, 'z', x, Y(340), 0, 28)),
-      ...XD.flatMap(x => [1, -1].map(s => cyl(7.6, 6, 'z', x, Y(317), s * (HG_W + 0.8), 28)))]);
-    const cap = (x0, x1) => secX(rr(-HG_W - 1.5, HG_W + 1.5, HG_Y - HG_H - 1.5, HG_Y + HG_H + 1.5, 17.5, 6), x0, x1, 1.2, [rr(-12, 12, -12, 12, 11.9, 6).reverse()]);
+      ...XD.flatMap(x => [1, -1].map(s => cyl(7.6, 6, 'z', x, Y(317), s * (hz(Y(317)) + 0.8), 28)))]);
+    const cap = (x0, x1) => secX(rr(-HG_W - 1.5, HG_W + 1.5, HG_Y - HG_H - 1.5, HG_Y + HG_H + 1.5, 26.5, 8), x0, x1, 1.2, [rr(-12, 12, -12, 12, 11.9, 6).reverse()]);
     return [[body, 'anod'], [cap(HG1 - 9, HG1 - 1.2), 'dark'], [cap(HG0 + 1.2, HG0 + 5), 'dark'],
       ...rail(HG0 + 8, HG1 - 10, 'up', HG_Y + HG_H - 0.5, { halfW: 10.5, base: 6, tooth: 3 }).map(g => [g, 'anod']),
       ...rail(HG0 + 8, HG1 - 10, 'down', -(HG_Y - HG_H + 0.5), { halfW: 10.5, base: 4, tooth: 3 }).map(g => [g, 'anod']),
-      ...rail(HG0 + 8, HG1 - 10, 'right', HG_W - 2, { halfW: 10, base: 3.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
-      ...rail(HG0 + 8, HG1 - 10, 'left', HG_W - 2, { halfW: 10, base: 3.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
-      ...[[X(253), Y(298)], [X(450), Y(298)], [X(253), Y(398)], [X(450), Y(398)]].flatMap(([x, y]) => [1, -1].map(s => [cyl(1.6, 1.2, 'z', x, y, s * (HG_W + 0.2), 12), 'steel']))];
-  })());
+      ...rail(HG0 + 8, HG1 - 10, 'right', HG_W - 2, { halfW: 10, base: 5.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
+      ...rail(HG0 + 8, HG1 - 10, 'left', HG_W - 2, { halfW: 10, base: 5.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
+      ...[[X(253), Y(298)], [X(450), Y(298)], [X(253), Y(398)], [X(450), Y(398)]].flatMap(([x, y]) => [1, -1].map(s => [cyl(1.6, 1.2, 'z', x, y, s * (hz(y) + 0.2), 12), 'steel']))];
+  })(), { shell: true });
 
 part('vertGrip', 'Vertical foregrip', 'frt', [], [0, -70, 0],
   'Polymer vertical foregrip on a Picatinny clamp, supplied with the gun along with two ribbed rail covers. It clamps to the bottom rail of the handguard.',
@@ -611,10 +633,10 @@ part('vertGrip', 'Vertical foregrip', 'frt', [], [0, -70, 0],
 
 part('battery', 'Battery (7.4V LiPo stick, not included) + leads', 'frt', [], [60, 60, -60],
   'The battery goes in the handguard: a 7.4V or 8.4V stick pack with a Tamiya plug (not included). The leads come forward out of the gearbox, so the wiring runs along the barrel to the handguard. Shown as a 7.4V 1200mAh-size stick beside the barrel.',
-  [[bx(25, 140, -7, 9, -27, -13), 'red'],
+  [[bx(25, 140, -7, 9, -27, -13), 'wrap'],
    [tubeAlong([[-10, -12, -16], [10, -8, -18], [25, -2, -20]], 1.1, 24), 'black'],
    [tubeAlong([[140, 1, -20], [130, 14, -22], [115, 22, -24]], 1.1, 24), 'black'],
-   [bx(105, 118, 18, 27, -27, -21), 'white']]);
+   [bx(105, 118, 18, 27, -27, -21), 'plug']]);
 
 // ================= RECEIVER =================
 // upper receiver: traced side outline, the rear section raised with a Picatinny top rail over a row of lightening holes
@@ -627,24 +649,33 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       bx(X(700) + 1, X(597) - 1, Y(322) - 30, Y(322) + 1, -RW + 4, RW - 4),           // feed tray well under the cover
       cyl(4.2, 10, 'z', X(660), -11, -RW + 1, 20),                                       // BB feed port in the left wall
       cyl(3.6, 80, 'z', X(575), Y(384), 0, 16),                                         // front lightening hole
-      bx(X(963), X(700), -16, 16, -SHELL_Z - 1, SHELL_Z + 1)]);                       // gearbox tunnel
+      bx(X(963), X(700), -16, 16, -SHELL_Z - 1, SHELL_Z + 1),                         // gearbox tunnel
+      prof(rr(X(938), X(728), Y(358), Y(322), 7, 4), 2.4, 0).translate(0, 0, -RW),        // left side panel
+      prof(rr(X(938), X(728), Y(342), Y(322), 6, 4), 2.4, 0).translate(0, 0, RW),         // right side panel
+      prof(rr(X(955), X(560), Y(359), Y(345), 4.5, 4), 6, 0).translate(0, 0, RW),         // charging handle channel, right side
+      ...[1, -1].map(s => bx(X(955), X(735), Y(304), Y(302), s * RW - 0.6, s * RW + 0.6))]);  // step under the rail section
     return [[body, 'anod'],
       ...rail(X(955), X(735), 'up', Y(277) - 1, { halfW: 10.5, base: 1, tooth: 3 }).map(g => [g, 'anod']),
-      ...[302, 322, 346].flatMap(py => [1, -1].map(s => [bx(X(955), X(735), Y(py) - 0.6, Y(py) + 0.6, s * RW - 0.5, s * RW + 0.5), 'anod']))];
+      decal('markL', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), -RW - 0.05),
+      decal('markR', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), RW + 0.05)];
   })(), { shell: true });
 
 part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
   'Lower receiver: the trigger housing with the trigger guard and the selector, and the pistol grip below. It joins the upper with a tongue-and-groove rail and two body pins; the gearbox rests in it.',
   (() => {
     const tray = profR(P([[470, 386], [965, 386], [962, 392], [905, 400], [887, 410], [835, 410], [835, 400], [705, 400], [705, 396], [600, 396], [600, 398], [470, 398]]), 46, 1.2);
-    const guard = profR(P([[740, 399], [835, 399], [835, 462], [745, 462], [740, 457]]), 22, 1.5, [P([[752, 405], [822, 405], [822, 450], [757, 450], [752, 445]])]);
-    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12)]), 'anod'], [guard, 'anod']];
+    const guard = profR(P([[740, 399], [835, 399], [835, 455], [828, 462], [750, 462], [740, 452]]), 22, 1.5, [rr(X(822), X(751), Y(451), Y(406), 8, 5)]);
+    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12)]), 'anod'], [guard, 'anod'],
+      decal('safeL', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), -23.05, { align: 'left' }),
+      decal('safeR', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), 23.05, { align: 'left' })];
   })(), { shell: true });
 
 part('topCover', 'Top cover (feed cover)', 'rcv', [], [0, 110, 0],
-  'Top cover over the feed tray. On the real gun it holds the belt feed; on the airsoft gun it hinges up to reach the hop-up adjuster and the feed tray. The window on top is a dummy.',
-  [[cut(profR(P([[597, 272], [700, 272], [700, 322], [597, 322]]), RW * 2, 1.5), [bx(X(690), X(605), Y(300), Y(281), -RW + 5, RW - 5)]), 'dark'],
-   [bx(X(690), X(605), Y(300), Y(296), -RW + 5, RW - 5), 'black']]);
+  'Top cover over the feed tray. On the real gun it holds the belt feed; on the airsoft gun it hinges up to reach the hop-up adjuster and the feed tray. The windows in its sides are dummies.',
+  [[cut(profR(P([[597, 272], [700, 272], [700, 322], [597, 322]]), RW * 2, 1.5), [
+      prof(rr(X(692), X(605), Y(307), Y(287), 3, 3), 14, 0).translate(0, 0, -RW), prof(rr(X(692), X(605), Y(307), Y(287), 3, 3), 14, 0).translate(0, 0, RW)]), 'dark'],
+   [bx(X(692), X(605), Y(307), Y(287), -21.4, -21.05), 'black'], [bx(X(692), X(605), Y(307), Y(287), 21.05, 21.4), 'black'],
+   [bx(X(653), X(643), Y(293), Y(291), -RW + 4, RW - 4), 'steel']]);
 
 part('coverLatch', 'Top cover latch lever + spring', 'rcv', [], [30, 100, 0],
   'Latch lever ahead of the top cover, held down by a coil spring. Press it to unlatch and lift the cover.',
@@ -660,20 +691,25 @@ part('feedTray', 'Feed tray + BB feed port', 'rcv', [], [0, 50, -40],
    [cyl(3.4, 14, 'z', X(660), -11, -RW + 4, 16), 'steel']]);
 
 part('feedArm', 'Feed tube arm + spring', 'rcv', [], [0, 20, -70],
-  'Spring-loaded arm on the left side of the receiver. The top of the BB feed tube clips into its back end, which lines up with the BB port into the feed tray; a coil spring at the front keeps it closed. Swing it out to free the tube.',
-  [[profR(P([[549, 318], [561, 318], [566, 331], [648, 337], [670, 343], [668, 356], [648, 355], [566, 349], [561, 362], [549, 362]]), 4, 1).translate(0, 0, -RW - 2.2), 'zinc'],
-   [spring(2.6, 0.45, 22, 10, 'y', X(542), Y(362), -RW - 2.6), 'spring'], [cyl(2.4, 6, 'z', X(555), Y(325), -RW - 2.2, 16), 'steel']]);
+  'Spring-loaded arm on the left side of the receiver. The top of the BB feed tube clips into its back end, which lines up with the BB port into the feed tray. The latch lever at its front end, with its coil spring showing through a window, keeps it closed. Swing it out to free the tube.',
+  [[profR(P([[566, 324], [690, 324], [709, 343], [709, 347], [566, 347]]), 4, 0.8).translate(0, 0, -RW - 2), 'dark'],
+   [profR(P([[570, 300], [590, 300], [590, 390], [570, 390]]), 4, 0.8, [P([[574, 330], [586, 330], [586, 357], [574, 357]])]).translate(0, 0, -RW - 5), 'blued'],
+   [spring(3.4, 0.5, 18, 7, 'y', X(580), Y(357), -RW - 5), 'spring'],
+   [cyl(3.2, 4, 'z', X(625), Y(339), -RW - 4.5, 16), 'steel'],
+   [latheX([[3.3, 0], [5.6, 0], [5.6, 6], [3.3, 6], [3.3, 0]], 24).rotateY(Math.PI / 2).translate(X(662), Y(341), -RW - 0.5), 'dark']]);
 
 part('charging', 'Charging handle knob + side stud (dummy)', 'rcv', [], [0, 0, 60],
-  'Hollow knob and stud on the right side of the receiver, after the real gun’s charging handle. Dummy on the airsoft gun.',
-  [[latheX([[0, 0], [9, 0], [9, 13], [6, 13], [6, 2], [0, 2]], 28).rotateY(-Math.PI / 2).translate(X(759), Y(352), RW - 1), 'steel'],
-   [latheX([[0, 0], [7, 0], [7, 9], [4.5, 9], [4.5, 2], [0, 2]], 28).rotateY(-Math.PI / 2).translate(X(659), Y(353), RW - 1), 'steel']]);
+  'Hollow knob and stud on the right side of the receiver, standing out of the long channel the real gun’s charging handle runs in. Dummy on the airsoft gun.',
+  [[latheX([[0, 0], [8.4, 0], [8.4, 21], [5.6, 21], [5.6, 4], [0, 4]], 28).rotateY(-Math.PI / 2).translate(X(759), Y(352), RW - 6), 'olive'],
+   [latheX([[0, 0], [6.6, 0], [6.6, 14], [4.2, 14], [4.2, 4], [0, 4]], 28).rotateY(-Math.PI / 2).translate(X(659), Y(352), RW - 6), 'olive'],
+   [cyl(5.4, 0.4, 'z', X(759), Y(352), RW - 1.8, 24), 'black'], [cyl(4, 0.4, 'z', X(659), Y(352), RW - 1.8, 20), 'black']]);
 
 part('rearSight', 'Rear sight (flip-up)', 'rcv', [], [0, 70, 0],
   'Rear aperture sight on the top rail, at the back of the receiver.',
   [[profR(P([[870, 270], [955, 270], [955, 277], [870, 277]]), 20, 0.8), 'blued'],
    [profR(P([[875, 255], [893, 255], [896, 270], [872, 270]]), 14, 0.8, [circ(X(884), Y(262), 1.2, 12)]), 'blued'],
    [cyl(3.6, 24, 'z', X(905), Y(266), 0, 16), 'blued'],
+   [gear(7.6, 30, 7, X(905), Y(264), 15.5, { hole: 0 }), 'blued'],
    [profR(P([[935, 257], [952, 257], [952, 270], [935, 270]]), 6, 0.8), 'blued']]);
 
 part('selector', 'Selector lever (SAFE / FIRE)', 'rcv', [], [0, 0, -50],
@@ -712,7 +748,12 @@ part('gears', 'Gear set (sector, spur, bevel)', 'gbx', [], [0, 130, -90],
 
 part('trigger', 'Trigger + trigger switch', 'gbx', [], [0, 100, -60],
   'Trigger in the gearbox and the micro switch it closes. No electronic trigger from the factory; the wires leave the gearbox at the front.',
-  [[profR(P([[787, 395], [800, 395], [805, 420], [804, 438], [797, 449], [794, 447], [799, 436], [799, 420], [790, 404]]), 6, 1), 'blued'],
+  [[profR((() => {   // blade along a quadratic curve, tapering to the tip
+      const q = (t, a, b, c) => (1 - t) ** 2 * a + 2 * t * (1 - t) * b + t * t * c, F = [], B = [];
+      for (let i = 0; i <= 12; i++) { const t = i / 12, x = q(t, 794, 812, 788), y = q(t, 398, 426, 453);
+        const dx = 2 * (1 - t) * (812 - 794) + 2 * t * (788 - 812), dy = 2 * (1 - t) * (426 - 398) + 2 * t * (453 - 426), l = Math.hypot(dx, dy), w = 3 - 1.6 * t;
+        F.push([x - dy / l * w, y + dx / l * w]); B.push([x + dy / l * w, y - dx / l * w]); }
+      return P([...F, ...B.reverse()]); })(), 6, 1), 'blued'],
    [bx(-222, -200, -34, -20, -6, 6), 'black'], [bx(-216, -205, -20, -17, -3, 3), 'brass']]);
 
 part('motor', 'Motor (long type, in the grip)', 'gbx', [], [-40, 60, -70],
@@ -740,18 +781,17 @@ part('wiring', 'Wiring (front wired)', 'gbx', [], [0, 150, -40],
 // ================= GRIP AND STOCK =================
 part('grip', 'Pistol grip + motor plate', 'stk', [], [0, -120, 0],
   'A2-style pistol grip that houses the motor. The base plate screws off to reach the motor height screw.',
-  [[profR(P([[834, 408], [887, 408], [904, 440], [925, 480], [945, 515], [956, 530], [952, 540], [930, 548], [905, 552], [885, 553], [878, 546], [870, 525], [855, 495], [848, 490], [844, 480], [842, 470], [837, 460], [835, 430]]), 30, 6), 'checker']]);
+  [[profR(P([[834, 408], [887, 408], [904, 440], [925, 480], [945, 515], [956, 530], [952, 540], [930, 548], [905, 552], [885, 553], [878, 546], [870, 525], [855, 495], [848, 490], [844, 480], [842, 470], [837, 460], [835, 430]]), 30, 6), 'checker']], { shell: true });
 
 part('bufferTube', 'Buffer tube + receiver adapter', 'stk', [], [-90, 0, 0],
   'Buffer tube the stock slides on, screwed into an adapter at the back of the receiver. Aftermarket adapters fit AR stocks and M249 Para stocks.',
   [[latheX([[0, X(965)], [15.5, X(965)], [15.5, X(995)], [12.6, X(995)], [12.6, X(1140)], [0, X(1140)]].reverse(), 32).translate(0, BUF_Y, 0), 'blued'],
-   [latheX([[12.7, X(976)], [15.8, X(976)], [15.8, X(994)], [12.7, X(994)]].reverse(), 8).translate(0, BUF_Y, 0), 'dark']]);
+   [latheX([[12.7, X(976)], [17.6, X(976)], [17.6, X(994)], [12.7, X(994)]].reverse(), 6, 0, 0, Math.PI / 6).translate(0, BUF_Y, 0), 'zinc']]);
 
 part('stock', 'Retractable stock', 'stk', [], [-180, 0, 0],
   'Retractable stock on the buffer tube; adjusting it takes the gun from 819mm (stock in) to 889mm (stock out). It comes off for the field strip: unscrew the bolt underneath, then press the side lever.',
   [[profR(P([[1133, 292], [1178, 292], [1181, 300], [1179, 450], [1172, 466], [1158, 471], [1146, 466], [1133, 447], [1125, 400], [1127, 352], [1135, 346], [1135, 300]]), 30, 3,
-    [P([[1132, 368], [1146, 365], [1146, 420], [1137, 424], [1132, 418]])]), 'poly'],
-   [cut(bx(X(1162), X(1150), Y(425), Y(370), -16, 16), [bx(X(1170), X(1140), Y(440), Y(360), -14, 14)]), 'black']]);
+    [P([[1150, 362], [1156, 357], [1162, 362], [1163, 421], [1157, 427], [1151, 421]])]), 'poly']]);
 
 part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
   'Side lever at the back of the receiver that releases the stock and buffer tube.',
@@ -760,17 +800,21 @@ part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
 // ================= BOX MAGAZINE =================
 part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
   '1200-round electric box magazine: a hard inner box under a tan Cordura cover, with a black top frame that clamps to the bracket under the receiver. The loading door tends to pop open (owners tape it after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
-  [[cut(bx(MAG_X0, MAG_X1, MAG_FR, MAG_TOP, MAG_Z - MAG_HZ, MAG_Z + MAG_HZ), [bx(MAG_X0 + 6, MAG_X1 - 6, MAG_FR + 6, MAG_TOP - 5, MAG_Z - MAG_HZ + 6, MAG_Z + MAG_HZ - 30)]), 'poly2'],
-   ...[0, 1, 2].map(i => [bx(MAG_X0 + 8, MAG_X1 - 8, MAG_FR + 8 + i * 4, MAG_FR + 9.5 + i * 4, MAG_Z - MAG_HZ + 8, MAG_Z + MAG_HZ - 32), 'black']),
+  [[cut(bx(MAG_X0, MAG_X1, MAG_FR, MAG_TOP, MAG_Z - MAG_HZ, MAG_Z + MAG_HZ), [bx(MAG_X0 + 5, MAG_X1 - 5, MAG_FR - 1, MAG_TOP - 3, MAG_Z - MAG_HZ + 5, MAG_Z + MAG_HZ - 5)]), 'poly2'],
+   ...[0, 1, 2].map(i => [bx(MAG_X0 - 0.6, MAG_X1 + 0.6, MAG_FR + 2.5 + i * 2.6, MAG_FR + 3.5 + i * 2.6, MAG_Z - MAG_HZ - 0.6, MAG_Z + MAG_HZ + 0.6), 'black']),
    [bx(MAG_X0 + 3, MAG_X1 - 3, MAG_BOT + 3, MAG_FR, MAG_Z - MAG_HZ + 3, MAG_Z + MAG_HZ - 3), 'poly']], { shell: true });
 
 part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
   'Tan Cordura cover over the box, with a zip, a snap strap and grommets, after the real gun’s soft ammo pouch.',
   [[cut(secX(rr(MAG_Z - MAG_HZ - 1, MAG_Z + MAG_HZ + 1, MAG_BOT, MAG_FR + 2, 6, 4), MAG_X0 - 1, MAG_X1 + 1, 1.5), [bx(MAG_X0 + 2, MAG_X1 - 2, MAG_BOT + 3, MAG_FR + 6, MAG_Z - MAG_HZ + 2, MAG_Z + MAG_HZ - 2)]), 'tan'],
-   [bx(X(662), X(654), MAG_BOT + 4, Y(470), MAG_Z - MAG_HZ - 2.2, MAG_Z - MAG_HZ - 1), 'brass'],
-   [bx(X(668), X(648), Y(440), Y(470), MAG_Z - MAG_HZ - 2.4, MAG_Z - MAG_HZ - 1), 'tan'],
-   [cyl(5, 2, 'z', X(658), Y(452), MAG_Z - MAG_HZ - 3, 20), 'black'],
-   ...[[X(613), Y(440)], [X(694), Y(440)]].map(([x, y]) => [cyl(2.6, 1.6, 'z', x, y, MAG_Z - MAG_HZ - 1.8, 16), 'steel'])]);
+   [bx(X(659), X(653), MAG_BOT + 3, Y(458), MAG_Z - MAG_HZ - 3.3, MAG_Z - MAG_HZ - 2.2), 'tan2'],
+   [bx(X(657.5), X(654.5), MAG_BOT + 3, Y(458), MAG_Z - MAG_HZ - 3.7, MAG_Z - MAG_HZ - 3), 'brass'],
+   [bx(X(659), X(653), Y(478), Y(464), MAG_Z - MAG_HZ - 4.4, MAG_Z - MAG_HZ - 3), 'brass'],
+   [profR(P([[642, 414], [676, 414], [676, 452], [668, 462], [650, 462], [642, 452]]), 2.2, 0.5).translate(0, 0, MAG_Z - MAG_HZ - 3.4), 'tan2'],
+   [cyl(4.6, 2.4, 'z', X(659), Y(450), MAG_Z - MAG_HZ - 4.8, 20), 'black'],
+   ...[[X(614), Y(420)], [X(694), Y(420)]].flatMap(([x, y]) => [[cyl(2.6, 1.6, 'z', x, y, MAG_Z - MAG_HZ - 2.8, 16), 'steel'], [cyl(2.6, 1.6, 'z', x, y, MAG_Z + MAG_HZ + 2.8, 16), 'steel']]),
+   [bx(X(659), X(653), MAG_BOT + 3, Y(462), MAG_Z + MAG_HZ + 2.2, MAG_Z + MAG_HZ + 3.3), 'tan2'],
+   [bx(X(657.5), X(654.5), MAG_BOT + 3, Y(462), MAG_Z + MAG_HZ + 3, MAG_Z + MAG_HZ + 3.7), 'brass']], { shell: true });
 
 part('feedTube', 'BB feed tube (spring tube)', 'mag', [], [-20, -80, -90],
   'Flexible spring feed tube from the mag to the port in the left side of the receiver. Its collar is Stoner-specific: to run an M249 box mag the collar or the whole tube is swapped (a printed Stoner 96 feed tube, a 3/8in coupler, or a BCI adapter).',
