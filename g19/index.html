@@ -101,7 +101,9 @@
 <script type="importmap">
 { "imports": {
   "three": "../vendor/three/three.module.js",
-  "three/addons/": "../vendor/three/addons/"
+  "three/addons/": "../vendor/three/addons/",
+  "three-mesh-bvh": "../vendor/three-mesh-bvh/index.module.js",
+  "three-bvh-csg": "../vendor/three-bvh-csg/index.module.js"
 } }
 </script>
 </head>
@@ -156,6 +158,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 
 // WE G-series semi exploded view (G17/G19/G27/G33/G34), part numbers G-01 to G-76. The sheet prints no names:
 // names come from shop listings (Ebog Designs, Socom Tactical, Hero Outdoors); the third field marks names read off the drawing.
@@ -487,6 +490,44 @@ function profR(pts, depth, r, holes = []) {
   g.translate(0, 0, -(depth - 2 * r) / 2);
   return g;
 }
+// subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
+// are kept, so the inputs need no matching uv layout.
+const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
+function cut(geo, cutters) {
+  const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
+  let a = brush(geo);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), SUBTRACTION);
+  return fixTJunctions(a.geometry);
+}
+// CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
+// triangle with vertices on its edges is re-fanned around its centroid so both sides share the split points.
+function fixTJunctions(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, nt = P.length / 9, E = 1e-4, C = 2;
+  const vk = new Map(), vs = [], grid = new Map();
+  for (let i = 0; i < P.length; i += 3) { const k = P.slice(i, i + 3).map(v => Math.round(v / E)).join(); if (vk.has(k)) continue;
+    vk.set(k, vs.length); const v = [P[i], P[i + 1], P[i + 2]]; vs.push(v);
+    const ck = v.map(c => Math.floor(c / C)).join(); if (!grid.has(ck)) grid.set(ck, []); grid.get(ck).push(v); }
+  const onEdge = (a, b) => { const out = [], lo = [0, 1, 2].map(j => Math.floor((Math.min(a[j], b[j]) - E) / C)), hi = [0, 1, 2].map(j => Math.floor((Math.max(a[j], b[j]) + E) / C));
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    for (let x = lo[0]; x <= hi[0]; x++) for (let y = lo[1]; y <= hi[1]; y++) for (let z = lo[2]; z <= hi[2]; z++) for (const v of grid.get(`${x},${y},${z}`) || []) {
+      const t = ((v[0] - a[0]) * d[0] + (v[1] - a[1]) * d[1] + (v[2] - a[2]) * d[2]) / dd; if (t <= 1e-5 || t >= 1 - 1e-5) continue;
+      const q = [a[0] + d[0] * t - v[0], a[1] + d[1] * t - v[1], a[2] + d[2] * t - v[2]]; if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] < E * E) out.push([t, v]); }
+    return out.sort((p, q) => p[0] - q[0]); };
+  const pos = [], nor = [];
+  for (let t = 0; t < nt; t++) {
+    const V = [0, 1, 2].map(j => [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]), M = [0, 1, 2].map(j => [N[t * 9 + j * 3], N[t * 9 + j * 3 + 1], N[t * 9 + j * 3 + 2]]);
+    const ring = []; let split = false;
+    for (let j = 0; j < 3; j++) { const a = V[j], b = V[(j + 1) % 3], na = M[j], nb = M[(j + 1) % 3]; ring.push([a, na]);
+      for (const [s, v] of onEdge(a, b)) { split = true; ring.push([v, na.map((c, k) => c + (nb[k] - c) * s)]); } }
+    if (!split) { pos.push(...V.flat()); nor.push(...M.flat()); continue; }
+    const c = [0, 1, 2].map(k => (V[0][k] + V[1][k] + V[2][k]) / 3), cn = [0, 1, 2].map(k => (M[0][k] + M[1][k] + M[2][k]) / 3);
+    for (let i = 0; i < ring.length; i++) { const [p0, n0] = ring[i], [p1, n1] = ring[(i + 1) % ring.length]; pos.push(...c, ...p0, ...p1); nor.push(...cn, ...n0, ...n1); }
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return o;
+}
 
 const MUZ = X(213);            // slide front face, 83.6
 const REAR = X(1633);          // slide rear face, -89.2
@@ -679,8 +720,19 @@ part('recoilSpring', 'Recoil spring', 'bar', ['G-32'], [100, -36, 0],
 
 // ================= FRAME AND CONTROLS =================
 const FT = Y(220);   // frame top under the slide
+// controls that sit in openings in the frame: their positions are shared with the frame so it can cut the openings
+const TD_X0 = (X(832) + X(797)) / 2, TD_YB = -19.8, TD_YT = TD_YB + 4.1;   // takedown latch plate (front face centre, bottom, top)
+// the latch leans forward about 17 degrees in its slot (WE left-profile photo; the Glock's does too)
+const tdTilt = g => g.translate(-TD_X0, -(TD_YB + 2), 0).rotateZ(-0.3).translate(TD_X0, TD_YB + 2, 0);
+const SS_PX = X(955), SS_PY = Y(305), SS_Z0 = -11.2;   // slide stop eye on the trigger pin; its bar lies in a recess in the left wall
+const SS_EYE = Array.from({ length: 13 }, (_, i) => { const t = -Math.PI / 2 + i / 12 * Math.PI; return [SS_PX + 2.6 * Math.cos(t), SS_PY + 2.6 * Math.sin(t)]; });
+// side profile: eye at the front, bar rising rearward to the slide-notch tab and the paddle root
+const SS_BAR = [[SS_PX, SS_PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [SS_PX, SS_PY - 2.6], ...SS_EYE.slice(1, -1)];
+// mag catch button: 4.3 wide and 8.2 tall, leaning 17 degrees with the grip (WE profile photo)
+const MC_X = -30.7, MC_Y = -47.8, MC_HW = 2.15, MC_HH = 4.1;
+const mcLean = g => g.translate(-MC_X, -MC_Y, 0).rotateZ(-17 * D2R).translate(MC_X, MC_Y, 0);
 part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
-  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
+  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. The top is open between the rail walls, where the chassis and trigger group drop in; the pins pass through holes, the takedown latch ends sit in slots, the slide stop lies in a recess in the left wall and the mag catch in a window through the front strap. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
   (() => {
     // outline traced from the photo (contour, then the checkering on the straps smoothed out), split into the dust cover
     // (flat extrusion ending inside the grip at x px 1100), the trigger guard, and one loft for the rear frame and grip
@@ -745,7 +797,21 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       // moulded ledge on the left wall under the slide stop paddle (about 17mm long, sloped ends; GCA close-up and WE profile)
       [profR([[-27, -19], [-29, -17.6], [-42, -17.6], [-44, -19]], 1.1, 0.4).translate(0, 0, -12.45), 'frame'],
       [bx(-99.4, -97, -97.2, -95.4, -2.5, 2.5), 'black']);
-    return out;
+    // Openings the parts sit in, cut out of the moulding: the open top between the rail walls (the chassis, trigger
+    // mechanism and takedown latch drop in from above), the magwell, through holes for the three cross pins, the takedown
+    // latch slots, the trigger slot over the guard opening, the slide stop recess in the left wall and the mag catch window.
+    const cutters = [
+      prof([[14, FT + 3], [-87.1, FT + 3], [-87.1, -15.3], [-78.4, -20], [-74.5, -24], [-72.1, -29], [-73.2, -41.6], [-60, -41.6], [-45, -25.5], [14, -25.5]], 17, 0),
+      magT(magExt(MD + 0.1, MW + 0.1, 5, -125, 9)),
+      ...[[X(955), Y(305)], [X(1000), Y(262)], [X(1483), Y(445)]].map(([x, y]) => cyl(1.65, 40, 'z', x, y, 0, 20)),
+      tdTilt(bx(TD_X0 - 1.5, TD_X0 + 1.5, TD_YB - 0.4, TD_YT + 0.4, -20, 20)),
+      bx(X(1045), X(945), -33, -24, -3.7, 3.7),
+      prof(SS_BAR, 2.6, 0.3).translate(0, 0, -11.6),
+      mcLean(bx(MC_X - MC_HW - 0.25, MC_X + MC_HW + 0.25, MC_Y - MC_HH - 0.25, MC_Y + MC_HH + 0.25, -20, 20))];
+    // the closed solids get cut: dust cover, trigger guard, grip loft, the rail strip and the slide stop ledge (the patches
+    // on the grip are open surfaces and stay clear of the openings)
+    const solids = new Set([0, 1, 2, ...out.flatMap(([g], i) => g.type === 'ExtrudeGeometry' || (g.type === 'BoxGeometry' && g.parameters.width > 100) ? [i] : [])]);
+    return out.map(([g, m], i) => [solids.has(i) ? cut(g, cutters) : g, m]);
   })(), { shell: true });
 
 part('serialPlate', 'Serial plate', 'frm', ['G-03'], [0, -42, 0],
@@ -761,40 +827,33 @@ part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10
    // locking block uprights either side of the barrel lug (frame-top photo)
    ...[1, -1].map(sd => [bx(-1.5, 2, FT + 1.5, -3.5, sd * 8.1 - 0.6, sd * 8.1 + 0.6), 'zinc']),
    [cyl(1.4, 3, 'y', -5, FT + 0.5, 0, 10), 'steel'],
-   [cyl(1.5, 24.3, 'z', X(1000), Y(262), 0, 16), 'steel']]);   // pin ends 0.15mm proud, so they never sit in the frame surface
+   [cyl(1.5, 23.7, 'z', X(1000), Y(262), 0, 16), 'steel']]);   // pin ends 0.15mm down in their holes
 
 part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0],
   'Takedown latch (slide lock): one flat steel plate across the frame, its grooved ends standing just proud of the frame sides, a raised tab on top that holds the slide, and a notch underneath for the flat spring G-11. Pull it down on both sides with the slide a few mm back, then run the slide off forward (WE manual). Ebog sells it as a "slide release lever", which is wrong.',
   (() => {
     // plate outline across the frame (z) and up (y), proportions from the Glock part photo: 26mm long, 4.1mm bar,
     // 11.3mm tab standing 2.9mm higher, two grooves in each end. 2.6mm thick, centred in the frame slot.
-    const X0 = (X(832) + X(797)) / 2, YB = -19.8, YT = YB + 4.1, L = 13;
+    const X0 = TD_X0, YB = TD_YB, YT = TD_YT, L = 13;
     const end = sd => { const pts = []; for (let k = 0; k <= 12; k++) { const y = YB + 4.1 * k / 12, g = Math.cos(k / 12 * Math.PI * 3);
       pts.push([sd * (L - 0.45 * (1 - g) / 2), y]); } return sd > 0 ? pts : pts.reverse(); };
     const plate = [[-0.9, YB], [-0.9, YB + 0.5], [0.9, YB + 0.5], [0.9, YB], ...end(1), [5.65, YT], [5.2, YT + 2.9], [-5.2, YT + 2.9], [-5.65, YT], ...end(-1)];
-    // the latch leans forward about 17 degrees in its slot (WE left-profile photo; the Glock's does too)
-    const tilt = g => g.translate(-X0, -(YB + 2), 0).rotateZ(-0.3).translate(X0, YB + 2, 0);
     return [
       [secX(plate, X0 - 1.3, X0 + 1.3, 0.15), 'blued'],
-      // the slot in each frame side the latch ends sit in
-      ...[1, -1].map(sd => [bx(X0 - 1.9, X0 + 1.9, YB - 0.8, YT + 0.8, sd * 11.97 - 0.08, sd * 11.97 + 0.08), 'black']),
       // flat spring under the latch, bowed up into the notch
-      [secX([[-6, YB - 1.4], [-1.2, YB + 0.3], [1.2, YB + 0.3], [6, YB - 1.4], [6, YB - 1.8], [1.2, YB - 0.1], [-1.2, YB - 0.1], [-6, YB - 1.8]], X0 - 2, X0 + 2, 0), 'spring']].map(([g, m]) => [tilt(g), m]);
+      [secX([[-6, YB - 1.4], [-1.2, YB + 0.3], [1.2, YB + 0.3], [6, YB - 1.4], [6, YB - 1.8], [1.2, YB - 0.1], [-1.2, YB - 0.1], [-6, YB - 1.8]], X0 - 2, X0 + 2, 0), 'spring']].map(([g, m]) => [tdTilt(g), m]);
   })());
 
 part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50, 0],
   'Stamped steel slide stop on the left (Gen3 is left side only). An eye at the front rides on the trigger pin; the bar runs back inside a slot in the frame wall and rises to a tab that comes up into the notch in the slide, and the paddle is bent outward with grooves for the thumb. The follower pushes it up on an empty mag to lock the slide open; wire spring G-13, hooked on the small tab on top, holds it down. Gen5 has a two-sided one.',
   (() => {
-    const PX = X(955), PY = Y(305), Z0 = -10.8;
-    const eye = Array.from({ length: 13 }, (_, i) => { const t = -Math.PI / 2 + i / 12 * Math.PI; return [PX + 2.6 * Math.cos(t), PY + 2.6 * Math.sin(t)]; });
-    // side profile: eye at the front, bar rising rearward to the slide-notch tab and the paddle root
-    const bar = [[PX, PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [PX, PY - 2.6], ...eye.slice(1, -1)];
+    const PX = SS_PX, PY = SS_PY, Z0 = SS_Z0, bar = SS_BAR;
     const spr = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-18.6, -15.9], [-12, -15.6], [-6, -14.4], [-2.5, -15.2], [-1.6, -17.4]].map(([a, b]) => new THREE.Vector3(a, b, Z0 + 0.7))), 24, 0.25, 6, false);
     return [[prof(bar, 1, 0.15, [circ(PX, PY, 1.55, 14)]).translate(0, 0, Z0), 'blued'],
       // paddle, bent out of the frame wall: wider than tall (10.5 x 7mm in the WE profile photo), the front of its top edge
       // up against the slide and the rear stepped down into a big rounded corner, small radii below, three grooves along it
       [profR([[-29.8, -10.1], [-35.8, -10.1], [-36.2, -10.8], ...arcPts(-38.3, -12.8, 2, 90, 180), ...arcPts(-38.8, -15.5, 1.5, 180, 270), ...arcPts(-31.3, -15.5, 1.5, 270, 360)], 1.6, 0.35).translate(0, 0, -12.3), 'blued'],
-      [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'blued'],
+      [bx(-34.4, -32.6, -16.8, -10.9, -11.6, -10.7), 'blued'],
       ...[-12, -13.5, -15].map(y => [bx(-39.4, -30.4, y - 0.22, y + 0.22, -13.13, -12.98), 'black']),
       // spring hook tab and the wire spring
       [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'blued'], [spr, 'spring']];
@@ -805,14 +864,18 @@ part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
   (() => {
     // button 4.3 wide and 8.2 tall, leaning 17 degrees with the grip (WE profile photo), grooves along its length; its face
     // follows the rounded front of the grip (0.5mm proud) instead of standing square out of it
-    const MX = -30.7, MY = -47.8, HW = 2.15, HH = 4.1, LEAN = -17 * D2R;
+    const MX = MC_X, MY = MC_Y, HW = MC_HW, HH = MC_HH, lean = mcLean;
     const zf = x => -14.15 + (x - (MX - HW)) * 1.35 / (2 * HW);
     const xz = (pts, h) => profR(pts.map(([x, z]) => [x, z]), h, 0.2).rotateX(Math.PI / 2).translate(0, MY, 0);
-    const lean = g => g.translate(-MX, -MY, 0).rotateZ(LEAN).translate(MX, MY, 0);
     const btn = [[[MX - HW, -11], [MX - HW, zf(MX - HW)], [MX + HW, zf(MX + HW)], [MX + HW, -11]]];
     return [
       [lean(xz(btn[0], 2 * HH)), 'poly2'],
       [lean(bx(MX - HW, MX + HW, MY - HH, MY + HH, -11.2, 9.4)), 'poly2'],
+      // the bar's right end, flush in the window on the right side of the grip
+      [lean((() => { const g = bx(MX - HW, MX + HW, MY - HH, MY + HH, 9.2, 14), p = g.attributes.position;
+        // outer face on a plane fitted to the grip surface around the window (raycast), 0.25mm under it
+        for (let i = 0; i < p.count; i++) if (p.getZ(i) > 10) p.setZ(i, 12.37 - 0.33 * (p.getX(i) - MX) - 0.098 * (p.getY(i) - MY));
+        g.computeVertexNormals(); return g; })()), 'poly2'],
       ...[0, 1, 2, 3, 4].map(i => { const x = MX - 1.6 + i * 0.8;
         return [lean(xz([[x - 0.17, zf(x - 0.17) - 0.03], [x + 0.17, zf(x + 0.17) - 0.03], [x + 0.17, zf(x + 0.17) + 0.4], [x - 0.17, zf(x - 0.17) + 0.4]], 2 * HH - 1)), 'black']; }),
       [prof([[-29.4, -46], [-25.9, -46], [-24.4, -35], [-25.2, -33.6], [-27.6, -33.6], [-28.2, -35]], 2.6, 0.3).translate(0, 0, 8.1), 'poly2'],
@@ -829,7 +892,7 @@ part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'],
 
 part('triggerPin', 'Trigger pin', 'trg', ['G-05'], [0, -100, 0],
   'Middle frame pin (the firearm\'s trigger pin position). Holds the trigger group and the slide stop.',
-  [[cyl(1.5, 26, 'z', X(955), Y(305), 0, 12), 'steel']]);
+  [[cyl(1.5, 23.7, 'z', X(955), Y(305), 0, 16), 'steel']]);
 
 part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
   'Trigger bar G-18 runs back along the right side from the trigger to the hammer housing, where it trips the sear. Spring G-17 returns it.',
@@ -843,7 +906,7 @@ part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25'
    [bx(-86.5, -63, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
    ...[1, -1].map(sd => [bx(-85.5, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
    [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
-   [cyl(1.5, 23, 'z', X(1483), Y(445), 0, 16), 'steel']]);
+   [cyl(1.5, 21.8, 'z', X(1483), Y(445), 0, 16), 'steel']]);
 
 part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 'G-29', 'G-30'], [-72, 8, 0],
   'Drum-shaped hammer on upper pin G-29 with roller G-21 and torsion spring G-22; lower pin G-30 carries the sear. Cocked by the slide, it swings forward and its face hits the valve knocker. A steel hammer and sear set (CowCow, Guarder) replaces the pot-metal parts.',
