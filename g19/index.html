@@ -1044,7 +1044,8 @@ function showOverview() {
     <li>Hop is set with the wheel on the side of the chamber, slide off.</li>
     <li>Gen3 and Gen4 share the internals; Gen4 changes the frame texture, adds backstraps and a bigger mag catch. Gen5 has its own frame, slide, front chassis, slide stop, recoil guide set and base plate.</li>
     <li>Known weak points: the polymer loading nozzle cracks (reinforced Guarder or CowCow nozzles fix it), pot-metal hammer and sear wear, and the blowback housing can crack around the piston bore (Ebog).</li>
-    <li>The Slide slider in the View panel racks the slide: the slide, sights and blowback unit move, the barrel only a few mm.</li>
+    <li>The Slide slider in the View panel racks the slide: the slide, sights and blowback unit move, the barrel rides back a few mm and tips down to unlock.</li>
+    <li>The Explode slider strips it in order: the mag drops out (to 15%), the slide comes off with the barrel in it (to 35%), the barrel and recoil guide come out of the slide (to 55%), each group spreads into its parts (to 80%), then the frame internals come out.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} WE part numbers. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
   <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
@@ -1247,20 +1248,34 @@ const SLIDE = { pos: 0 };
 const showSlide = () => { SLIDE.pos = +slideCtl.value; spv.textContent = SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed'; };
 slideCtl.oninput = showSlide; showSlide();
 let slideOff = 0;
+// Staged explode, in field-strip order (WE manual): the mag drops out first, then the slide group runs off forward and up
+// with the barrel still in it, then the barrel and recoil guide come out of the slide, then each group spreads into its
+// parts, and last the frame internals come out. Each part's moves add up to its explode vector, so at 100% every part
+// sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const G_MAG = new THREE.Vector3(-Math.sin(MAG_A), -Math.cos(MAG_A), 0).multiplyScalar(70);   // straight down the mag axis
+const G_SLIDE = new THREE.Vector3(30, 70, 0);
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, rest = v => ex.clone().sub(v);
+  p.userData.stages = cat === 'mag' ? [[G_MAG, 0, 0.15], [rest(G_MAG), 0.55, 0.8]]
+    : cat === 'sld' || cat === 'bbu' ? [[G_SLIDE, 0.15, 0.35], [rest(G_SLIDE), 0.55, 0.8]]
+    : cat === 'bar' ? [[G_SLIDE, 0.15, 0.35], [rest(G_SLIDE), 0.35, 0.55]]
+    : [[ex.clone(), 0.8, 1]];
+}
 const TILT = new Set(['outerBarrel', 'innerBarrel', 'hopChamber', 'bucking', 'hopArm', 'hopWheel']);
 renderer.setAnimationLoop(() => {
-  exCur += (exTarget - exCur) * 0.12;
-  if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
   exv.textContent = Math.round(exCur * 100) + '%';
   slideOff += (SLIDE.pos * SLIDE_TRAVEL - slideOff) * 0.15;
-  const e = exCur * exCur * (3 - 2 * exCur);
   // slide stop: turns up about the trigger pin into the slide notch over the last 2mm of travel
   const lockA = -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1);
   // barrel unlock: after riding back with the slide, the barrel group pivots about the nose and the breech drops about
   // 2.6mm, so the hood comes down out of the ejection port and passes under the slide top (Glock tilt-barrel action)
   const tiltA = 0.027 * THREE.MathUtils.clamp((slideOff - 2.5) / 1.5, 0, 1);
   for (const p of parts) {
-    p.position.copy(p.userData.explode).multiplyScalar(e);
+    p.position.set(0, 0, 0);
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     if (p.userData.slide) p.position.x -= Math.min(slideOff, p.userData.slide);
     if (TILT.has(p.userData.id)) {
       p.rotation.z = tiltA;
