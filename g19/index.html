@@ -158,7 +158,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
+import { Brush, Evaluator, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
 
 // WE G-series semi exploded view (G17/G19/G27/G33/G34), part numbers G-01 to G-76. The sheet prints no names:
 // names come from shop listings (Ebog Designs, Socom Tactical, Hero Outdoors); the third field marks names read off the drawing.
@@ -493,11 +493,11 @@ function profR(pts, depth, r, holes = []) {
 // subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
 // are kept, so the inputs need no matching uv layout.
 const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
-function cut(geo, cutters) {
+function cut(geo, cutters, op = SUBTRACTION) {
   const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
     if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
   let a = brush(geo);
-  for (const c of cutters) a = CSG.evaluate(a, brush(c), SUBTRACTION);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), op);
   return fixTJunctions(a.geometry);
 }
 // CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
@@ -992,9 +992,23 @@ part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -11
   [[magT(cyl(1.2, 66, 'y', 3, -62, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 3, -95, 0)), 'black']]);
 
 part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
-  'Slide-off base plate with the bumper stopper G-66 that locks it. It follows the bottom of the grip, which rises about 5 degrees toward the back, rather than sitting square to the mag (traced from the photo). Gen5 has its own plate.',
-  [[profR(P([[1291, 1007], [1630, 979], [1648, 983], [1653, 995], [1653, 1026], [1645, 1039], [1312, 1075], [1297, 1069], [1291, 1054]]), 27, 2), 'frame'],
-   [bx(X(1500), X(1430), Y(997), Y(992), -5, 5), 'black']]);
+  'Slide-off base plate with the bumper stopper G-66 that locks it: press the stopper up through the slot in the plate and slide the plate off forward. It follows the bottom of the grip, which rises about 5 degrees toward the back, rather than sitting square to the mag (traced from the photo), so it is a shallow wedge. From below it is rounded at the front and square at the back, with a hole over the fill valve, as on the TM-pattern GBB plates. Gen5 has its own plate.',
+  (() => {
+    // side outline traced from the photo, intersected with the plan from below (rounded front corners, near-square back,
+    // after the OEM Glock and TM-pattern GBB plates measured from Printables STLs), 28mm wide
+    const side = profR(P([[1291, 1007], [1630, 979], [1648, 983], [1653, 995], [1653, 1026], [1645, 1039], [1312, 1075], [1297, 1069], [1291, 1054]]), 28, 1.6);
+    const B0 = X(1654), F0 = X(1290);
+    const plan = prof([...arcPts(F0 - 7, 7.5, 7, 0, 90), ...arcPts(B0 + 1.5, 13, 1.5, 90, 180), ...arcPts(B0 + 1.5, -13, 1.5, 180, 270), ...arcPts(F0 - 7, -7.5, 7, 270, 360)], 30, 0)
+      .rotateX(Math.PI / 2).translate(0, -108, 0);
+    // round-ended slot along the mag axis, as a (x, z) outline in the mag's own frame
+    const axial = (pts, y0, y1) => magT(prof(pts, y1 - y0, 0).rotateX(Math.PI / 2).translate(0, (y0 + y1) / 2, 0));
+    // the plate is about 6mm thick along the mag axis (mag y -97 to about -103)
+    const SLOT = [4.2, -100.6];   // stopper button: slot centre (mag x) and top (mag y)
+    const plate = cut(cut(side, [plan], INTERSECTION), [
+      axial(circ(-6, 0, 2.6, 24), -116, -99.6),          // fill valve hole up to the valve
+      axial(rr(SLOT[0] - 1.9, SLOT[0] + 1.9, -4.6, 4.6, 1.8), -116, SLOT[1])]);
+    return [[plate, 'frame'], [axial(rr(SLOT[0] - 1.5, SLOT[0] + 1.5, -4.2, 4.2, 1.4), SLOT[1] - 0.9, SLOT[1] + 0.5), 'black']];
+  })());
 
 
 // ---------- UI: list ----------
