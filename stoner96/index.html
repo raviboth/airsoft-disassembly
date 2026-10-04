@@ -155,6 +155,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { picatinny } from '../lib/picatinny.js';
 import { Brush, Evaluator, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
 
 // ---------- scene ----------
@@ -388,17 +389,12 @@ const STIPPLE = (() => {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
 })();
-// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+// box strip on one face, used by the rail guards. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
 function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
   if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
   if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
   if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
   return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
-}
-function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
-  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
-  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
-  return out;
 }
 // ribbed rail guard covering a side rail
 function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
@@ -618,10 +614,10 @@ part('handguard', 'Handguard + end caps', 'frt', [], [30, 0, 0],
       ...XD.flatMap(x => [1, -1].map(s => cyl(7.6, 6, 'z', x, Y(317), s * (hz(Y(317)) + 0.8), 28)))]);
     const cap = (x0, x1) => secX(rr(-HG_W - 1.5, HG_W + 1.5, HG_Y - HG_H - 1.5, HG_Y + HG_H + 1.5, 26.5, 8), x0, x1, 1.2, [rr(-12, 12, -12, 12, 11.9, 6).reverse()]);
     return [[body, 'anod'], [cap(HG1 - 9, HG1 - 1.2), 'dark'], [cap(HG0 + 1.2, HG0 + 5), 'dark'],
-      ...rail(HG0 + 8, HG1 - 10, 'up', HG_Y + HG_H - 0.5, { halfW: 10.5, base: 6, tooth: 3 }).map(g => [g, 'anod']),
-      ...rail(HG0 + 8, HG1 - 10, 'down', -(HG_Y - HG_H + 0.5), { halfW: 10.5, base: 4, tooth: 3 }).map(g => [g, 'anod']),
-      ...rail(HG0 + 8, HG1 - 10, 'right', HG_W - 2, { halfW: 10, base: 5.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
-      ...rail(HG0 + 8, HG1 - 10, 'left', HG_W - 2, { halfW: 10, base: 5.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
+      [picatinny(HG0 + 8, HG1 - 10, 'up', HG_Y + HG_H - 1), 'anod'],
+      [picatinny(HG0 + 8, HG1 - 10, 'down', -(HG_Y - HG_H) - 1), 'anod'],
+      [picatinny(HG0 + 8, HG1 - 10, 'right', HG_W - 1.5, { yc: Y(366) }), 'anod'],
+      [picatinny(HG0 + 8, HG1 - 10, 'left', HG_W - 1.5, { yc: Y(366) }), 'anod'],
       ...[[X(253), Y(298)], [X(450), Y(298)], [X(253), Y(398)], [X(450), Y(398)]].flatMap(([x, y]) => [1, -1].map(s => [cyl(1.6, 1.2, 'z', x, y, s * (hz(y) + 0.2), 12), 'steel']))];
   })(), { shell: true });
 
@@ -655,7 +651,7 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       prof(rr(X(955), X(560), Y(359), Y(345), 4.5, 4), 6, 0).translate(0, 0, RW),         // charging handle channel, right side
       ...[1, -1].map(s => bx(X(955), X(735), Y(304), Y(302), s * RW - 0.6, s * RW + 0.6))]);  // step under the rail section
     return [[body, 'anod'],
-      ...rail(X(955), X(735), 'up', Y(277) - 1, { halfW: 10.5, base: 1, tooth: 3 }).map(g => [g, 'anod']),
+      [picatinny(X(955), X(735), 'up', Y(277) + 3 - 9.32), 'anod'],      // integral rail: only the top 4mm stands above the receiver
       decal('markL', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), -RW - 0.05),
       decal('markR', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), RW + 0.05)];
   })(), { shell: true });

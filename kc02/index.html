@@ -156,6 +156,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { picatinny } from '../lib/picatinny.js';
 
 // Official parts list, KJW KC-02 V2 manual (no, name as printed, list price as printed; currency not stated)
 const MANUAL = [["1", "MUZZLE", 200], ["2", "ADAPTOR", 240], ["3", "OUTTER BARREL", 700], ["4", "RAIL 1", 100], ["5", "RAIL 1 SCREW", 10], ["6", "INNER BARREL SLEEVE", 100], ["7", "INNER BARREL CONNECTION", 200], ["8", "INNER BARREL", 420], ["9", "INNER BARREL NUT", 200], ["10", "RUBBER CHAMBER", 180], ["11", "CHAMBER", 200], ["18", "TRAJECTORY ADJUST DIAL", 120], ["19", "RAIL 2 SCREW", 10], ["20", "RAIL 2", 150], ["21", "TRAJECTORY ADJUST DIAL DETENT", 40], ["22", "TRAJECTORY ADJUST DIAL DETENT SP", 10], ["23", "RECEIVER SCREW (REAR)", 20], ["24", "BARREL RETAINER SCREW", 10], ["25", "BARREL RETAINER", 200], ["26", "RECEIVER", 1500], ["27", "RECEIVER CROSS PIN", 20], ["28", "BOLT STOP PIN", 20], ["29", "RECEIVER CROSS PIN", 20], ["30", "BOLT STOP SPRING", 20], ["31", "BOLT STOP", 160], ["32", "RECEIVER SCREW (FRONT)", 20], ["33", "BOLT HANDEL", 160], ["34", "RECOIL SPRING", 60], ["35", "GUIDE ROD", 60], ["36", "GUIDE ROD E-RING", 10], ["37", "CYLINDER", 160], ["38", "CYLINDER PIN", 20], ["39", "CYLINDER VALVE SPRING", 30], ["40", "CYLINDER VALVE", 60], ["41", "CYLINDER VALVE O-RING", 10], ["42", "CYLINDER SP", 20], ["43", "PISTON O-RING", 20], ["44", "PISTON", 200], ["45", "PISTON PIN", 20], ["46", "BOLT", 400], ["47", "BOLT PIN", 50], ["48", "MAG CATCH", 280], ["49", "VALVE KNOCKER", 160], ["50", "VALVE KNOCKER SP", 20], ["51", "TRIGGER GUARD", 800], ["52", "VALVE KNOCKER LOCK", 140], ["53", "VALVE KNOCKER SP", 20], ["54", "HAMMER", 160], ["55", "HAMMER PIN", 20], ["56", "HAMMER STURT", 120], ["57", "HAMMER STURT SP", 30], ["58", "SAFETY O-RING(BLACK)", 20], ["59", "SAFETY O-RING(RED)", 30], ["60", "SAFETY", 120], ["61", "SAFETY DETENT SP", 10], ["62", "SAFETY DETENT", 10], ["63", "TRIGGER PLUGER SCREW", 10], ["64", "TRIGGER PLUGER SP", 10], ["65", "TRIGGER PLUGER", 30], ["66", "MAG RELEASE LEVER PIN", 20], ["67", "TRIGGER PIVOT PIN", 20], ["68", "SEAR", 120], ["69", "DISCONNECTOR PIN", 20], ["70", "TRIGGER", 140], ["71", "DISCONNECTOR", 100], ["72", "DISCONNECTOR PIN", 20], ["73", "MAG RELEASE LEVER SP", 20], ["74", "MAG RELEASE LEVER", 160], ["95", "SWIVEL SCREW", 100], ["96", "SWIVEL SCREW PIN", 20], ["97", "SWIVEL", 200], ["98", "FRONT STOCK", 1800], ["99", "RAIL 3 NUT", 20], ["100", "SWIVEL NUT", 20], ["101", "RAIL GUARD SP", 80], ["102", "RAIL GUARD", 120], ["104", "RAIL 3", 100], ["105", "GRIP NUT", 120], ["106", "GRIP", 600], ["107", "GRIP WASHER", 20], ["108", "GRIP SCREW", 20], ["109", "FRONT STOCK END PLATE", 210], ["110", "STOCK EXTENSION INNER TUBE", 400], ["111", "STOCK EXTENSION", 800], ["112", "STOCK EXTENSION CAP", 240], ["113", "REAR STOCK", 600], ["114", "STOCK LOCKING PIN", 100], ["115", "STOCK LOCKING PIN SP", 30], ["116", "RELEASE LEVER", 150], ["117", "STOCK LOCKING NUT", 100], ["119", "SWIVEL SCREW SLEEVE", 30], ["120", "STOCK SWIVEL SCREW", 60], ["121", "STOCK SWIVEL", 200], ["122", "MAG GASKET", 120], ["125", "MAG SP", 80], ["126", "MAG UPPER BODY O-RING", 30], ["127", "EX-VALVE", 180], ["129", "CHARGE VALVE", 70], ["130", "MAG SCREW WASHER", 10], ["131", "MAG SCREW O-RING", 10], ["132", "MAG SCREW", 30], ["133", "LOADING STICK", 30], ["136", "SPRING WASHER", 20], ["138", "ADAPTOR O-RING", 20], ["140", "BB LIP", 120], ["141", "FOLLOWER", 80], ["142", "MAG BODY", 500], ["142C", "CO2 MAG BODY", 500], ["144", "MAG BASE", 180], ["144C", "CO2 MAG BOTTOM", 100], ["145", "BB LIP PIN", 20], ["146", "MAG BASE O-RING", 30], ["160", "FRONT SIGHT BASE 1", 120], ["161", "FRONT SIGHT BASE SPRING", 20], ["162", "FRONT SIGHT BASE 2", 120], ["163", "DETENT SCREW", 15], ["164", "DETENT SPRING", 15], ["165", "FRONT SIGHT DETENT", 15], ["166", "ADJUST DIAL", 100], ["168", "FRONT SIGHT", 80], ["169", "FRONT SIGHT OPTICAL FIBER", 20], ["170", "FRONT SIGHT SCREW", 20], ["171", "FRONT SIGHT NUT", 20], ["172", "FRONT SIGHT FIXER", 80], ["173", "FRONT SIGHT FIXER SP", 20], ["174", "FRONT SIGHT BASE PIN", 10], ["175", "FRONT SIGHT FIXER PIN", 10], ["176", "REAR SIGHT BASE 1", 120], ["177", "REAR SIGHT SP", 20], ["178", "REAR SIGHT BASE 2", 120], ["179", "REAR SIGHT", 80], ["180", "ADJUST SCREW", 120], ["181", "ADJUST SCREW SLEEVE", 40], ["182", "ADJUST SCREW E RING", 10], ["183", "DETENT SP", 20], ["184", "DETENT", 10], ["185", "REAR SIGHT PIN", 10], ["186", "LOADING TUBE", 60], ["187", "CO2 EX-VALVE", 200], ["188", "CO2 CARTRIDGE STAB O RING", 20], ["189", "CO2 CARTRIDGE STAB", 150], ["190", "CO2 CARTRIDGE SCREW NUT", 100], ["191", "CO2 MAG BOTTOM", 100]];
@@ -363,17 +364,12 @@ const CHECKER = (() => {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
   return t;
 })();
-// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+// box strip on one face, used by the rail guards. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
 function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
   if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
   if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
   if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
   return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
-}
-function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
-  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
-  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
-  return out;
 }
 // ribbed rail guard covering a side rail
 function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
@@ -532,9 +528,9 @@ part('frontSwivel', 'Swivel + swivel screw, pin, nut', 'ext', ['97', '95', '96',
 // ================= RAILS AND SIGHTS =================
 part('rail3', 'Rail 3 (x3) + nuts', 'sgt', ['104', '99'], [0, -80, 0],
   'Three polymer accessory rails on the forend at 3, 6 and 9 o\'clock, bolted on with rail 3 nuts #99. The bottom one is exposed in the manual render.',
-  [...rail(89, 231, 'down', 32, { halfW: 9, base: 5, tooth: 5 }),
-   ...rail(90, 216, 'right', STOCK_Z + 2.5, { halfW: 9, base: 3, tooth: 2.5, yc: -10.8 }),
-   ...rail(90, 216, 'left', STOCK_Z + 2.5, { halfW: 9, base: 3, tooth: 2.5, yc: -10.8 })].map(g => [g, 'poly2']));
+  [picatinny(89, 231, 'down', 32, { riser: 0.7 }),
+   picatinny(90, 216, 'right', STOCK_Z - 1.3, { yc: -10.8 }),     // foot sunk into the forend so the teeth sit under the guards
+   picatinny(90, 216, 'left', STOCK_Z - 1.3, { yc: -10.8 })].map(g => [g, 'poly2']));
 
 part('railGuard', 'Rail guards + springs', 'sgt', ['102', '101'], [0, -150, 0],
   'Ribbed rail guards slide over the side rails; the C-shaped rail guard springs #101 clip over the front end of each guard and rail. Manual: remove the rail guard to use the rail. The drawing shows three; the cover render has the two sides fitted and the bottom rail bare.',
@@ -544,11 +540,11 @@ part('railGuard', 'Rail guards + springs', 'sgt', ['102', '101'], [0, -150, 0],
 
 part('rail1', 'Rail 1 + screws', 'sgt', ['4', '5'], [70, 250, 0],
   'Front top rail, screwed to the top of the outer barrel with three rail 1 screws #5. Carries the front sight.',
-  [...rail(51, 232, 'up', 7, { base: 10, tooth: 5 }).map(g => [g, 'alu']), ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+  [[picatinny(51, 232, 'up', 7, { riser: 5.7, riserW: 10.5 }), 'alu'], ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
 
 part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 250, 0],
   'Rear top rail on the receiver, fixed with rail 2 screws #19. The hop-up (trajectory) adjust dial sits in its front end. Scope mounts here.',
-  [...rail(-61, 49, 'up', 12, { base: 5, tooth: 5 }).map(g => [g, 'alu']), ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+  [[picatinny(-61, 49, 'up', 12, { riser: 0.7, riserW: 10.5 }), 'alu'], ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
 
 part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 390, 0],
   'Flip-up front sight: bases #160/#162, post #168 with a fiber optic #169, elevation dial #166 with detent #163 to #165, fixer latch #172/#173 (the small lever behind it), pins #174/#175, clamp screw #170 and nut #171. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
