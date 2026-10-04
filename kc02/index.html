@@ -864,6 +864,8 @@ document.getElementById('xray').onchange = e => {
     o.material.transparent = e.target.checked;
     o.material.opacity = e.target.checked ? 0.09 : 1;
     o.material.depthWrite = !e.target.checked;
+    o.castShadow = !e.target.checked;   // a see-through shell must not shade the parts inside it
+    o.material.needsUpdate = true;      // transparent is compiled into the shader (OPAQUE forces alpha 1)
   });
 };
 const labelsCb = document.getElementById('labels');
