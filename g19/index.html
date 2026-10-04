@@ -898,7 +898,7 @@ part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
 
 // ================= TRIGGER AND HAMMER GROUP =================
 part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'], [10, -72, 0],
-  'Trigger shoe G-16: a smooth crescent with a concave face, its edges rounded over, with the safety blade G-15 standing in a slot down the middle of the face on its own small pin; the blade has to be pressed in before the shoe can move. Trigger bar pin G-14 joins it to the trigger bar. Comes out with the front chassis.',
+  'Trigger shoe G-16: a smooth crescent with a concave face, its edges rounded over, with the safety blade G-15 in a slot down the middle of the face on its own small pin, leaning about 2.5mm out of it at rest; the blade has to be pressed in flush before the shoe can move. Trigger bar pin G-14 joins it to the trigger bar. Comes out with the front chassis.',
   (() => {
     // side profile from the WE photo outline, smoothed (closed Catmull-Rom) into the crescent of the OEM shoe (Glock
     // parts and Johnny Glocks product photos): concave face, rounded tip, convex back rising to the block in the frame
@@ -910,8 +910,9 @@ part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'],
     const face = (dx, from) => FACE.filter(([, y]) => y >= from).map(([x, y]) => [x + dx, y]);
     const slot = P([...face(-3, 425), [941, 560], [975, 560], ...face(30, 425).reverse()]);
     const body = cut(profR(shoe, 6.6, 1.1), [prof(slot, 2.3, 0)]);
-    // blade: hinged at the top of the slot, its lower half standing about 1mm proud of the face
-    const blade = P([[961, 428], ...[[963, 460], [956, 495], [947, 522], [940, 540]], [944, 547], [950, 545], [956, 525], ...face(26, 440).reverse(), [988, 432], [978, 425]]);
+    // blade: hinged at the top of the slot and leaning forward out of it, flush at the pin, 1.5mm proud halfway down and
+    // 2.5mm near the tip (px, 8.22 per mm); pressing it back flush is what frees the shoe
+    const blade = P([[961, 428], [959, 460], [946, 495], [934, 522], [923, 540], [922, 547], [928, 551], [940, 548], [950, 545], [956, 525], ...face(26, 440).reverse(), [988, 432], [978, 425]]);
     return [[body, 'poly2'], [profR(blade, 1.7, 0.3), 'black'],
       [cyl(0.55, 6.3, 'z', X(976), Y(434), 0, 10), 'blued'],    // blade pin
       [cyl(1, 6.3, 'z', X(985), Y(395), 0, 12), 'blued']];      // trigger bar pin, ends flush with the shoe sides
