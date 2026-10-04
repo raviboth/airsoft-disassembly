@@ -898,10 +898,24 @@ part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
 
 // ================= TRIGGER AND HAMMER GROUP =================
 part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'], [10, -72, 0],
-  'Trigger shoe G-16 with the safety blade G-15 in its face, on pins G-14. Linked to the trigger bar; comes out with the front chassis.',
-  [[prof(P([[950, 377], [965, 430], [960, 470], [945, 530], [940, 545], [950, 552], [970, 540], [985, 510], [1000, 470], [1030, 450], [1035, 430], [1040, 410], [1020, 385], [1010, 376]]), 5.6, 0.6), 'poly2'],
-   [prof(P([[952, 440], [960, 445], [956, 500], [948, 530], [943, 528]]), 1.8, 0.2), 'black'],
-   [cyl(1, 8, 'z', X(985), Y(395), 0, 8), 'steel']]);
+  'Trigger shoe G-16: a smooth crescent with a concave face, its edges rounded over, with the safety blade G-15 standing in a slot down the middle of the face on its own small pin; the blade has to be pressed in before the shoe can move. Trigger bar pin G-14 joins it to the trigger bar. Comes out with the front chassis.',
+  (() => {
+    // side profile from the WE photo outline, smoothed (closed Catmull-Rom) into the crescent of the OEM shoe (Glock
+    // parts and Johnny Glocks product photos): concave face, rounded tip, convex back rising to the block in the frame
+    const smooth = (pts, n) => { const c = new THREE.CatmullRomCurve3(P(pts).map(([x, y]) => new THREE.Vector3(x, y, 0)), true, 'centripetal');
+      return c.getSpacedPoints(n).slice(0, -1).map(v => [v.x, v.y]); };
+    const FACE = [[950, 372], [957, 400], [962, 430], [963, 460], [958, 495], [950, 522], [943, 541]];
+    const shoe = smooth([...FACE, [941, 547], [947, 553], [958, 553], [971, 544], [985, 522], [995, 494], [1001, 473], [1012, 463], [1030, 453], [1037, 434], [1040, 410], [1033, 390], [1022, 378], [1010, 372]], 120);
+    // the face curve shifted along x (px), for the blade slot and the blade
+    const face = (dx, from) => FACE.filter(([, y]) => y >= from).map(([x, y]) => [x + dx, y]);
+    const slot = P([...face(-3, 425), [941, 560], [975, 560], ...face(30, 425).reverse()]);
+    const body = cut(profR(shoe, 6.6, 1.1), [prof(slot, 2.3, 0)]);
+    // blade: hinged at the top of the slot, its lower half standing about 1mm proud of the face
+    const blade = P([[961, 428], ...[[963, 460], [956, 495], [947, 522], [940, 540]], [944, 547], [950, 545], [956, 525], ...face(26, 440).reverse(), [988, 432], [978, 425]]);
+    return [[body, 'poly2'], [profR(blade, 1.7, 0.3), 'black'],
+      [cyl(0.55, 6.3, 'z', X(976), Y(434), 0, 10), 'blued'],    // blade pin
+      [cyl(1, 6.3, 'z', X(985), Y(395), 0, 12), 'blued']];      // trigger bar pin, ends flush with the shoe sides
+  })());
 
 part('triggerPin', 'Trigger pin', 'trg', ['G-05'], [0, -100, 0],
   'Middle frame pin (the firearm\'s trigger pin position). Holds the trigger group and the slide stop.',
