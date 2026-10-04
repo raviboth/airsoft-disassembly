@@ -724,7 +724,7 @@ const FT = Y(220);   // frame top under the slide
 const TD_X0 = (X(832) + X(797)) / 2, TD_YB = -19.8, TD_YT = TD_YB + 4.1;   // takedown latch plate (front face centre, bottom, top)
 // the latch leans forward about 17 degrees in its slot (WE left-profile photo; the Glock's does too)
 const tdTilt = g => g.translate(-TD_X0, -(TD_YB + 2), 0).rotateZ(-0.3).translate(TD_X0, TD_YB + 2, 0);
-const SS_PX = X(955), SS_PY = Y(305), SS_Z0 = -11.2;   // slide stop eye on the trigger pin; its bar lies in a recess in the left wall
+const SS_PX = X(955), SS_PY = Y(305), SS_Z0 = -10.8;   // slide stop eye on the trigger pin, inside the left wall
 const SS_EYE = Array.from({ length: 13 }, (_, i) => { const t = -Math.PI / 2 + i / 12 * Math.PI; return [SS_PX + 2.6 * Math.cos(t), SS_PY + 2.6 * Math.sin(t)]; });
 // side profile: eye at the front, bar rising rearward to the slide-notch tab and the paddle root
 const SS_BAR = [[SS_PX, SS_PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [SS_PX, SS_PY - 2.6], ...SS_EYE.slice(1, -1)];
@@ -732,7 +732,7 @@ const SS_BAR = [[SS_PX, SS_PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5]
 const MC_X = -30.7, MC_Y = -47.8, MC_HW = 2.15, MC_HH = 4.1;
 const mcLean = g => g.translate(-MC_X, -MC_Y, 0).rotateZ(-17 * D2R).translate(MC_X, MC_Y, 0);
 part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
-  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. The top is open between the rail walls, where the chassis and trigger group drop in; the pins pass through holes, the takedown latch ends sit in slots, the slide stop lies in a recess in the left wall and the mag catch in a window through the front strap. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
+  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. The top is open between the rail walls, where the chassis and trigger group drop in; the pins pass through holes, the takedown latch ends sit in slots, the slide stop comes out through a notch in the top of the left wall and the mag catch in a window through the front strap. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
   (() => {
     // outline traced from the photo (contour, then the checkering on the straps smoothed out), split into the dust cover
     // (flat extrusion ending inside the grip at x px 1100), the trigger guard, and one loft for the rear frame and grip
@@ -806,7 +806,9 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       ...[[X(955), Y(305)], [X(1000), Y(262)], [X(1483), Y(445)]].map(([x, y]) => cyl(1.65, 40, 'z', x, y, 0, 20)),
       tdTilt(bx(TD_X0 - 1.5, TD_X0 + 1.5, TD_YB - 0.4, TD_YT + 0.4, -20, 20)),
       bx(X(1045), X(945), -33, -24, -3.7, 3.7),
-      prof(SS_BAR, 2.6, 0.3).translate(0, 0, -11.6),
+      // the lever runs inside the left wall; only where it rises to the slide notch and the paddle does a notch in the
+      // wall's top edge let it out
+      prof([[-29.3, FT + 3], [-35.1, FT + 3], [-35.1, -13.9], [-26.7, -13.9], [-29.3, -10]], 3.2, 0).translate(0, 0, -11.6),
       mcLean(bx(MC_X - MC_HW - 0.25, MC_X + MC_HW + 0.25, MC_Y - MC_HH - 0.25, MC_Y + MC_HH + 0.25, -20, 20))];
     // the closed solids get cut: dust cover, trigger guard, grip loft, the rail strip and the slide stop ledge (the patches
     // on the grip are open surfaces and stay clear of the openings)
@@ -853,7 +855,7 @@ part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50,
       // paddle, bent out of the frame wall: wider than tall (10.5 x 7mm in the WE profile photo), the front of its top edge
       // up against the slide and the rear stepped down into a big rounded corner, small radii below, three grooves along it
       [profR([[-29.8, -10.1], [-35.8, -10.1], [-36.2, -10.8], ...arcPts(-38.3, -12.8, 2, 90, 180), ...arcPts(-38.8, -15.5, 1.5, 180, 270), ...arcPts(-31.3, -15.5, 1.5, 270, 360)], 1.6, 0.35).translate(0, 0, -12.3), 'blued'],
-      [bx(-34.4, -32.6, -16.8, -10.9, -11.6, -10.7), 'blued'],
+      [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'blued'],
       ...[-12, -13.5, -15].map(y => [bx(-39.4, -30.4, y - 0.22, y + 0.22, -13.13, -12.98), 'black']),
       // spring hook tab and the wire spring
       [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'blued'], [spr, 'spring']];
