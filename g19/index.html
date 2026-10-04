@@ -218,10 +218,11 @@ grid.position.y = -259.5; scene.add(grid);
 const MAT = {
   alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
   steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
   dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
   zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
   poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
-  poly2:  { color: 0x383b41, metalness: 0.0,  roughness: 0.65 },
+  poly2:  { color: 0x232428, metalness: 0.0,  roughness: 0.65 },
   brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
   rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
   black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
@@ -681,10 +682,10 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
     // outline traced from the photo (contour, then the checkering on the straps smoothed out), split into the dust cover
     // (flat extrusion ending inside the grip at x px 1100), the trigger guard, and one loft for the rear frame and grip
     const upper = P([[209, 219], [1100, 219], [1100, 380], [684, 380], [677, 390], [658, 372], [335, 361], [313, 347], [302, 348], [296, 357], [272, 355], [237, 346], [220, 327], [211, 301]]);
-    const guardO = P([[650, 368], [1104, 372], [1104, 560], [1120, 582], [1100, 587], [1066, 574], [983, 601], [681, 594], [665, 585], [661, 569], [680, 498], [684, 411], [677, 390]]);
-    const guardH = P([[745, 377], [1000, 380], [1035, 395], [1052, 440], [1057, 480], [1050, 530], [1030, 560], [1000, 567], [770, 562], [742, 547], [732, 510], [732, 410]]);
-    const grip = P([[1030, 219], [1632, 219], [1647, 243], [1640, 278], [1615, 290], [1573, 298], [1537, 329], [1514, 373], [1512, 428], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1686, 970], [1641, 1001],
-      [1253, 1001], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380], [1030, 372]]);
+    const guardO = P([[650, 368], [1104, 372], [1104, 560], [1120, 582], [1100, 588], [1080, 581], [1055, 584], [1025, 592], [983, 600], [681, 594], [665, 585], [661, 569], [680, 498], [684, 411], [677, 390]]);
+    const guardH = P([[785, 375], [800, 373], [880, 380], [940, 385], [1000, 386], [1015, 392], [1030, 405], [1040, 420], [1046, 436], [1054, 452], [1057, 468], [1056, 484], [1053, 500], [1046, 516], [1041, 524], [1035, 532], [1027, 540], [1017, 548], [1001, 557], [940, 560], [863, 557], [800, 553], [778, 548], [761, 540], [751, 532], [744, 524], [739, 516], [734, 500], [731, 484], [731, 452], [733, 436], [736, 420], [740, 412], [745, 404], [751, 396], [759, 388], [772, 380]]);
+    const grip = P([[1030, 219], [1632, 219], [1640, 231], [1646, 247], [1642, 263], [1637, 271], [1604, 279], [1585, 287], [1572, 295], [1559, 303], [1550, 311], [1541, 319], [1534, 327], [1529, 335], [1522, 343], [1518, 351], [1515, 359], [1513, 367], [1511, 375], [1509, 391], [1508, 407], [1510, 423], [1513, 439], [1537, 529], [1577, 620], [1600, 660], [1625, 705], [1650, 745], [1675, 790], [1700, 850], [1712, 890], [1718, 921], [1708, 945], [1690, 963], [1665, 975], [1640, 979],
+      [1262, 1010], [1255, 1006], [1252, 998], [1253, 985], [1259, 930], [1250, 915], [1244, 890], [1225, 875], [1203, 860], [1207, 814], [1203, 800], [1198, 775], [1190, 752], [1170, 735], [1145, 719], [1148, 690], [1150, 665], [1145, 645], [1132, 628], [1106, 586], [1080, 578], [1064, 560], [1062, 530], [1066, 480], [1060, 440], [1045, 395], [1030, 380], [1030, 372]]);
     // rear frame and grip: horizontal sections lofted from the frame top down the traced outline (front and back edge per
     // level), so the beavertail, frame sides and grip are one surface like the moulding. The front edge runs down behind
     // the trigger guard opening, where the grip forms the magwell's front wall. Width: 23.9 at the top, just inside the dust
@@ -695,13 +696,14 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       if ((y0 - y) * (y1 - y) <= 0 && y0 !== y1) xs.push(x0 + (x1 - x0) * (y - y0) / (y1 - y0)); } return [Math.max(...xs), Math.min(...xs)]; };
     const W = [[-28, 23.9], [-31, 24.8], [-35, 26], [-40, 28], [-46, 29.4], [-70, 30], [-95, 29.5], [-106, 28.5]];
     const wAt = y => { for (let k = 0; k < W.length - 1; k++) if (y <= W[k][0] && y >= W[k + 1][0]) return W[k][1] + (W[k + 1][1] - W[k][1]) * (y - W[k][0]) / (W[k + 1][0] - W[k][0]); return y > -28 ? 23.9 : 28.5; };
-    const GT = Y(219.2), GB = Y(1001) + 0.05, levels = [];
+    const GT = Y(219.2), GB = Y(1010) + 0.05, levels = [];
     // Section shape: down to the guard the front half is near-rectangular (flat sides that meet the dust cover's flat sides
     // without a step) and the back half is rounded for the beavertail; both round off over the next 11 mm into the grip,
     // and the straps get rounder again below the mag release.
     const shape = y => { const j = Math.min(1, Math.max(0, (-29 - y) / 11)), k = Math.min(1, Math.max(0, (-58 - y) / 15));
       return j < 1 ? { n: 12 - 8.8 * j, nb: 7 - 3.8 * j, ft: 1 - 0.2 * j } : { n: 3.2 - 0.6 * k, nb: 3.2 - 0.6 * k, ft: 0.8 - 0.2 * k }; };
-    for (let y = GT; y > GB; y -= 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y), ...shape(y) }); }
+    // finer levels along the bottom, which slopes up toward the back: horizontal slices only follow a shallow edge if they are close
+    for (let y = GT; y > GB; y -= y < Y(975) ? 0.25 : 1.6) { const [xf, xb] = span(y); levels.push({ y, xf, xb, w: wAt(y), ...shape(y) }); }
     { const [xf, xb] = span(GB); levels.push({ y: GB, xf, xb, w: wAt(GB), ...shape(GB) }); }
     const LO = { n: 3.2, frontTaper: 0.8 };
     const out = [[profR(upper, 24, 2), 'frame'], [profR(guardO, 12, 2.5, [guardH]), 'frame'], [loft(levels, { ...LO, seg: 56, step: 0.8 }), 'frame']];
@@ -723,13 +725,15 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       patch(tx(-34.5), tx(-27.3), -44.1, -53.2, 0.08, 'black', 0.4); }
     out.push(
       // Gen3 single-slot accessory rail: a groove along each side of the dust cover and one cross slot underneath
-      ...[1, -1].map(sd => [bx(X(640), X(232), Y(296), Y(284), sd * 12 - 0.3, sd * 12 + 0.3), 'black']),
+      ...[1, -1].map(sd => [bx(X(496), X(232), Y(296), Y(284), sd * 12 - 0.3, sd * 12 + 0.3), 'black']),
+      // the frame rails along the top, seen in the gap under the slide
+      [bx(-82, MUZ - 1, FT - 0.05, SL_BOT - 0.02, -11.4, 11.4), 'black'],
       [bx(X(338), X(322), Y(362), Y(358), -8, 8), 'black'],
       // open recoil spring channel in the front of the dust cover
       [bx(X(212) - 2.5, X(212) + 0.15, -15, FT + 0.01, -4.8, 4.8), 'black'],
       // serrations across the front of the trigger guard
-      ...Array.from({ length: 9 }, (_, k) => { const py = 425 + k * 15, px = 684 - (684 - 661) * (py - 411) / (569 - 411);
-        return [bx(X(px) - 0.4, X(px) + 0.35, Y(py) - 0.5, Y(py) + 0.5, -4.6, 4.6), 'black']; }),
+      ...Array.from({ length: 9 }, (_, k) => { const py = 425 + k * 15, px = py < 498 ? 684 - 4 * (py - 411) / 87 : 680 - 19 * (py - 498) / 71;
+        return [bx(X(px) - 0.4, X(px) + 0.03, Y(py) - 0.5, Y(py) + 0.5, -3.3, 3.3), 'black']; }),
       // plug hole at the foot of the backstrap
       // pocket in the left wall that the slide stop paddle sits in, with the moulded ledge under it
       [bx(-36.6, -27.8, -19.3, FT, -12.15, -11.9), 'black'],
@@ -744,7 +748,7 @@ part('serialPlate', 'Serial plate', 'frm', ['G-03'], [0, -42, 0],
 part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10'], [100, 0, 0],
   'Metal front assembly housing: carries the front slide rails and the locking block lugs the barrel cams on. Held by screw G-09 from above and pin G-10 across the frame, where the firearm\'s locking block pin goes. Gen5 has its own.',
   [...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 5.5, FT, sd * 9.2 - 1, sd * 9.2 + 1), 'zinc']),
-   ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 10.6 - 0.6, sd * 10.6 + 0.6), 'zinc']),
+   ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 9.6 - 0.6, sd * 9.6 + 0.6), 'zinc']),
    [bx(MUZ - 6, MUZ - 2, FT - 5.5, FT - 3, -8.2, 8.2), 'zinc'],
    [bx(-13, 2, FT - 6, FT + 1.5, -8.2, 8.2), 'zinc'],
    // locking block uprights either side of the barrel lug (frame-top photo)
@@ -761,12 +765,14 @@ part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0]
     const end = sd => { const pts = []; for (let k = 0; k <= 12; k++) { const y = YB + 4.1 * k / 12, g = Math.cos(k / 12 * Math.PI * 3);
       pts.push([sd * (L - 0.45 * (1 - g) / 2), y]); } return sd > 0 ? pts : pts.reverse(); };
     const plate = [[-0.9, YB], [-0.9, YB + 0.5], [0.9, YB + 0.5], [0.9, YB], ...end(1), [5.65, YT], [5.2, YT + 2.9], [-5.2, YT + 2.9], [-5.65, YT], ...end(-1)];
+    // the latch leans forward about 17 degrees in its slot (WE left-profile photo; the Glock's does too)
+    const tilt = g => g.translate(-X0, -(YB + 2), 0).rotateZ(-0.3).translate(X0, YB + 2, 0);
     return [
-      [secX(plate, X0 - 1.3, X0 + 1.3, 0.15), 'steel'],
+      [secX(plate, X0 - 1.3, X0 + 1.3, 0.15), 'blued'],
       // the slot in each frame side the latch ends sit in
-      ...[1, -1].map(sd => [bx(X(832), X(797), Y(312), Y(250), sd * 11.97 - 0.08, sd * 11.97 + 0.08), 'black']),
+      ...[1, -1].map(sd => [bx(X0 - 1.9, X0 + 1.9, YB - 0.8, YT + 0.8, sd * 11.97 - 0.08, sd * 11.97 + 0.08), 'black']),
       // flat spring under the latch, bowed up into the notch
-      [secX([[-6, YB - 1.4], [-1.2, YB + 0.3], [1.2, YB + 0.3], [6, YB - 1.4], [6, YB - 1.8], [1.2, YB - 0.1], [-1.2, YB - 0.1], [-6, YB - 1.8]], X0 - 2, X0 + 2, 0), 'spring']];
+      [secX([[-6, YB - 1.4], [-1.2, YB + 0.3], [1.2, YB + 0.3], [6, YB - 1.4], [6, YB - 1.8], [1.2, YB - 0.1], [-1.2, YB - 0.1], [-6, YB - 1.8]], X0 - 2, X0 + 2, 0), 'spring']].map(([g, m]) => [tilt(g), m]);
   })());
 
 part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50, 0],
@@ -777,12 +783,12 @@ part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50,
     // side profile: eye at the front, bar rising rearward to the slide-notch tab and the paddle root
     const bar = [[PX, PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [PX, PY - 2.6], ...eye.slice(1, -1)];
     const spr = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-18.6, -15.9], [-12, -15.6], [-6, -14.4], [-2.5, -15.2], [-1.6, -17.4]].map(([a, b]) => new THREE.Vector3(a, b, Z0 + 0.7))), 24, 0.25, 6, false);
-    return [[prof(bar, 1, 0.15, [circ(PX, PY, 1.55, 14)]).translate(0, 0, Z0), 'steel'],
+    return [[prof(bar, 1, 0.15, [circ(PX, PY, 1.55, 14)]).translate(0, 0, Z0), 'blued'],
       // paddle, bent out of the frame wall
-      [bx(-34.4, -29.8, -16.8, -10.9, -13.1, -11.5), 'steel'], [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'steel'],
+      [bx(-34.4, -29.8, -16.8, -10.9, -13.1, -11.5), 'blued'], [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'blued'],
       ...[0, 1, 2, 3].map(k => [bx(-34.1, -30.1, -15.9 + k * 1.35, -15.45 + k * 1.35, -13.2, -13.05), 'black']),
       // spring hook tab and the wire spring
-      [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'steel'], [spr, 'spring']];
+      [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'blued'], [spr, 'spring']];
   })());
 
 part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
@@ -809,14 +815,14 @@ part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
   [[prof([[X(1000), Y(380)], [-57, -23.5], [-59, -26], [-58, -31], [-60, -32], [-61, -26.5], [-59, -24.6], [X(1000), Y(392)]], 1.2, 0.2).translate(0, 0, 5.4), 'steel'],
    [spring(0.9, 0.2, 5, 5, 'y', -40, -29, 5.4), 'spring']]);
 
-const HH = [[-58, FT], [-86.5, FT], [-86.5, -15], [-80.5, -19.5], [-76, -23.5], [-73, -29], [-72.6, -41], [-66, -41], [-58, -26]];
+const HH = [[-58, FT], [-86.5, FT], [-86.5, -15], [-78, -19.5], [-74, -23.5], [-71.5, -29], [-72.6, -41], [-66, -41], [-58, -26]];
 part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25', 'G-07'], [-45, 0, 0],
   'Metal hammer (fire control) housing in the rear of the frame. Carries the rear slide rails and holds the hammer, sear and valve knocker. Screw G-25 from above; rear frame pin G-07 (Gen3 and Gen4/5 pins differ).',
-  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-67, -13], [-65, -22], [-68, -33], [-71, -33], [-77, -26], [-82, -19]]]), sd * 7.6), 'zinc']),
+  [...[1, -1].map(sd => [zAt(prof(HH, 1.4, 0.2, [[[-82, -13], [-67, -13], [-65, -22], [-68, -33], [-70.5, -33], [-72, -26], [-82, -16.5]]]), sd * 7.6), 'zinc']),
    [bx(-86.5, -63, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
    ...[1, -1].map(sd => [bx(-85.5, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
    [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
-   [cyl(1.5, 20.5, 'z', X(1483), Y(445), 0, 12), 'steel']]);
+   [cyl(1.5, 23, 'z', X(1483), Y(445), 0, 16), 'steel']]);
 
 part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 'G-29', 'G-30'], [-72, 8, 0],
   'Drum-shaped hammer on upper pin G-29 with roller G-21 and torsion spring G-22; lower pin G-30 carries the sear. Cocked by the slide, it swings forward and its face hits the valve knocker. A steel hammer and sear set (CowCow, Guarder) replaces the pot-metal parts.',
@@ -874,9 +880,9 @@ part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -11
   [[magT(cyl(1.2, 66, 'y', 3, -62, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 3, -95, 0)), 'black']]);
 
 part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
-  'Slide-off base plate with the bumper stopper G-66 that locks it. It sits level with the bottom of the grip rather than square to the mag (traced from the photo). Gen5 has its own plate.',
-  [[profR(P([[1262, 1002], [1652, 1002], [1652, 1026], [1642, 1036], [1325, 1071], [1302, 1066], [1285, 1040]]), 27, 2), 'frame'],
-   [bx(X(1500), X(1430), Y(1002), Y(997), -5, 5), 'black']]);
+  'Slide-off base plate with the bumper stopper G-66 that locks it. It follows the bottom of the grip, which rises about 5 degrees toward the back, rather than sitting square to the mag (traced from the photo). Gen5 has its own plate.',
+  [[profR(P([[1291, 1009], [1630, 981], [1648, 985], [1653, 995], [1653, 1025], [1645, 1037], [1312, 1072], [1297, 1066], [1291, 1052]]), 27, 2), 'frame'],
+   [bx(X(1500), X(1430), Y(997), Y(992), -5, 5), 'black']]);
 
 
 // ---------- UI: list ----------
