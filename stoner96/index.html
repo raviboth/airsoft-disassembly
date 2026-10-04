@@ -1,0 +1,1165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Classic Army / EMG KAC Stoner 96 LMG disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the Classic Army (EMG licensed) KAC Stoner 96 LMG airsoft AEG: receiver, gearbox, hop-up, box magazine and feed tube, with upgrade notes.">
+<meta property="og:title" content="KAC Stoner 96 LMG disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the Classic Army / EMG KAC Stoner 96 LMG AEG with gearbox, hop-up and box mag.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/stoner96/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/",
+  "three-mesh-bvh": "../vendor/three-mesh-bvh/index.module.js",
+  "three-bvh-csg": "../vendor/three-bvh-csg/index.module.js"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>KAC Stoner 96 LMG</b><span>Classic Army / EMG electric LMG, V2-pattern gearbox</span></div>
+  <div class="btns">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
+</div>
+
+<div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
+  <div class="sub">Classic Army publishes no exploded view for this gun, so parts are named, not numbered. Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search parts (press /)" autocomplete="off">
+  <div id="list"></div>
+  <div id="nohit">No parts match.</div>
+</div>
+
+<div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="row">
+    <button id="bReset">Reset view</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Brush, Evaluator, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_TGT = new THREE.Vector3(-85, -45, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(-230, 120, -1000), HOME_TGT);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-200, 700, -350);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+Object.assign(sun.shadow.camera, { left: -700, right: 700, top: 700, bottom: -700, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -300; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(2400, 96, 0x2a2f38, 0x1d2027);
+grid.position.y = -299.5; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x232428, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
+  stipple: { color: 0x1d1e21, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
+  nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
+  frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
+  blue:   { color: 0x3d6fd1, metalness: 0.3,  roughness: 0.45 },
+  tan:    { color: 0x7d6442, metalness: 0.0,  roughness: 0.97 },
+  anod:   { color: 0x1f2125, metalness: 0.55, roughness: 0.48 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w', 'n', 'nb', 'ft', 's', 'xr']) if (key in b) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  if (lv.n) { n = lv.n; frontTaper = lv.ft; }
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  if (c < 0 && lv.nb) n = lv.nb;   // optional separate exponent for the back half
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  const x = cx + ax * px;   // a level may be tilted: y = lv.y + (x - lv.xr) * lv.s
+  return [x, lv.s ? lv.y + (x - lv.xr) * lv.s : lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    // lift along the section normal (ellipse approximation), so patches on the front and back stand off too
+    const ax = (lv.xf - lv.xb) / 2, az = lv.w / 2, cx = (lv.xf + lv.xb) / 2;
+    let nx = (x - cx) / (ax * ax), nz = z / (az * az); const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    pos.push(x + nx * lift, y, z + nz * lift); uv.push((x + z) * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    const ccx = (lv.xf + lv.xb) / 2; pos.push(ccx, lv.s ? lv.y + (ccx - lv.xr) * lv.s : lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// fine random stipple bump texture, for the Gen3 grip panels (a seeded scatter so every load looks the same)
+const STIPPLE = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0, 0, 128, 128);
+  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 900; k++) { const v = rnd() > 0.5 ? 255 : 0; x.fillStyle = `rgba(${v},${v},${v},0.55)`; x.beginPath(); x.arc(rnd() * 128, rnd() * 128, 1 + rnd() * 2.2, 0, 7); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// ---------- part registry ----------
+const CATS = {
+  frt: 'Barrel and front end',
+  rcv: 'Receiver and controls',
+  gbx: 'Gearbox and hop-up',
+  stk: 'Grip and stock',
+  mag: 'Box magazine',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, slide: opts.slide === true ? Infinity : (opts.slide || 0) };
+  for (const [geo, matKey] of pieces) {
+    if (opts.dx) geo.translate(opts.dx, 0, 0);
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
+    if (matKey === 'stipple') { mat.bumpMap = STIPPLE; mat.bumpScale = 1.6; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z' } = {}) {
+  const s = new THREE.Shape(), n = teeth * 4;
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2, rr = (i % 4 < 2) ? r : r * (1 - Math.min(0.14, 2.4 / r));
+    i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+  }
+  if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
+  g.translate(0, 0, -th / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+
+
+// Layout: world units are mm. x = along the gun (muzzle +), y = up, z = right side.
+// Side profiles are traced from Redwolf's left-side product photo of the CA063M (1200px) at 1.432 px/mm, a scale set by
+// the Picatinny teeth on the handguard (10mm pitch). At that scale the photo gives 820mm overall with the stock in, against
+// 819mm (32.24in) from Evike. The right side is checked against the matching right-side photo. Classic Army publishes no
+// exploded view for this gun, so internal parts are placed from the teardown photos and the published sizes (410mm inner
+// barrel, V2-pattern gearbox internals, about 19mm nozzle) and are approximate.
+const K = 1.432, OX = 470, OY = 329;
+const X = px => (OX - px) / K, Y = py => (OY - py) / K;
+const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
+const D2R = Math.PI / 180;
+
+// extrude a (z, y) section along x from x0 to x1
+function secX(pts, x0, x1, bevel = 0.3, holes = []) {
+  const g = prof(pts, x1 - x0, bevel, holes);
+  g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0);
+  return g;
+}
+// rounded rectangle outline, corners of radius r
+function rr(a0, a1, b0, b1, r, n = 4) {
+  const pts = [];
+  for (const [ca, cb, s] of [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]])
+    for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
+  return pts;
+}
+const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
+// like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
+function profR(pts, depth, r, holes = []) {
+  const s = new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const h of holes) s.holes.push(new THREE.Path(h.map(([a, b]) => new THREE.Vector2(a, b))));
+  const g = new THREE.ExtrudeGeometry(s, { depth: depth - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 4 });
+  g.translate(0, 0, -(depth - 2 * r) / 2);
+  return g;
+}
+// lathe about a vertical axis through (cx, cz): pts = [[radius, y], ...]
+const latheY = (pts, cx, cz, seg = 32) => latheX(pts.map(([r, y]) => [r, -y]), seg).rotateZ(-Math.PI / 2).translate(cx, 0, cz);
+// tube along a smooth 3D path, and a coil wound round that path
+const pathCurve = pts => new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+const tubeAlong = (pts, r, seg = 80) => new THREE.TubeGeometry(pathCurve(pts), seg, r, 12, false);
+function coilAlong(pts, r, wire, pitch) {
+  const c = pathCurve(pts), n = Math.round(c.getLength() / pitch * 10), fr = c.computeFrenetFrames(n, false), out = [];
+  for (let i = 0; i <= n; i++) { const a = i / 10 * 2 * Math.PI, p = c.getPointAt(i / n);
+    out.push(p.clone().addScaledVector(fr.normals[i], r * Math.cos(a)).addScaledVector(fr.binormals[i], r * Math.sin(a))); }
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(out), n * 2, wire, 6, false);
+}
+// subtract cutter geometries from a solid (CSG), for holes and slots. Only position and normal are kept, so the inputs
+// need no matching uv layout.
+const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
+function cut(geo, cutters, op = SUBTRACTION) {
+  const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
+  let a = brush(geo);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), op);
+  return fixTJunctions(a.geometry);
+}
+// CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
+// triangle with vertices on its edges is re-fanned around its centroid so both sides share the split points.
+function fixTJunctions(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, nt = P.length / 9, E = 1e-4, C = 4;
+  const vk = new Map(), vs = [], grid = new Map();
+  for (let i = 0; i < P.length; i += 3) { const k = P.slice(i, i + 3).map(v => Math.round(v / E)).join(); if (vk.has(k)) continue;
+    vk.set(k, vs.length); const v = [P[i], P[i + 1], P[i + 2]]; vs.push(v);
+    const ck = v.map(c => Math.floor(c / C)).join(); if (!grid.has(ck)) grid.set(ck, []); grid.get(ck).push(v); }
+  const onEdge = (a, b) => { const out = [], lo = [0, 1, 2].map(j => Math.floor((Math.min(a[j], b[j]) - E) / C)), hi = [0, 1, 2].map(j => Math.floor((Math.max(a[j], b[j]) + E) / C));
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    for (let x = lo[0]; x <= hi[0]; x++) for (let y = lo[1]; y <= hi[1]; y++) for (let z = lo[2]; z <= hi[2]; z++) for (const v of grid.get(`${x},${y},${z}`) || []) {
+      const t = ((v[0] - a[0]) * d[0] + (v[1] - a[1]) * d[1] + (v[2] - a[2]) * d[2]) / dd; if (t <= 1e-5 || t >= 1 - 1e-5) continue;
+      const q = [a[0] + d[0] * t - v[0], a[1] + d[1] * t - v[1], a[2] + d[2] * t - v[2]]; if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] < E * E) out.push([t, v]); }
+    return out.sort((p, q) => p[0] - q[0]); };
+  const pos = [], nor = [];
+  for (let t = 0; t < nt; t++) {
+    const V = [0, 1, 2].map(j => [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]), M = [0, 1, 2].map(j => [N[t * 9 + j * 3], N[t * 9 + j * 3 + 1], N[t * 9 + j * 3 + 2]]);
+    const ring = []; let split = false;
+    for (let j = 0; j < 3; j++) { const a = V[j], b = V[(j + 1) % 3], na = M[j], nb = M[(j + 1) % 3]; ring.push([a, na]);
+      for (const [s, v] of onEdge(a, b)) { split = true; ring.push([v, na.map((c, k) => c + (nb[k] - c) * s)]); } }
+    if (!split) { pos.push(...V.flat()); nor.push(...M.flat()); continue; }
+    const c = [0, 1, 2].map(k => (V[0][k] + V[1][k] + V[2][k]) / 3), cn = [0, 1, 2].map(k => (M[0][k] + M[1][k] + M[2][k]) / 3);
+    for (let i = 0; i < ring.length; i++) { const [p0, n0] = ring[i], [p1, n1] = ring[(i + 1) % ring.length]; pos.push(...c, ...p0, ...p1); nor.push(...cn, ...n0, ...n1); }
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return o;
+}
+
+const MUZ = X(6);              // muzzle face, 324mm ahead of the receiver front
+const HG0 = X(474), HG1 = X(226);   // handguard rear and front faces
+const HG_Y = -12, HG_W = 31, HG_H = 39;   // handguard section centre, half width and half height
+const RW = 28;                 // receiver half width (approximate, no top view published)
+const GT_Y = Y(370);           // gas tube axis
+const SHELL_Z = 15;            // gearbox shell half width
+const BUF_Y = Y(334);          // buffer tube axis
+const MAG_Z = -40, MAG_HZ = 75;   // box mag centre and half length across the gun: it hangs out to the left, the belt side
+const MAG_X0 = X(707), MAG_X1 = X(600);
+const MAG_TOP = Y(400), MAG_FR = Y(430), MAG_BOT = Y(560);
+
+// ================= BARREL AND FRONT END =================
+part('flashHider', 'Flash hider (birdcage)', 'frt', [], [70, 0, 0],
+  'A2-style birdcage flash hider, orange-tipped on US guns. It threads onto the outer barrel (14mm CCW, the usual airsoft thread), so a tracer or a mock suppressor fits.',
+  [[cut(latheX([[3.4, 272.6], [9.6, 272.6], [9.6, 276], [10.4, 276], [10.4, 279], [9.6, 279], [9.6, 282], [10.4, 282], [10.4, 285], [10.6, 286], [10.6, MUZ - 1], [10, MUZ], [3.4, MUZ], [3.4, 272.6]], 32),
+    [0, 60, 120].map(a => bx(292, 318, -1.6, 1.6, -14, 14).rotateX(a * D2R)).filter((_, i) => i !== 1).concat([bx(292, 318, -14, 0, -1.6, 1.6)])), 'blued']]);
+
+part('frontSight', 'Front sight block + folding post', 'frt', [], [40, 60, 0],
+  'Front sight block clamped over the outer barrel and the gas tube, with a folding front sight post on top. The post folds back flat for optics.',
+  [[profR(P([[121, 300], [153, 300], [153, 345], [148, 352], [153, 358], [153, 386], [121, 386], [121, 358], [126, 352], [121, 345]]), 24, 2), 'blued'],
+   [profR(P([[122, 230], [151, 230], [153, 236], [153, 301], [121, 301], [121, 236]]), 9, 1.2, [P([[128, 247], [146, 247], [146, 290], [128, 290]])]), 'blued'],
+   [cyl(1.2, 13, 'y', X(137), Y(268), 0), 'steel']]);
+
+part('outerBarrel', 'Outer barrel', 'frt', [], [20, 30, 0],
+  'Outer barrel. The thin section ahead of the front sight carries the flash hider thread; behind the block it steps up to about 22mm and runs back inside the handguard to the receiver front. It comes off with the handguard and front end when the barrel release on top of the receiver is pressed.',
+  [[latheX([[4.6, 272.6], [8, 272.6], [8, 248], [8.6, 246], [8.6, 221], [10.8, 221], [10.8, 4], [4.6, 4], [4.6, 272.6]].reverse(), 32), 'blued']]);
+
+part('gasTube', 'Gas cylinder (dummy)', 'frt', [], [20, -40, 0],
+  'Dummy gas cylinder under the barrel, between the front sight block and the handguard. Hollow, no function on the airsoft gun.',
+  [[latheX([[0, 244], [9, 244], [9, 221], [9.4, 221], [9.4, 202], [12.6, 202], [12.6, 168], [0, 168]].reverse(), 32).translate(0, GT_Y, 0), 'blued'],
+   ...[205, 210, 215].map(x => [cyl(1.4, 20, 'z', x, GT_Y, 0, 12), 'black'])]);
+
+part('handguard', 'Handguard + end caps', 'frt', [], [30, 0, 0],
+  'Round aluminium handguard with four Picatinny rails and two rows of through-holes each side between rows of blind dimples. It holds the battery (7.4V or 8.4V stick, Tamiya plug, not included): the plug shows through the upper holes. On the Stoner the handguard, barrel and front sight come off as one group.',
+  (() => {
+    const sec = rr(-HG_W, HG_W, HG_Y - HG_H, HG_Y + HG_H, 16, 6);
+    const inner = rr(-HG_W + 3, HG_W - 3, HG_Y - HG_H + 3, HG_Y + HG_H - 3, 13, 6).reverse();
+    const XS = [270, 302, 335, 368, 400].map(X), XD = [290, 322, 355, 388].map(X);
+    const slot = (x, y, l, h) => prof(rr(x - l / 2, x + l / 2, y - h / 2, y + h / 2, h / 2 - 0.01, 4), 90, 0);
+    const body = cut(secX(sec, HG0 + 5, HG1 - 7, 0, [inner]), [
+      ...XS.map(x => slot(x, Y(301), 11, 6.5)), ...XS.map(x => slot(x, Y(392), 11, 6.5)),
+      ...XS.map(x => cyl(7.2, 90, 'z', x, Y(340), 0, 28)),
+      ...XD.flatMap(x => [1, -1].map(s => cyl(7.6, 6, 'z', x, Y(317), s * (HG_W + 0.8), 28)))]);
+    const cap = (x0, x1) => secX(rr(-HG_W - 1.5, HG_W + 1.5, HG_Y - HG_H - 1.5, HG_Y + HG_H + 1.5, 17.5, 6), x0, x1, 1.2, [rr(-12, 12, -12, 12, 11.9, 6).reverse()]);
+    return [[body, 'anod'], [cap(HG1 - 9, HG1 - 1.2), 'dark'], [cap(HG0 + 1.2, HG0 + 5), 'dark'],
+      ...rail(HG0 + 8, HG1 - 10, 'up', HG_Y + HG_H - 0.5, { halfW: 10.5, base: 6, tooth: 3 }).map(g => [g, 'anod']),
+      ...rail(HG0 + 8, HG1 - 10, 'down', -(HG_Y - HG_H + 0.5), { halfW: 10.5, base: 4, tooth: 3 }).map(g => [g, 'anod']),
+      ...rail(HG0 + 8, HG1 - 10, 'right', HG_W - 2, { halfW: 10, base: 3.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
+      ...rail(HG0 + 8, HG1 - 10, 'left', HG_W - 2, { halfW: 10, base: 3.5, tooth: 3, yc: Y(366) }).map(g => [g, 'anod']),
+      ...[[X(253), Y(298)], [X(450), Y(298)], [X(253), Y(398)], [X(450), Y(398)]].flatMap(([x, y]) => [1, -1].map(s => [cyl(1.6, 1.2, 'z', x, y, s * (HG_W + 0.2), 12), 'steel']))];
+  })());
+
+part('vertGrip', 'Vertical foregrip', 'frt', [], [0, -70, 0],
+  'Polymer vertical foregrip on a Picatinny clamp, supplied with the gun along with two ribbed rail covers. It clamps to the bottom rail of the handguard.',
+  [[profR(P([[305, 412], [380, 412], [380, 420], [368, 436], [320, 436], [305, 420]]), 24, 2), 'poly'],
+   [cyl(2.6, 26, 'z', X(344), Y(424), 0, 16), 'steel'],
+   [latheY([[0, Y(434)], [12.6, Y(434)], [16, Y(440)], [15.4, Y(470)], [16.2, Y(476)], [15.4, Y(485)], [16.2, Y(491)], [15.4, Y(500)], [16.4, Y(508)], [16.4, Y(526)], [14, Y(529)], [0, Y(529)]], X(344), 0, 32), 'poly']]);
+
+part('battery', 'Battery (7.4V LiPo stick, not included) + leads', 'frt', [], [60, 60, -60],
+  'The battery goes in the handguard: a 7.4V or 8.4V stick pack with a Tamiya plug (not included). The leads come forward out of the gearbox, so the wiring runs along the barrel to the handguard. Shown as a 7.4V 1200mAh-size stick beside the barrel.',
+  [[bx(25, 140, -7, 9, -27, -13), 'red'],
+   [tubeAlong([[-10, -12, -16], [10, -8, -18], [25, -2, -20]], 1.1, 24), 'black'],
+   [tubeAlong([[140, 1, -20], [130, 14, -22], [115, 22, -24]], 1.1, 24), 'black'],
+   [bx(105, 118, 18, 27, -27, -21), 'white']]);
+
+// ================= RECEIVER =================
+// upper receiver: traced side outline, the rear section raised with a Picatinny top rail over a row of lightening holes
+const UP_SIDE = P([[470, 297], [552, 297], [560, 289], [597, 289], [597, 322], [700, 322], [700, 277], [965, 277], [965, 386], [470, 386]]);
+part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
+  'Upper receiver, metal. The rear half carries the top Picatinny rail over a row of lightening holes and the rear sight; the front half takes the barrel and handguard group and the feed tray under the top cover. The side panels carry the KAC trades (STONER LMG, 5.56 MM). The gearbox slides in from the back once the stock and grip are off and the body pins are out.',
+  (() => {
+    const body = cut(profR(UP_SIDE, RW * 2, 1.5), [
+      ...[742, 770, 797, 824, 852, 879, 906, 932].map(px => cyl(5.6, 80, 'z', X(px), Y(290), 0, 24)),
+      bx(X(700) + 1, X(597) - 1, Y(322) - 30, Y(322) + 1, -RW + 4, RW - 4),           // feed tray well under the cover
+      cyl(4.2, 10, 'z', X(660), -11, -RW + 1, 20),                                       // BB feed port in the left wall
+      cyl(3.6, 80, 'z', X(575), Y(384), 0, 16),                                         // front lightening hole
+      bx(X(963), X(700), -16, 16, -SHELL_Z - 1, SHELL_Z + 1)]);                       // gearbox tunnel
+    return [[body, 'anod'],
+      ...rail(X(955), X(735), 'up', Y(277) - 1, { halfW: 10.5, base: 1, tooth: 3 }).map(g => [g, 'anod']),
+      ...[302, 322, 346].flatMap(py => [1, -1].map(s => [bx(X(955), X(735), Y(py) - 0.6, Y(py) + 0.6, s * RW - 0.5, s * RW + 0.5), 'anod']))];
+  })(), { shell: true });
+
+part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
+  'Lower receiver: the trigger housing with the trigger guard and the selector, and the pistol grip below. It joins the upper with a tongue-and-groove rail and two body pins; the gearbox rests in it.',
+  (() => {
+    const tray = profR(P([[470, 386], [965, 386], [962, 392], [905, 400], [887, 410], [835, 410], [835, 400], [705, 400], [705, 396], [600, 396], [600, 398], [470, 398]]), 46, 1.2);
+    const guard = profR(P([[740, 399], [835, 399], [835, 462], [745, 462], [740, 457]]), 22, 1.5, [P([[752, 405], [822, 405], [822, 450], [757, 450], [752, 445]])]);
+    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12)]), 'anod'], [guard, 'anod']];
+  })(), { shell: true });
+
+part('topCover', 'Top cover (feed cover)', 'rcv', [], [0, 110, 0],
+  'Top cover over the feed tray. On the real gun it holds the belt feed; on the airsoft gun it hinges up to reach the hop-up adjuster and the feed tray. The window on top is a dummy.',
+  [[cut(profR(P([[597, 272], [700, 272], [700, 322], [597, 322]]), RW * 2, 1.5), [bx(X(690), X(605), Y(300), Y(281), -RW + 5, RW - 5)]), 'dark'],
+   [bx(X(690), X(605), Y(300), Y(296), -RW + 5, RW - 5), 'black']]);
+
+part('coverLatch', 'Top cover latch lever + spring', 'rcv', [], [30, 100, 0],
+  'Latch lever ahead of the top cover, held down by a coil spring. Press it to unlatch and lift the cover.',
+  [[profR(P([[520, 275], [600, 275], [600, 283], [520, 283]]), 22, 0.8), 'blued'],
+   [cyl(6, RW * 2 + 4, 'z', X(562), Y(288), 0, 24), 'blued'],
+   [spring(3.2, 0.5, 15, 7, 'y', X(540), Y(297), -6), 'spring'],
+   [spring(3.2, 0.5, 15, 7, 'y', X(540), Y(297), 6), 'spring']]);
+
+part('feedTray', 'Feed tray + BB feed port', 'rcv', [], [0, 50, -40],
+  'Feed tray under the top cover. The BB feed tube from the box mag enters through the port in the left side of the receiver and feeds the hop-up from below. The feed pawl spring shows through the side window ahead of the tray.',
+  [[bx(X(697), X(600), -9, 4, -RW + 4, RW - 4), 'dark'],
+   [bx(X(690), X(608), 4, 5, -2.5, 2.5), 'black'],
+   [cyl(3.4, 14, 'z', X(660), -11, -RW + 4, 16), 'steel']]);
+
+part('feedArm', 'Feed tube arm + spring', 'rcv', [], [0, 20, -70],
+  'Spring-loaded arm on the left side of the receiver. The top of the BB feed tube clips into its back end, which lines up with the BB port into the feed tray; a coil spring at the front keeps it closed. Swing it out to free the tube.',
+  [[profR(P([[549, 318], [561, 318], [566, 331], [648, 337], [670, 343], [668, 356], [648, 355], [566, 349], [561, 362], [549, 362]]), 4, 1).translate(0, 0, -RW - 2.2), 'zinc'],
+   [spring(2.6, 0.45, 22, 10, 'y', X(542), Y(362), -RW - 2.6), 'spring'], [cyl(2.4, 6, 'z', X(555), Y(325), -RW - 2.2, 16), 'steel']]);
+
+part('charging', 'Charging handle knob + side stud (dummy)', 'rcv', [], [0, 0, 60],
+  'Hollow knob and stud on the right side of the receiver, after the real gun’s charging handle. Dummy on the airsoft gun.',
+  [[latheX([[0, 0], [9, 0], [9, 13], [6, 13], [6, 2], [0, 2]], 28).rotateY(-Math.PI / 2).translate(X(759), Y(352), RW - 1), 'steel'],
+   [latheX([[0, 0], [7, 0], [7, 9], [4.5, 9], [4.5, 2], [0, 2]], 28).rotateY(-Math.PI / 2).translate(X(659), Y(353), RW - 1), 'steel']]);
+
+part('rearSight', 'Rear sight (flip-up)', 'rcv', [], [0, 70, 0],
+  'Rear aperture sight on the top rail, at the back of the receiver.',
+  [[profR(P([[870, 270], [955, 270], [955, 277], [870, 277]]), 20, 0.8), 'blued'],
+   [profR(P([[875, 255], [893, 255], [896, 270], [872, 270]]), 14, 0.8, [circ(X(884), Y(262), 1.2, 12)]), 'blued'],
+   [cyl(3.6, 24, 'z', X(905), Y(266), 0, 16), 'blued'],
+   [profR(P([[935, 257], [952, 257], [952, 270], [935, 270]]), 6, 0.8), 'blued']]);
+
+part('selector', 'Selector lever (SAFE / FIRE)', 'rcv', [], [0, 0, -50],
+  'Two-position selector, SAFE and FIRE (full auto only, no semi). Lever on the left above the grip.',
+  [[profR(P([[812, 386], [840, 384], [846, 390], [840, 396], [812, 394]]), 3, 0.8).translate(0, 0, -24.5), 'blued'],
+   [cyl(3.4, 50, 'z', X(840), Y(390), 0, 20), 'steel']]);
+
+part('bodyPins', 'Body pins (x2)', 'rcv', [], [0, -20, -70],
+  'Two cross pins hold the lower to the upper. Push them out, after the stock and the grip, to separate the receivers and slide the gearbox out.',
+  [[cyl(2.8, 48, 'z', X(761), Y(390), 0, 20), 'steel'], [cyl(2.8, 48, 'z', X(500), Y(392), 0, 20), 'steel']]);
+
+// ================= GEARBOX AND HOP-UP =================
+const GB_F = -158, GB_R = -330;          // gearbox front and back: the cylinder head sits at the back of the feed tray, the hop-up ahead of it
+part('gearbox', 'Gearbox shell (CA Stoner, V2 pattern)', 'gbx', [], [0, 170, 0],
+  'Classic Army’s own 8mm gearbox shell for the Stoner, long at the front, built round standard V2 internals. The shell is not sold as a spare, the main reason owners look at BCI’s aftermarket shells (including an HPA version for a PolarStar engine). Quick-change spring guide at the back.',
+  [[cut(prof([[GB_F, 14], [GB_R, 14], [GB_R, -17], [-305, -17], [-303, -47], [-205, -47], [-205, -18], [-180, -18], [-170, -14], [GB_F, -14]], SHELL_Z * 2, 1), [
+      cyl(13, 40, 'z', -245, -16, 0, 32), bx(-275, -160, -10, 10, -9, 9), cyl(5, 40, 'z', -268, -30, 0, 16)]), 'zinc']], { shell: true });
+
+part('cylinder', 'Cylinder + head, nozzle', 'gbx', [], [40, 170, -90],
+  'Bore-up cylinder, slightly shorter than standard, with a double O-ring cylinder head and a nozzle just under 19mm long.',
+  [[tube(11.3, 12.2, -272, -166, 32), 'steel'], [latheX([[0, -166], [11.2, -166], [11.2, -159], [5, -159], [5, -166]], 28), 'blue'],
+   [tube(2.2, 3.4, -160, -141, 20), 'blue']]);
+
+part('piston', 'Piston + piston head', 'gbx', [], [0, 170, -130],
+  'Polymer piston with a full steel-tooth rack, and the piston head with a double O-ring seal.',
+  [[latheX([[0, -205], [10.8, -205], [10.8, -200], [9.6, -200], [9.6, -276], [0, -276]].reverse(), 28), 'nylon'], [bx(-276, -212, -11.5, -9, -2, 2), 'steel']]);
+
+part('mainSpring', 'Main spring + QD spring guide', 'gbx', [], [-60, 170, -170],
+  'Main spring on a quick-change spring guide held by a pin at the back of the shell, so the spring swaps without opening the gearbox.',
+  [[spring(7.2, 0.7, 120, 26, 'x', -326, 0, 0), 'spring'], [latheX([[0, -335], [8, -335], [8, -326], [3, -326], [3, -250], [0, -250]], 20), 'steel']]);
+
+part('gears', 'Gear set (sector, spur, bevel)', 'gbx', [], [0, 130, -90],
+  'Standard V2/V3 gear set (generic CA gears) on 8mm bearings. The bevel gear meshes with the motor pinion in the grip.',
+  [[gear(17, 33, 4, -245, -16, 0, { hole: 2 }), 'steel'], [gear(11, 22, 4, -268, -30, 3, { hole: 2 }), 'steel'],
+   [gear(13, 28, 4, -282, -40, 0, { hole: 2, axis: 'y' }), 'steel']]);
+
+part('trigger', 'Trigger + trigger switch', 'gbx', [], [0, 100, -60],
+  'Trigger in the gearbox and the micro switch it closes. No electronic trigger from the factory; the wires leave the gearbox at the front.',
+  [[profR(P([[787, 395], [800, 395], [805, 420], [804, 438], [797, 449], [794, 447], [799, 436], [799, 420], [790, 404]]), 6, 1), 'blued'],
+   [bx(-222, -200, -34, -20, -6, 6), 'black'], [bx(-216, -205, -20, -17, -3, 3), 'brass']]);
+
+part('motor', 'Motor (long type, in the grip)', 'gbx', [], [-40, 60, -70],
+  'Long-shaft motor in the pistol grip, pinion up into the bevel gear. The stock motor is weak; a high-torque motor (SHS is the usual pick) is the common first upgrade along with the hop-up.',
+  [[latheX([[0, -6], [3, -6], [3, 0], [12, 0], [12, 62], [0, 62]], 28).rotateZ(-(90 + 22) * D2R).translate(-282, -44, 0), 'steel']]);
+
+part('hopUp', 'Hop-up chamber + adjuster dial (M249-type)', 'gbx', [], [60, 120, 0],
+  'M249-type hop-up unit in the channel under the top cover, set with the knurled dial at its back: lift the cover to reach it. It is the gun’s known weak point: a rough casting whose barrel clip lets the barrel shift even when locked. The Bullgear Stoner hop-up is the usual replacement.',
+  [[latheX([[5, -126], [11, -126], [11, -97], [5, -97], [5, -126]], 28), 'steel'], [latheX([[5, -97], [12, -97], [12, -89], [5, -89], [5, -97]], 28), 'black'],
+   [latheX([[5, -130], [11.2, -130], [11.2, -126], [5, -126], [5, -130]], 28), 'black'],
+   [gear(12.4, 24, 9, -136, 0, 0, { hole: 5, axis: 'x' }), 'steel'], [latheX([[3.5, -141], [7.2, -141], [7.2, -131], [3.5, -131], [3.5, -141]], 24), 'steel']]);
+
+part('bucking', 'Hop-up bucking', 'gbx', [], [100, 140, 0],
+  'Rubber hop-up bucking over the back of the inner barrel. A fresh bucking goes in with any barrel swap.',
+  [[tube(3.3, 4.9, -124, -98, 24), 'rubber']]);
+
+part('innerBarrel', 'Inner barrel (410mm, 6.05mm bore)', 'gbx', [], [140, 120, 0],
+  'Inner barrel, 410mm long with a 6.05mm bore, from the hop-up to just inside the flash hider. A tighter 6.03mm stainless barrel with a new bucking is a common upgrade.',
+  [[tube(3.03, 4.6, -120, 290, 24), 'brass']]);
+
+part('wiring', 'Wiring (front wired)', 'gbx', [], [0, 150, -40],
+  'The leads come out of the front of the gearbox and run forward to the battery in the handguard.',
+  [[tubeAlong([[-210, -28, -8], [-180, -20, -12], [-150, -18, -16], [-100, -16, -18], [-10, -12, -18]], 1.1, 60), 'red']]);
+
+// ================= GRIP AND STOCK =================
+part('grip', 'Pistol grip + motor plate', 'stk', [], [0, -120, 0],
+  'A2-style pistol grip that houses the motor. The base plate screws off to reach the motor height screw.',
+  [[profR(P([[834, 408], [887, 408], [904, 440], [925, 480], [945, 515], [956, 530], [952, 540], [930, 548], [905, 552], [885, 553], [878, 546], [870, 525], [855, 495], [848, 490], [844, 480], [842, 470], [837, 460], [835, 430]]), 30, 6), 'checker']]);
+
+part('bufferTube', 'Buffer tube + receiver adapter', 'stk', [], [-90, 0, 0],
+  'Buffer tube the stock slides on, screwed into an adapter at the back of the receiver. Aftermarket adapters fit AR stocks and M249 Para stocks.',
+  [[latheX([[0, X(965)], [15.5, X(965)], [15.5, X(995)], [12.6, X(995)], [12.6, X(1140)], [0, X(1140)]].reverse(), 32).translate(0, BUF_Y, 0), 'blued'],
+   [latheX([[12.7, X(976)], [15.8, X(976)], [15.8, X(994)], [12.7, X(994)]].reverse(), 8).translate(0, BUF_Y, 0), 'dark']]);
+
+part('stock', 'Retractable stock', 'stk', [], [-180, 0, 0],
+  'Retractable stock on the buffer tube; adjusting it takes the gun from 819mm (stock in) to 889mm (stock out). It comes off for the field strip: unscrew the bolt underneath, then press the side lever.',
+  [[profR(P([[1133, 292], [1178, 292], [1181, 300], [1179, 450], [1172, 466], [1158, 471], [1146, 466], [1133, 447], [1125, 400], [1127, 352], [1135, 346], [1135, 300]]), 30, 3,
+    [P([[1132, 368], [1146, 365], [1146, 420], [1137, 424], [1132, 418]])]), 'poly'],
+   [cut(bx(X(1162), X(1150), Y(425), Y(370), -16, 16), [bx(X(1170), X(1140), Y(440), Y(360), -14, 14)]), 'black']]);
+
+part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
+  'Side lever at the back of the receiver that releases the stock and buffer tube.',
+  [[profR(P([[945, 335], [962, 335], [962, 382], [945, 382]]), 4, 0.8).translate(0, 0, -RW - 1), 'blued']]);
+
+// ================= BOX MAGAZINE =================
+part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
+  '1200-round electric box magazine: a hard inner box under a tan Cordura cover, with a black top frame that clamps to the bracket under the receiver. The loading door tends to pop open (owners tape it after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
+  [[cut(bx(MAG_X0, MAG_X1, MAG_FR, MAG_TOP, MAG_Z - MAG_HZ, MAG_Z + MAG_HZ), [bx(MAG_X0 + 6, MAG_X1 - 6, MAG_FR + 6, MAG_TOP - 5, MAG_Z - MAG_HZ + 6, MAG_Z + MAG_HZ - 30)]), 'poly2'],
+   ...[0, 1, 2].map(i => [bx(MAG_X0 + 8, MAG_X1 - 8, MAG_FR + 8 + i * 4, MAG_FR + 9.5 + i * 4, MAG_Z - MAG_HZ + 8, MAG_Z + MAG_HZ - 32), 'black']),
+   [bx(MAG_X0 + 3, MAG_X1 - 3, MAG_BOT + 3, MAG_FR, MAG_Z - MAG_HZ + 3, MAG_Z + MAG_HZ - 3), 'poly']], { shell: true });
+
+part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
+  'Tan Cordura cover over the box, with a zip, a snap strap and grommets, after the real gun’s soft ammo pouch.',
+  [[cut(secX(rr(MAG_Z - MAG_HZ - 1, MAG_Z + MAG_HZ + 1, MAG_BOT, MAG_FR + 2, 6, 4), MAG_X0 - 1, MAG_X1 + 1, 1.5), [bx(MAG_X0 + 2, MAG_X1 - 2, MAG_BOT + 3, MAG_FR + 6, MAG_Z - MAG_HZ + 2, MAG_Z + MAG_HZ - 2)]), 'tan'],
+   [bx(X(662), X(654), MAG_BOT + 4, Y(470), MAG_Z - MAG_HZ - 2.2, MAG_Z - MAG_HZ - 1), 'brass'],
+   [bx(X(668), X(648), Y(440), Y(470), MAG_Z - MAG_HZ - 2.4, MAG_Z - MAG_HZ - 1), 'tan'],
+   [cyl(5, 2, 'z', X(658), Y(452), MAG_Z - MAG_HZ - 3, 20), 'black'],
+   ...[[X(613), Y(440)], [X(694), Y(440)]].map(([x, y]) => [cyl(2.6, 1.6, 'z', x, y, MAG_Z - MAG_HZ - 1.8, 16), 'steel'])]);
+
+part('feedTube', 'BB feed tube (spring tube)', 'mag', [], [-20, -80, -90],
+  'Flexible spring feed tube from the mag to the port in the left side of the receiver. Its collar is Stoner-specific: to run an M249 box mag the collar or the whole tube is swapped (a printed Stoner 96 feed tube, a 3/8in coupler, or a BCI adapter).',
+  [[coilAlong([[X(614), MAG_TOP + 2, MAG_Z + MAG_HZ - 40], [X(616), Y(365), -RW - 16], [X(645), Y(348), -RW - 9], [X(660), -11, -RW - 3.2]], 3, 0.55, 1.2), 'spring'],
+   [cyl(4.4, 8, 'y', X(614), MAG_TOP + 5, MAG_Z + MAG_HZ - 40, 20), 'steel']]);
+
+part('magMotor', 'Winding motor + sound switch', 'mag', [], [-40, -170, -60],
+  'The mag winds itself: a small motor in the box drives the follower wheel when the sound or motion switch trips, on its own AA cells. The usual fix for weak feeding is to wire the mag to the trigger so it winds on every pull.',
+  [[cyl(7, 24, 'x', -128, -110, -70, 20), 'steel'], [gear(12, 24, 3, -128, -95, -40, { hole: 1.5 }), 'nylon'], [bx(-160, -100, -150, -136, -100, -50), 'white']]);
+
+part('magBracket', 'Magazine bracket', 'mag', [], [0, -60, 0],
+  'Bracket under the receiver that the box mag clamps to. One screw holds it; the bracket slides out to separate the receivers. Stoner mags click in tight; M249 mags on a swapped feed tube wobble and want a wrap of tape on the clamp.',
+  [[profR(P([[598, 395], [709, 395], [709, 401], [598, 401]]), 50, 0.8), 'blued'], [cyl(2, 52, 'z', X(653), Y(398), 0, 12), 'steel']]);
+
+
+
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+const catEls = {};
+let isolated = null;
+function updateVis() {
+  for (const p of parts) p.visible = isolated ? p === isolated : catOn[p.userData.cat];
+}
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-stoner96-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-stoner96-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span>`;
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+// Search: matches the name or any manual part number. "112" and "#112" both work.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => p.userData.name.toLowerCase();
+function matches(p, q) {
+  if (!q) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+    o.castShadow = !e.target.checked;   // a see-through shell must not shade the parts inside it
+    o.material.needsUpdate = true;      // transparent is compiled into the shader (OPAQUE forces alpha 1)
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
+// ---------- info panel ----------
+const SOURCES = `<p class="src">Sources: <a href="https://www.redwolfairsoft.com/classic-army-metal-stone-96-lmg-aeg-black.html">Redwolf CA063M product photos</a> (side profiles traced at 1.432 px/mm),
+<a href="https://www.evike.com/products/49134/">Evike #49134 specs</a>, <a href="https://www.emgarms.com/49134/">EMG product page</a>,
+Team Black Sheep's KAC LMG review (gearbox and field-strip photos), the Airsoft Canada and <a href="https://www.airsoftsociety.com/threads/upgrading-classic-army-kac-stoner-96.165999/">Airsoft Society</a> teardown threads,
+<a href="https://stampedetactical.com/classic-army-stoner-96/">BCI / Stampede Stoner 96 parts</a>, <a href="https://en.wikipedia.org/wiki/Knight%27s_Armament_Company_LAMG">Wikipedia: KAC LAMG</a>.
+Outside shapes are traced from the side photos; widths, internal shapes and positions are approximate.</p>`;
+function showOverview() {
+  infoBody.innerHTML = `<h2>Classic Army / EMG KAC Stoner 96 LMG</h2>
+  <div class="meta">Electric light machine gun (AEG), full auto only. Metal receiver and handguard, polymer grip, stock and foregrip. KAC licensed trades, sold by Evike as EMG #49134 (Classic Army CA063M).</div>
+  <p>819mm long with the stock in, 889mm with it out (Evike). 410mm inner barrel, 6.05mm bore. About 400 FPS with 0.20g BBs. 1200-round electric box mag. 7.4V or 8.4V stick battery in the handguard, Tamiya plug, not included. Real steel: Eugene Stoner and Knight's Armament, 1996; belt-fed 5.56mm, 895mm long.</p>
+  <ul>
+    <li>Field strip (teardown threads): press the button on top of the receiver and pull the barrel group forward; unscrew the bolt under the stock and press the side lever to take the stock off; take out the mag-bracket screw and slide the bracket out; part the upper and lower; take off the grip; push out the two body pins; pull the trigger a little and slide the gearbox out.</li>
+    <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare.</li>
+    <li>Day-one fixes: the hop-up (rough casting, the barrel clip lets the barrel shift; Bullgear's Stoner hop-up replaces it), the box mag (tape the loading door, wire it to the trigger) and the weak stock motor.</li>
+    <li>M249 mags: the box body is shared, the feed tube collar is not. Swap the feed tube (printed Stoner 96 tube, 3/8in coupler, or a BCI adapter set to Stoner 96) and tape the clamp if the mag wobbles.</li>
+    <li>The Explode slider strips it in order: the box mag drops off (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
+  </ul>
+  <p>${parts.length} modeled assemblies. Classic Army publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+}
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 25, 1500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
+  setGlow(p, true);
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>${SOURCES}`;
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
+}
+showOverview();
+initPanels();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, viewCam());
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  hover(p);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = p.userData.name; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewDir = dir => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
+};
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+});
+MOBILE.addEventListener('change', initPanels);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+// Staged explode, in field-strip order: the box mag drops off first, then the barrel group runs off forward and the stock
+// off the back, then the receiver parts spread, and last the gearbox comes out and opens. Each part's moves add up to
+// its explode vector, so at 100% every part sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const G_MAG = new THREE.Vector3(0, -110, -40), G_FRONT = new THREE.Vector3(160, 0, 0), G_STOCK = new THREE.Vector3(-140, 0, 0);
+const G_GBX = new THREE.Vector3(-120, 60, 0);
+const FRONT = new Set(['flashHider', 'frontSight', 'outerBarrel', 'gasTube', 'handguard', 'vertGrip', 'battery']);
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, id = p.userData.id, rest = v => ex.clone().sub(v);
+  p.userData.stages = cat === 'mag' && id !== 'magBracket' ? [[G_MAG, 0, 0.15], [rest(G_MAG), 0.35, 0.6]]
+    : FRONT.has(id) ? [[G_FRONT, 0.15, 0.35], [rest(G_FRONT), 0.35, 0.6]]
+    : id === 'stock' || id === 'bufferTube' ? [[G_STOCK, 0.15, 0.35], [rest(G_STOCK), 0.35, 0.6]]
+    : cat === 'gbx' && id !== 'innerBarrel' && id !== 'bucking' && id !== 'hopUp' ? [[G_GBX, 0.6, 0.8], [rest(G_GBX), 0.8, 1]]
+    : [[ex.clone(), 0.35, 0.6]];
+}
+renderer.setAnimationLoop(() => {
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
+  exv.textContent = Math.round(exCur * 100) + '%';
+  for (const p of parts) {
+    p.position.set(0, 0, 0);
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
+  }
+  controls.update();
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
+});
+
+const EX_TGT = new THREE.Vector3(-80, 0, 0), EX_POS = fit(new THREE.Vector3(-500, 400, -2100), EX_TGT);
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__st = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root };
+</script>
+</body>
+</html>
