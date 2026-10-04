@@ -754,14 +754,14 @@ part('serialPlate', 'Serial plate', 'frm', ['G-03'], [0, -42, 0],
 
 part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10'], [100, 0, 0],
   'Metal front assembly housing: carries the front slide rails and the locking block lugs the barrel cams on. Held by screw G-09 from above and pin G-10 across the frame, where the firearm\'s locking block pin goes. Gen5 has its own.',
-  [...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 5.5, FT, sd * 9.2 - 1, sd * 9.2 + 1), 'zinc']),
-   ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 9.6 - 0.6, sd * 9.6 + 0.6), 'zinc']),
+  [...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 5.5, FT, sd * 8.9 - 1, sd * 8.9 + 1), 'zinc']),
+   ...[1, -1].map(sd => [bx(-13, MUZ - 2, FT - 0.8, FT, sd * 9.2 - 0.6, sd * 9.2 + 0.6), 'zinc']),
    [bx(MUZ - 6, MUZ - 2, FT - 5.5, FT - 3, -8.2, 8.2), 'zinc'],
    [bx(-13, 2, FT - 6, FT + 1.5, -8.2, 8.2), 'zinc'],
    // locking block uprights either side of the barrel lug (frame-top photo)
    ...[1, -1].map(sd => [bx(-1.5, 2, FT + 1.5, -3.5, sd * 8.1 - 0.6, sd * 8.1 + 0.6), 'zinc']),
    [cyl(1.4, 3, 'y', -5, FT + 0.5, 0, 10), 'steel'],
-   [cyl(1.5, 24, 'z', X(1000), Y(262), 0, 12), 'steel']]);
+   [cyl(1.5, 24.3, 'z', X(1000), Y(262), 0, 16), 'steel']]);   // pin ends 0.15mm proud, so they never sit in the frame surface
 
 part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0],
   'Takedown latch (slide lock): one flat steel plate across the frame, its grooved ends standing just proud of the frame sides, a raised tab on top that holds the slide, and a notch underneath for the flat spring G-11. Pull it down on both sides with the slide a few mm back, then run the slide off forward (WE manual). Ebog sells it as a "slide release lever", which is wrong.',
