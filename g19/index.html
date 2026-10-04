@@ -474,6 +474,8 @@ function rr(a0, a1, b0, b1, r, n = 4) {
     for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
   return pts;
 }
+// arc points around (ca, cb) from angle a0 to a1 in degrees
+const arcPts = (ca, cb, r, a0, a1, n = 6) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [ca + r * Math.cos(t), cb + r * Math.sin(t)]; });
 const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
 const zAt = (g, z) => g.translate(0, 0, z);
 // like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
@@ -718,11 +720,6 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
     for (const yc of [Y(645), Y(800), Y(915)]) for (let k = 0; k < 4; k++) patch(-0.16, 0.16, yc + 3 - k * 2, yc + 2.1 - k * 2, 0.3, 'black', 0.15);
     for (let y = -46; y > -100; y -= 2.2) patch(0.86, 1.14, y, y - 0.9, 0.3, 'black', 0.15);
     for (const t of [0.925, 0.975, 1.025, 1.075]) patch(t - 0.006, t + 0.006, -46, -99, 0.3, 'black');
-    // mag release cut-out on the left side: a dark patch on the grip surface around the button, its angle range found
-    // from the section at mid height so it hugs the rounded front of the grip instead of a flat box poking through it
-    { const lv = levels.reduce((m, l) => Math.abs(l.y + 48.6) < Math.abs(m.y + 48.6) ? l : m), tx = x => { let best = 1.5, bd = 1e9;
-        for (let t = 1.5; t <= 2; t += 0.002) { const d = Math.abs(loftPoint(lv, t * Math.PI, 3.2, 0.8)[0] - x); if (d < bd) { bd = d; best = t; } } return best; };
-      patch(tx(-34.5), tx(-27.3), -44.1, -53.2, 0.08, 'black', 0.4); }
     out.push(
       // Gen3 single-slot accessory rail: a groove along each side of the dust cover and one cross slot underneath
       ...[1, -1].map(sd => [bx(X(496), X(232), Y(296), Y(284), sd * 12 - 0.3, sd * 12 + 0.3), 'black']),
@@ -735,8 +732,8 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       ...Array.from({ length: 9 }, (_, k) => { const py = 425 + k * 15, px = py < 498 ? 684 - 4 * (py - 411) / 87 : 680 - 19 * (py - 498) / 71;
         return [bx(X(px) - 0.4, X(px) + 0.03, Y(py) - 0.5, Y(py) + 0.5, -3.3, 3.3), 'black']; }),
       // plug hole at the foot of the backstrap
-      // pocket in the left wall that the slide stop paddle sits in, with the moulded ledge under it
-      [bx(-36.6, -27.8, -19.3, FT, -12.15, -11.9), 'black'],
+      // moulded ledge on the left wall under the slide stop paddle (about 17mm long, sloped ends; GCA close-up and WE profile)
+      [profR([[-27, -19], [-29, -17.6], [-42, -17.6], [-44, -19]], 1.1, 0.4).translate(0, 0, -12.45), 'frame'],
       [bx(X(1690) + 0.2, X(1690) + 3, Y(975), Y(955), -2.5, 2.5), 'black']);
     return out;
   })(), { shell: true });
@@ -784,20 +781,34 @@ part('slideStop', 'Slide stop lever + spring', 'frm', ['G-12', 'G-13'], [0, -50,
     const bar = [[PX, PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5], [-34.6, -10.5], [-34.6, -15.6], [-27.5, -17.2], [-20, -19.3], [PX, PY - 2.6], ...eye.slice(1, -1)];
     const spr = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-18.6, -15.9], [-12, -15.6], [-6, -14.4], [-2.5, -15.2], [-1.6, -17.4]].map(([a, b]) => new THREE.Vector3(a, b, Z0 + 0.7))), 24, 0.25, 6, false);
     return [[prof(bar, 1, 0.15, [circ(PX, PY, 1.55, 14)]).translate(0, 0, Z0), 'blued'],
-      // paddle, bent out of the frame wall
-      [bx(-34.4, -29.8, -16.8, -10.9, -13.1, -11.5), 'blued'], [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'blued'],
-      ...[0, 1, 2, 3].map(k => [bx(-34.1, -30.1, -15.9 + k * 1.35, -15.45 + k * 1.35, -13.2, -13.05), 'black']),
+      // paddle, bent out of the frame wall: wider than tall (10.5 x 7mm in the WE profile photo), the front of its top edge
+      // up against the slide and the rear stepped down into a big rounded corner, small radii below, three grooves along it
+      [profR([[-29.8, -10.1], [-35.8, -10.1], [-36.2, -10.8], ...arcPts(-38.3, -12.8, 2, 90, 180), ...arcPts(-38.8, -15.5, 1.5, 180, 270), ...arcPts(-31.3, -15.5, 1.5, 270, 360)], 1.6, 0.35).translate(0, 0, -12.3), 'blued'],
+      [bx(-34.4, -32.6, -16.8, -10.9, -11.5, -10.3), 'blued'],
+      ...[-12, -13.5, -15].map(y => [bx(-39.4, -30.4, y - 0.22, y + 0.22, -13.13, -12.98), 'black']),
       // spring hook tab and the wire spring
       [bx(-19.4, -17.8, -16.7, -15.6, Z0 - 0.5, Z0 + 0.5), 'blued'], [spr, 'spring']];
   })());
 
 part('magCatch', 'Mag catch + spring', 'frm', ['G-06', 'G-04'], [-20, -40, 0],
   'Glock-pattern L-shaped catch: a bar across the top of the front strap, with the grooved button on the left, sitting in the notch on the front of the magazine; at its right end an arm rises in front of the mag, and the wire spring G-04 in the front strap pushes on it to hold the catch out. Press the button and the bar leaves the notch. Gen3 has the small button; Gen4 and Gen5 the enlarged, reversible one (WE: Gen3 and Gen4/5 catches are separate parts).',
-  [[bx(-33.6, -28.2, -52.3, -45, -14.8, 9.4), 'poly2'],
-   ...[0, 1, 2, 3].map(i => [bx(-33.3, -28.5, -51.4 + i * 1.7, -51 + i * 1.7, -14.95, -14.7), 'black']),
-   [prof([[-29.4, -46], [-25.9, -46], [-24.4, -35], [-25.2, -33.6], [-27.6, -33.6], [-28.2, -35]], 2.6, 0.3).translate(0, 0, 8.1), 'poly2'],
-   [bx(-29.4, -25.9, -52.3, -45, 6.8, 9.4), 'poly2'],
-   [cyl(0.45, 15, 'y', -23.6, -43, 8.1, 6), 'spring'], [bx(-24.2, -23, -36, -35, 7.6, 8.6), 'spring']]);
+  (() => {
+    // button 4.3 wide and 8.2 tall, leaning 17 degrees with the grip (WE profile photo), grooves along its length; its face
+    // follows the rounded front of the grip (0.5mm proud) instead of standing square out of it
+    const MX = -30.7, MY = -47.8, HW = 2.15, HH = 4.1, LEAN = -17 * D2R;
+    const zf = x => -14.15 + (x - (MX - HW)) * 1.35 / (2 * HW);
+    const xz = (pts, h) => profR(pts.map(([x, z]) => [x, z]), h, 0.2).rotateX(Math.PI / 2).translate(0, MY, 0);
+    const lean = g => g.translate(-MX, -MY, 0).rotateZ(LEAN).translate(MX, MY, 0);
+    const btn = [[[MX - HW, -11], [MX - HW, zf(MX - HW)], [MX + HW, zf(MX + HW)], [MX + HW, -11]]];
+    return [
+      [lean(xz(btn[0], 2 * HH)), 'poly2'],
+      [lean(bx(MX - HW, MX + HW, MY - HH, MY + HH, -11.2, 9.4)), 'poly2'],
+      ...[0, 1, 2, 3, 4].map(i => { const x = MX - 1.6 + i * 0.8;
+        return [lean(xz([[x - 0.17, zf(x - 0.17) - 0.03], [x + 0.17, zf(x + 0.17) - 0.03], [x + 0.17, zf(x + 0.17) + 0.4], [x - 0.17, zf(x - 0.17) + 0.4]], 2 * HH - 1)), 'black']; }),
+      [prof([[-29.4, -46], [-25.9, -46], [-24.4, -35], [-25.2, -33.6], [-27.6, -33.6], [-28.2, -35]], 2.6, 0.3).translate(0, 0, 8.1), 'poly2'],
+      [bx(-29.4, -25.9, -52.3, -45, 6.8, 9.4), 'poly2'],
+      [cyl(0.45, 15, 'y', -23.6, -43, 8.1, 6), 'spring'], [bx(-24.2, -23, -36, -35, 7.6, 8.6), 'spring']];
+  })());
 
 // ================= TRIGGER AND HAMMER GROUP =================
 part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'], [10, -72, 0],
