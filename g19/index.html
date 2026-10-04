@@ -722,6 +722,7 @@ part('recoilSpring', 'Recoil spring', 'bar', ['G-32'], [100, -36, 0],
 const FT = Y(220);   // frame top under the slide
 // controls that sit in openings in the frame: their positions are shared with the frame so it can cut the openings
 const TD_X0 = (X(832) + X(797)) / 2, TD_YB = -19.8, TD_YT = TD_YB + 4.1;   // takedown latch plate (front face centre, bottom, top)
+const TD_E0 = TD_YB - 1.5, TD_E1 = TD_YT + 1.4;   // its grooved ends are taller than the bar, 7mm (Gen3 controls photo)
 // the latch leans forward about 17 degrees in its slot (WE left-profile photo; the Glock's does too)
 const tdTilt = g => g.translate(-TD_X0, -(TD_YB + 2), 0).rotateZ(-0.3).translate(TD_X0, TD_YB + 2, 0);
 const SS_PX = X(955), SS_PY = Y(305), SS_Z0 = -10.8;   // slide stop eye on the trigger pin, inside the left wall
@@ -732,7 +733,7 @@ const SS_BAR = [[SS_PX, SS_PY + 2.6], [-20, -16.6], [-27, -13.6], [-29.4, -10.5]
 const MC_X = -30.7, MC_Y = -47.8, MC_HW = 2.15, MC_HH = 4.1;
 const mcLean = g => g.translate(-MC_X, -MC_Y, 0).rotateZ(-17 * D2R).translate(MC_X, MC_Y, 0);
 part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
-  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. The top is open between the rail walls, where the chassis and trigger group drop in; the pins pass through holes, the takedown latch ends sit in slots, the slide stop comes out through a notch in the top of the left wall and the mag catch in a window through the front strap. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
+  'Polymer lower frame (Gen3: finger grooves with ribbed humps, stippled side panels, checkered backstrap, thumb-rest scallops, serrated trigger guard front, single-slot rail, small mag release, no backstraps). Metal front and rear chassis (G-08, G-26) carry the rails, like the firearm. The top is open between the rail walls, where the chassis and trigger group drop in; the pins pass through holes, the takedown latch ends sit in slots inside finger pockets, the slide stop comes out through a notch in the top of the left wall and the mag catch in a window through the front strap. Gen4 changes the texture and adds backstraps; Gen5 drops the finger grooves and flares the magwell.',
   (() => {
     // outline traced from the photo (contour, then the checkering on the straps smoothed out), split into the dust cover
     // (flat extrusion ending inside the grip at x px 1100), the trigger guard, and one loft for the rear frame and grip
@@ -804,7 +805,9 @@ part('frame', 'Frame', 'frm', ['G-01'], [0, 0, 0],
       prof([[14, FT + 3], [-87.1, FT + 3], [-87.1, -15.3], [-78.4, -20], [-74.5, -24], [-72.1, -29], [-73.2, -41.6], [-60, -41.6], [-45, -25.5], [14, -25.5]], 17, 0),
       magT(magExt(MD + 0.1, MW + 0.1, 5, -125, 9)),
       ...[[X(955), Y(305)], [X(1000), Y(262)], [X(1483), Y(445)]].map(([x, y]) => cyl(1.65, 40, 'z', x, y, 0, 20)),
-      tdTilt(bx(TD_X0 - 1.5, TD_X0 + 1.5, TD_YB - 0.4, TD_YT + 0.4, -20, 20)),
+      tdTilt(bx(TD_X0 - 1.85, TD_X0 + 1.85, TD_E0 - 0.3, TD_E1 + 0.3, -20, 20)),
+      // shallow finger pocket around each takedown latch end
+      ...[1, -1].map(sd => tdTilt(new THREE.SphereGeometry(1, 32, 16).scale(3.6, 6.2, 4).translate(TD_X0, (TD_E0 + TD_E1) / 2, sd * 14.8))),
       bx(X(1045), X(945), -33, -24, -3.7, 3.7),
       // the lever runs inside the left wall; only where it rises to the slide notch and the paddle does a notch in the
       // wall's top edge let it out
@@ -829,19 +832,21 @@ part('frontHousing', 'Front chassis + screw, pin', 'frm', ['G-08', 'G-09', 'G-10
    // locking block uprights either side of the barrel lug (frame-top photo)
    ...[1, -1].map(sd => [bx(-1.5, 2, FT + 1.5, -3.5, sd * 8.1 - 0.6, sd * 8.1 + 0.6), 'zinc']),
    [cyl(1.4, 3, 'y', -5, FT + 0.5, 0, 10), 'steel'],
-   [cyl(1.5, 23.7, 'z', X(1000), Y(262), 0, 16), 'steel']]);   // pin ends 0.15mm down in their holes
+   [cyl(1.5, 23.7, 'z', X(1000), Y(262), 0, 16), 'blued']]);   // pin ends 0.15mm down in their holes
 
 part('takedown', 'Takedown latch + spring', 'frm', ['G-02', 'G-11'], [0, -52, 0],
-  'Takedown latch (slide lock): one flat steel plate across the frame, its grooved ends standing just proud of the frame sides, a raised tab on top that holds the slide, and a notch underneath for the flat spring G-11. Pull it down on both sides with the slide a few mm back, then run the slide off forward (WE manual). Ebog sells it as a "slide release lever", which is wrong.',
+  'Takedown latch (slide lock): one flat steel plate across the frame, its grooved ends flush with the frame sides in moulded finger pockets, a raised tab on top that holds the slide, and a notch underneath for the flat spring G-11. Pull it down on both sides with the slide a few mm back, then run the slide off forward (WE manual). Ebog sells it as a "slide release lever", which is wrong.',
   (() => {
-    // plate outline across the frame (z) and up (y), proportions from the Glock part photo: 26mm long, 4.1mm bar,
-    // 11.3mm tab standing 2.9mm higher, two grooves in each end. 2.6mm thick, centred in the frame slot.
-    const X0 = TD_X0, YB = TD_YB, YT = TD_YT, L = 13;
-    const end = sd => { const pts = []; for (let k = 0; k <= 12; k++) { const y = YB + 4.1 * k / 12, g = Math.cos(k / 12 * Math.PI * 3);
-      pts.push([sd * (L - 0.45 * (1 - g) / 2), y]); } return sd > 0 ? pts : pts.reverse(); };
-    const plate = [[-0.9, YB], [-0.9, YB + 0.5], [0.9, YB + 0.5], [0.9, YB], ...end(1), [5.65, YT], [5.2, YT + 2.9], [-5.2, YT + 2.9], [-5.65, YT], ...end(-1)];
+    // plate outline across the frame (z) and up (y), proportions from the Glock part photo: 24mm long, 4.1mm bar,
+    // 11.3mm tab standing 2.9mm higher, ends 7mm tall with three grooves (Gen3 controls photo). 3mm thick, centred in
+    // the frame slot; the ends sit flush with the frame side, inside the finger pocket moulded around them.
+    const X0 = TD_X0, YB = TD_YB, YT = TD_YT, L = 12, E0 = TD_E0, E1 = TD_E1;
+    const end = sd => { const pts = []; for (let k = 0; k <= 24; k++) { const y = E0 + (E1 - E0) * k / 24, g = Math.cos(k / 24 * Math.PI * 6);
+      pts.push([sd * (L - 0.4 * (1 - g) / 2), y]); } return sd > 0 ? pts : pts.reverse(); };
+    const plate = [[-0.9, YB], [-0.9, YB + 0.5], [0.9, YB + 0.5], [0.9, YB], [9.4, YB], [10, E0], ...end(1), [10, E1], [9.4, YT], [5.65, YT], [5.2, YT + 2.9],
+      [-5.2, YT + 2.9], [-5.65, YT], [-9.4, YT], [-10, E1], ...end(-1), [-10, E0], [-9.4, YB]];
     return [
-      [secX(plate, X0 - 1.3, X0 + 1.3, 0.15), 'blued'],
+      [secX(plate, X0 - 1.5, X0 + 1.5, 0.15), 'blued'],
       // flat spring under the latch, bowed up into the notch
       [secX([[-6, YB - 1.4], [-1.2, YB + 0.3], [1.2, YB + 0.3], [6, YB - 1.4], [6, YB - 1.8], [1.2, YB - 0.1], [-1.2, YB - 0.1], [-6, YB - 1.8]], X0 - 2, X0 + 2, 0), 'spring']].map(([g, m]) => [tdTilt(g), m]);
   })());
@@ -894,7 +899,7 @@ part('trigger', 'Trigger + safety blade, pins', 'trg', ['G-16', 'G-15', 'G-14'],
 
 part('triggerPin', 'Trigger pin', 'trg', ['G-05'], [0, -100, 0],
   'Middle frame pin (the firearm\'s trigger pin position). Holds the trigger group and the slide stop.',
-  [[cyl(1.5, 23.7, 'z', X(955), Y(305), 0, 16), 'steel']]);
+  [[cyl(1.5, 23.7, 'z', X(955), Y(305), 0, 16), 'blued']]);
 
 part('triggerBar', 'Trigger bar + spring', 'trg', ['G-18', 'G-17'], [0, -62, 0],
   'Trigger bar G-18 runs back along the right side from the trigger to the hammer housing, where it trips the sear. Spring G-17 returns it.',
@@ -908,7 +913,7 @@ part('hammerHousing', 'Hammer housing + screw, rear pin', 'trg', ['G-26', 'G-25'
    [bx(-86.5, -63, FT - 1.6, FT, -7.6, 7.6), 'zinc'],
    ...[1, -1].map(sd => [bx(-85.5, -62, FT - 0.8, FT, sd * 9.4 - 1, sd * 9.4 + 1), 'zinc']),
    [cyl(1.2, 4, 'y', -66, FT - 1, 0, 10), 'steel'],
-   [cyl(1.5, 21.8, 'z', X(1483), Y(445), 0, 16), 'steel']]);
+   [cyl(1.5, 21.8, 'z', X(1483), Y(445), 0, 16), 'blued']]);
 
 part('hammer', 'Hammer + roller, spring, pins', 'trg', ['G-20', 'G-21', 'G-22', 'G-29', 'G-30'], [-72, 8, 0],
   'Drum-shaped hammer on upper pin G-29 with roller G-21 and torsion spring G-22; lower pin G-30 carries the sear. Cocked by the slide, it swings forward and its face hits the valve knocker. A steel hammer and sear set (CowCow, Guarder) replaces the pot-metal parts.',
