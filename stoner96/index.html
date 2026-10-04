@@ -155,7 +155,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { picatinny } from '../lib/picatinny.js';
+import { PIC, picatinny, picMount } from '../lib/picatinny.js';
 import { Brush, Evaluator, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
 
 // ---------- scene ----------
@@ -570,6 +570,8 @@ function decal(key, lines, x0, x1, y0, y1, z, { align = 'center', bold = true } 
 const MUZ = X(6);              // muzzle face, 324mm ahead of the receiver front
 const HG0 = X(474), HG1 = X(226);   // handguard rear and front faces
 const HG_Y = -12, HG_W = 34, HG_H = 39;   // handguard section centre, half width and half height
+const RAIL_HG_DN = { x0: HG0 + 8, x1: HG1 - 10, face: 'down', off: -(HG_Y - HG_H) - 1 };   // handguard bottom rail
+const RAIL_TOP = { x0: X(955), x1: X(735), face: 'up', off: Y(277) - 3 };   // receiver top rail: neck sunk 3mm, flanks clear
 const RW = 28;                 // receiver half width (approximate, no top view published)
 const GT_Y = Y(370);           // gas tube axis
 const SHELL_Z = 15;            // gearbox shell half width
@@ -615,7 +617,7 @@ part('handguard', 'Handguard + end caps', 'frt', [], [30, 0, 0],
     const cap = (x0, x1) => secX(rr(-HG_W - 1.5, HG_W + 1.5, HG_Y - HG_H - 1.5, HG_Y + HG_H + 1.5, 26.5, 8), x0, x1, 1.2, [rr(-12, 12, -12, 12, 11.9, 6).reverse()]);
     return [[body, 'anod'], [cap(HG1 - 9, HG1 - 1.2), 'dark'], [cap(HG0 + 1.2, HG0 + 5), 'dark'],
       [picatinny(HG0 + 8, HG1 - 10, 'up', HG_Y + HG_H - 1), 'anod'],
-      [picatinny(HG0 + 8, HG1 - 10, 'down', -(HG_Y - HG_H) - 1), 'anod'],
+      [picatinny(RAIL_HG_DN.x0, RAIL_HG_DN.x1, 'down', RAIL_HG_DN.off), 'anod'],
       [picatinny(HG0 + 8, HG1 - 10, 'right', HG_W - 1.5, { yc: Y(366) }), 'anod'],
       [picatinny(HG0 + 8, HG1 - 10, 'left', HG_W - 1.5, { yc: Y(366) }), 'anod'],
       ...[[X(253), Y(298)], [X(450), Y(298)], [X(253), Y(398)], [X(450), Y(398)]].flatMap(([x, y]) => [1, -1].map(s => [cyl(1.6, 1.2, 'z', x, y, s * (hz(y) + 0.2), 12), 'steel']))];
@@ -623,8 +625,9 @@ part('handguard', 'Handguard + end caps', 'frt', [], [30, 0, 0],
 
 part('vertGrip', 'Vertical foregrip', 'frt', [], [0, -70, 0],
   'Polymer vertical foregrip on a Picatinny clamp, supplied with the gun along with two ribbed rail covers. It clamps to the bottom rail of the handguard.',
-  [[profR(P([[305, 412], [380, 412], [380, 420], [368, 436], [320, 436], [305, 420]]), 24, 2), 'poly'],
-   [cyl(2.6, 26, 'z', X(344), Y(424), 0, 16), 'steel'],
+  [...(() => { const m = picMount(RAIL_HG_DN, X(380), X(305), { hw: 12, t: -RAIL_HG_DN.off - PIC.height - Y(420), bolt: 'knob', boltAt: X(344) });
+     return [[m.body, 'poly'], [m.bolt, 'steel']]; })(),
+   [profR(P([[305, 419], [380, 419], [368, 436], [320, 436]]), 24, 2), 'poly'],
    [latheY([[0, Y(434)], [12.6, Y(434)], [16, Y(440)], [15.4, Y(470)], [16.2, Y(476)], [15.4, Y(485)], [16.2, Y(491)], [15.4, Y(500)], [16.4, Y(508)], [16.4, Y(526)], [14, Y(529)], [0, Y(529)]], X(344), 0, 32), 'poly']]);
 
 part('battery', 'Battery (7.4V LiPo stick, not included) + leads', 'frt', [], [60, 60, -60],
@@ -651,7 +654,7 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       prof(rr(X(955), X(560), Y(359), Y(345), 4.5, 4), 6, 0).translate(0, 0, RW),         // charging handle channel, right side
       ...[1, -1].map(s => bx(X(955), X(735), Y(304), Y(302), s * RW - 0.6, s * RW + 0.6))]);  // step under the rail section
     return [[body, 'anod'],
-      [picatinny(X(955), X(735), 'up', Y(277) + 3 - 9.32), 'anod'],      // integral rail: only the top 4mm stands above the receiver
+      [picatinny(RAIL_TOP.x0, RAIL_TOP.x1, 'up', RAIL_TOP.off), 'anod'],
       decal('markL', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), -RW - 0.05),
       decal('markR', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), RW + 0.05)];
   })(), { shell: true });
@@ -702,11 +705,14 @@ part('charging', 'Charging handle knob + side stud (dummy)', 'rcv', [], [0, 0, 6
 
 part('rearSight', 'Rear sight (flip-up)', 'rcv', [], [0, 70, 0],
   'Rear aperture sight on the top rail, at the back of the receiver.',
-  [[profR(P([[870, 270], [955, 270], [955, 277], [870, 277]]), 20, 0.8), 'blued'],
+  (() => {   // clamp base on the top rail; the sight above it is traced from the photo and lifted onto the base
+    const m = picMount(RAIL_TOP, X(955), X(870), { hw: 11.5, t: 2, boltAt: X(930) }), lift = RAIL_TOP.off + PIC.height + 2 - Y(270);
+    return [[m.body, 'blued'], [m.bolt, 'steel'], ...[
    [profR(P([[875, 255], [893, 255], [896, 270], [872, 270]]), 14, 0.8, [circ(X(884), Y(262), 1.2, 12)]), 'blued'],
    [cyl(3.6, 24, 'z', X(905), Y(266), 0, 16), 'blued'],
    [gear(7.6, 30, 7, X(905), Y(264), 15.5, { hole: 0 }), 'blued'],
-   [profR(P([[935, 257], [952, 257], [952, 270], [935, 270]]), 6, 0.8), 'blued']]);
+   [profR(P([[935, 257], [952, 257], [952, 270], [935, 270]]), 6, 0.8), 'blued']].map(([g, k]) => [g.translate(0, lift, 0), k])];
+  })());
 
 part('selector', 'Selector lever (SAFE / FIRE)', 'rcv', [], [0, 0, -50],
   'Two-position selector, SAFE and FIRE (full auto only, no semi). Lever on the left above the grip.',
