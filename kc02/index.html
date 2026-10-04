@@ -528,7 +528,7 @@ part('frontSwivel', 'Swivel + swivel screw, pin, nut', 'ext', ['97', '95', '96',
 // ================= RAILS AND SIGHTS =================
 part('rail3', 'Rail 3 (x3) + nuts', 'sgt', ['104', '99'], [0, -80, 0],
   'Three polymer accessory rails on the forend at 3, 6 and 9 o\'clock, bolted on with rail 3 nuts #99. The bottom one is exposed in the manual render.',
-  [picatinny(89, 231, 'down', 32, { riser: 0.7 }),
+  [picatinny(89, 231, 'down', 32.7, { riser: 0.7 }),
    picatinny(90, 216, 'right', STOCK_Z - 1.3, { yc: -10.8 }),     // foot sunk into the forend so the teeth sit under the guards
    picatinny(90, 216, 'left', STOCK_Z - 1.3, { yc: -10.8 })].map(g => [g, 'poly2']));
 
@@ -540,11 +540,11 @@ part('railGuard', 'Rail guards + springs', 'sgt', ['102', '101'], [0, -150, 0],
 
 part('rail1', 'Rail 1 + screws', 'sgt', ['4', '5'], [70, 250, 0],
   'Front top rail, screwed to the top of the outer barrel with three rail 1 screws #5. Carries the front sight.',
-  [[picatinny(51, 232, 'up', 7, { riser: 5.7, riserW: 10.5 }), 'alu'], ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+  [[picatinny(51, 232, 'up', 12.7, { riser: 5.7, riserW: 10.5 }), 'alu'], ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 13, 0, 12), 'steel'])]);
 
 part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 250, 0],
   'Rear top rail on the receiver, fixed with rail 2 screws #19. The hop-up (trajectory) adjust dial sits in its front end. Scope mounts here.',
-  [[picatinny(-61, 49, 'up', 12, { riser: 0.7, riserW: 10.5 }), 'alu'], ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 14, 0, 12), 'steel'])]);
+  [[picatinny(-61, 49, 'up', 12.7, { riser: 0.7, riserW: 10.5 }), 'alu'], ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 13, 0, 12), 'steel'])]);
 
 part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 390, 0],
   'Flip-up front sight: bases #160/#162, post #168 with a fiber optic #169, elevation dial #166 with detent #163 to #165, fixer latch #172/#173 (the small lever behind it), pins #174/#175, clamp screw #170 and nut #171. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
