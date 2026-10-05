@@ -651,7 +651,7 @@ part('battery', 'Battery (7.4V LiPo stick, not included) + leads', 'frt', [], [6
 // upper receiver: traced side outline, the rear section raised with a Picatinny top rail over a row of lightening holes
 const UP_SIDE = P([[470, 297], [552, 297], [560, 289], [597, 289], [597, 322], [700, 322], [700, 277], [965, 277], [965, 386], [470, 386]]);
 part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
-  'Upper receiver, metal. The rear half carries the top Picatinny rail over a row of lightening holes and the rear sight; the front half takes the barrel and handguard group and the feed tray under the top cover. The side panels carry the KAC trades (STONER LMG, 5.56 MM). The gearbox slides in from the back once the stock and grip are off and the body pins are out.',
+  'Upper receiver, metal. The rear half carries the top Picatinny rail over a row of eight through holes in a band set back from the sides, with a long recessed panel below it on each side and a set-back strip along the bottom edge, and the rear sight; the front half takes the barrel and handguard group and the feed tray under the top cover. The front section carries the KAC trades (STONER LMG, 5.56 MM and the serial) on both sides. The gearbox slides in from the back once the stock and grip are off and the body pins are out.',
   (() => {
     const body = cut(profR(UP_SIDE, RW * 2, 1.5), [
       ...[742, 770, 797, 824, 852, 879, 906, 932].map(px => cyl(5.6, 80, 'z', X(px), Y(290), 0, 24)),
@@ -659,14 +659,16 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       cyl(4.2, 10, 'z', X(660), -11, -RW + 1, 20),                                       // BB feed port in the left wall
       cyl(3.6, 80, 'z', X(575), Y(384), 0, 16),                                         // front lightening hole
       bx(X(963), X(700), -16, 16, -SHELL_Z - 1, SHELL_Z + 1),                         // gearbox tunnel
-      prof(rr(X(938), X(728), Y(358), Y(322), 7, 4), 2.4, 0).translate(0, 0, -RW),        // left side panel
-      prof(rr(X(938), X(728), Y(342), Y(322), 6, 4), 2.4, 0).translate(0, 0, RW),         // right side panel
+      prof(rr(X(952), X(733), Y(359), Y(320), 7, 4), 2.4, 0).translate(0, 0, -RW),        // left side panel
+      prof(rr(X(952), X(733), Y(342), Y(320), 6, 4), 2.4, 0).translate(0, 0, RW),         // right side panel
+      ...[[RW - 4, RW + 4], [-RW - 4, -RW + 4]].map(([z0, z1]) => bx(X(952), X(702), Y(304), Y(277) + 6, z0, z1)),   // hole band under the rail, set back 4mm a side
+      ...[[RW - 1.2, RW + 4], [-RW - 4, -RW + 1.2]].map(([z0, z1]) => bx(X(963), X(664), Y(386) - 1, Y(374), z0, z1)),   // lower edge, set back along the bottom
       prof(rr(X(955), X(560), Y(359), Y(345), 4.5, 4), 6, 0).translate(0, 0, RW),         // charging handle channel, right side
-      ...[1, -1].map(s => bx(X(955), X(735), Y(304), Y(302), s * RW - 0.6, s * RW + 0.6))]);  // step under the rail section
+      ]);
     return [[body, 'anod'],
       [picatinny(RAIL_TOP.x0, RAIL_TOP.x1, 'up', RAIL_TOP.off), 'anod'],
-      decal('markL', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), -RW - 0.05),
-      decal('markR', ['STONER LMG', '5.56 MM'], X(550), X(500), Y(356), Y(336), RW + 0.05)];
+      decal('markL', ['STONER LMG', '5.56 MM', 'C16LMG001709'], X(550), X(497), Y(362), Y(334), -RW - 0.05),
+      decal('markR', ['STONER LMG', '5.56 MM', 'C16LMG001709'], X(550), X(497), Y(362), Y(334), RW + 0.05)];
   })(), { shell: true });
 
 part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
