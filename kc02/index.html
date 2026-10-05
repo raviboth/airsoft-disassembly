@@ -513,7 +513,7 @@ part('extCap', 'Stock extension cap', 'ext', ['112'], [-260, 0, 0],
   [[latheX([[0, -323], [TUBE_R, -323], [TUBE_R, -318], [12, -318]], 32, TUBE_Y), 'alu']]);
 
 part('rearStock', 'Rear stock', 'ext', ['113'], [-300, 0, 0],
-  'Generic M4 LE-style collapsible stock, not KC-02 specific: retailers say it takes any M4-compatible stock. Side profile traced from a straight-on product photo of a mil-spec M4 stock (Mesa Tactical), checked against the Redwolf KC-02 V2 photos; the butt from a rear three-quarter photo (TacFire). Housing over the tube with a rounded top and a lip at the front, five windows of three slits on each side, a through sling slot behind them, a narrower web below that thins again at the toe. The rubber butt pad is a tall tombstone shape, about 47mm wide at the rounded top and tapering to a narrow rounded toe, checkered, with a keyhole opening at the top and a screw near the bottom. Sized to the mil-spec stock: about 44mm wide (NBS listing), about 167mm long (Combathunting lists 6.75 in), about 126mm tall by the photo trace. Overall gun length 780mm collapsed, 865mm extended (retail spec); use the stock position slider. Booligan noted slight wobble on the tube.',
+  'Generic M4 LE-style collapsible stock, not KC-02 specific: retailers say it takes any M4-compatible stock. Side profile traced from a straight-on product photo of a mil-spec M4 stock (Mesa Tactical), checked against the Redwolf KC-02 V2 photos; the butt from a rear three-quarter photo (TacFire). Housing over the tube with a rounded top and a lip at the front, five windows of three round-ended slots on each side, a round-ended through sling slot behind them, a narrower web below that thins again at the toe. The rubber butt pad is a tall tombstone shape, about 47mm wide at the rounded top and tapering to a narrow rounded toe, checkered, with a keyhole opening at the top and a screw near the bottom. Sized to the mil-spec stock: about 44mm wide (NBS listing), about 167mm long (Combathunting lists 6.75 in), about 126mm tall by the photo trace. Overall gun length 780mm collapsed, 865mm extended (retail spec); use the stock position slider. Booligan noted slight wobble on the tube.',
   (() => {
     // rounded-rectangle section in (z, y)
     const rrect = (hw, y0, y1, rt, rb) => {
@@ -540,14 +540,23 @@ part('rearStock', 'Rear stock', 'ext', ['113'], [-300, 0, 0],
     for (let k = 0; k <= 20; k++) { const a = -Math.PI / 2 + h + (2 * Math.PI - 2 * h) * k / 20; key.push([11 * Math.cos(a), -15 + 11 * Math.sin(a)]); }
     for (let k = 0; k <= 8; k++) { const a = Math.PI + Math.PI * k / 8; key.push([5.5 * Math.cos(a), -31 + 5.5 * Math.sin(a)]); }
     const keyhole = alongX(key, -379.5, -379.15, 0);
+    // round-ended slot in the x/y plane, extruded along z
+    const stad = (xa, xb, y0, y1) => {
+      const r = (y0 - y1) / 2, yc = (y0 + y1) / 2, pts = [];
+      for (let k = 0; k <= 8; k++) { const a = -Math.PI / 2 + Math.PI * k / 8; pts.push([xa - r + r * Math.cos(a), yc + r * Math.sin(a)]); }
+      for (let k = 0; k <= 8; k++) { const a = Math.PI / 2 + Math.PI * k / 8; pts.push([xb + r + r * Math.cos(a), yc + r * Math.sin(a)]); }
+      return pts;
+    };
     const slits = [[-237.2, -258.8], [-262.7, -285.4], [-288, -311.7], [-313.4, -336.6], [-338.6, -361.6]].flatMap(([xa, xb]) =>
-      [[-19, -23.3], [-25.5, -30.1], [-32.5, -36.7]].flatMap(([y0, y1]) => [1, -1].map(s => [bx(xb, xa, y1, y0, s * 20.8 - 0.4, s * 20.8 + 0.4), 'black'])));
+      [[-18.6, -22.4], [-24.6, -28.4], [-30.6, -34.4]].flatMap(([y0, y1]) => [1, -1].map(s => {
+        const g = prof(stad(xa, xb, y0, y1), 0.4, 0); g.translate(0, 0, s * 20.95); return [g, 'groove']; })));
+    const sling = prof(stad(-332.5, -359.9, -40, -44.6), 31.2, 0);
     return [
       [alongX(rrect(19.8, -37.7, -0.9, 16, 3), -224, -368, 1), 'poly'],                          // housing over the tube
       [alongX(rrect(20.4, -38.6, 0, 16.5, 3), -221, -224, 0.5), 'poly'],                         // front lip
       [prof([[-226, -30], [-226, -38], [-250.6, -39.3], [-252.5, -44], [-253.5, -50], [-253.9, -55.8], [-299.2, -53.8], [-320.2, -64.3], [-340, -84], [-368, -84], [-368, -30]], 28, 1), 'poly'],  // web
       [prof([[-338, -82], [-347.8, -91.9], [-355.7, -105], [-360, -112], [-368, -112], [-368, -82]], 16, 1), 'poly'],  // toe
-      [bx(-362.3, -330.1, -44.6, -40, -15.6, 15.6), 'black'],                                       // through sling slot
+      [sling, 'black'],                                                                             // through sling slot
       [alongX(tomb(22.5, -18.8, 12.5, -101.4), -368, -379, 1), 'black'],                            // butt pad
       [padFace, 'checker'], [keyhole, 'black'],
       [cyl(2.6, 0.8, 'x', -379.3, -100, 0, 16), 'steel'], [bx(-379.8, -379.6, -100.3, -99.7, -2.4, 2.4), 'black'],  // pad screw
