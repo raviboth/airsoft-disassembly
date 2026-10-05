@@ -580,6 +580,15 @@ const MAG_Z = -40, MAG_HZ = 75;   // box mag centre and half length across the g
 const MAG_X0 = X(707), MAG_X1 = X(600);
 const MAG_TOP = Y(401), MAG_BOT = Y(560);   // top of the clamp block on the box, bottom of the pouch
 const MAG_DECK = MAG_TOP - 9, MAG_FR = MAG_DECK - 17;  // top deck of the box (the clamp block stands 9mm proud), top of the pouch
+// Mount on top of the box: a tapered dovetail that slides into the bracket from the left, narrow end first.
+// Half widths across the gun at the left (wide, -z) and right (narrow, +z) ends; the top plate overhangs the frame below it.
+const MNT = { cx: MAG_X0 + 38, z0: -38, z1: 22, frame: [16, 12.5], plate: [18, 14.5], ySplit: MAG_DECK + 5 };
+MNT.hw = (h, z) => h[0] + (h[1] - h[0]) * (z - MNT.z0) / (MNT.z1 - MNT.z0);
+// shape in plan (x, z), extruded upward from y0 to y1
+function plan(pts, y0, y1, bevel = 0.4) { const g = prof(pts, y1 - y0 - 2 * bevel, bevel); g.rotateX(Math.PI / 2); g.translate(0, (y0 + y1) / 2, 0); return g; }
+const trap = h => [[MNT.cx - MNT.hw(h, MNT.z0), MNT.z0], [MNT.cx + MNT.hw(h, MNT.z0), MNT.z0], [MNT.cx + MNT.hw(h, MNT.z1), MNT.z1], [MNT.cx - MNT.hw(h, MNT.z1), MNT.z1]];
+// strip along one tapered side (sd = +1 front, -1 back) between half widths h + d0 and h + d1
+const side = (h, d0, d1, sd) => [[MNT.cx + sd * (MNT.hw(h, MNT.z0) + d0), MNT.z0], [MNT.cx + sd * (MNT.hw(h, MNT.z0) + d1), MNT.z0], [MNT.cx + sd * (MNT.hw(h, MNT.z1) + d1), MNT.z1], [MNT.cx + sd * (MNT.hw(h, MNT.z1) + d0), MNT.z1]];
 
 // ================= BARREL AND FRONT END =================
 part('flashHider', 'Flash hider (birdcage)', 'frt', [], [70, 0, 0],
@@ -821,9 +830,8 @@ part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
 const boxY = (x0, x1, z0, z1, y0, y1, r, bevel = 0.6) => { const g = prof(rr(x0, x1, z0, z1, r), y1 - y0 - 2 * bevel, bevel); g.rotateX(Math.PI / 2); g.translate(0, (y0 + y1) / 2, 0); return g; };
 const MZ0 = MAG_Z - MAG_HZ, MZ1 = MAG_Z + MAG_HZ;
 part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
-  '1200-round electric box magazine: a hard black box whose rounded lid stands about 17mm clear of the tan Cordura cover. Along the top, from the outboard (left) end: the loading door, drawn open with its short flap standing on the inner hinge and the ribbed ramp showing in the well; the feed tube collar at the front edge; a knurled winding roller and then a rounded rail along the front edge; a raised clamp block with windows, which locks into the bracket under the receiver; and a ribbed cover at the right end. The loading door tends to pop open (owners tape or strap it shut after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
+  '1200-round electric box magazine: a hard black box whose rounded lid stands about 17mm clear of the tan Cordura cover. Along the top, from the outboard (left) end: the loading door, drawn open with its short flap standing on the inner hinge and the ribbed ramp showing in the well; the feed tube collar at the front edge; a knurled winding roller and then a rounded rail along the front edge; the mount, a tapered dovetail (wide at the left end, narrow at the right) that slides into a bracket of the same shape under the receiver, with three windows in each side of its lower frame and a release paddle down the middle of its top plate: a tongue cut free by a slot on each side, with a small triangular catch that snaps into the bracket. Press the paddle and slide the mag out to the left; and a ribbed cover at the right end. The loading door tends to pop open (owners tape or strap it shut after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
   (() => {
-    const BZ0 = -33, BZ1 = 10, BX0 = MAG_X0 + 4, BX1 = MAG_X1 - 14;   // clamp block: middle of the top, set back from the front rail
     const DZ0 = MZ0 + 5, DZ1 = -50;                                    // loading door well
     const flap = bx(MAG_X0 + 5, MAG_X1 - 5, 0, 1.5, -28, 0); flap.rotateX(65 * D2R); flap.translate(0, MAG_DECK, DZ1);
     return [
@@ -832,12 +840,20 @@ part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
       [bx(MAG_X0 + 5, MAG_X1 - 5, MAG_DECK, MAG_DECK + 0.15, DZ0 + 1, DZ1), 'black'],                       // open door well
       ...Array.from({ length: 6 }, (_, k) => [bx(MAG_X0 + 8, MAG_X1 - 8, MAG_DECK, MAG_DECK + 0.8, DZ0 + 6 + 7.5 * k, DZ0 + 7 + 7.5 * k), 'nylon']),  // ramp ribs
       [flap, 'poly2'],                                                                                      // door flap, open
-      [boxY(BX0, BX1, BZ0, BZ1, MAG_DECK - 1, MAG_TOP, 2.5), 'poly2'],                                      // clamp block
-      ...[[-27, -19], [-15, -3], [1, 6]].map(([z0, z1]) => [bx(BX1 + 0.55, BX1 + 0.8, MAG_DECK + 2, MAG_TOP - 2, z0, z1), 'black']),   // block windows
+      [plan(trap(MNT.frame), MAG_DECK - 1, MNT.ySplit), 'poly2'],                                          // mount: lower frame
+      [plan(trap(MNT.plate), MNT.ySplit, MAG_TOP), 'poly2'],                                                // mount: top plate
+      ...[[-33, -22], [-17, 0], [5, 17]].flatMap(([z0, z1]) => [1, -1].map(sd => {                         // windows in the frame sides
+        const a = Math.atan2(MNT.frame[1] - MNT.frame[0], MNT.z1 - MNT.z0), zc = (z0 + z1) / 2;
+        const g = bx(-0.15, 0.15, MAG_DECK + 1, MNT.ySplit - 1.2, -(z1 - z0) / 2, (z1 - z0) / 2); g.rotateY(-sd * a);
+        g.translate(MNT.cx + sd * (MNT.hw(MNT.frame, zc) + 0.45), 0, zc); return [g, 'black']; })),
+      ...[-1, 1].map(sd => [bx(MNT.cx + sd * 5 - 0.7, MNT.cx + sd * 5 + 0.7, MAG_TOP - 0.3, MAG_TOP + 0.08, MNT.z0 - 0.4, MNT.z1 - 12), 'black']),   // paddle slots
+      [bx(MNT.cx - 5.7, MNT.cx + 5.7, MAG_TOP - 0.3, MAG_TOP + 0.08, MNT.z1 - 12.7, MNT.z1 - 11.3), 'black'],
+      [plan([[MNT.cx - 3, MNT.z1 - 20], [MNT.cx + 3, MNT.z1 - 20], [MNT.cx, MNT.z1 - 14]], MAG_TOP - 0.2, MAG_TOP + 2, 0.2), 'poly2'],   // paddle catch
+      [plan([[MNT.cx - 4.5, MNT.z0 - 3], [MNT.cx + 4.5, MNT.z0 - 3], [MNT.cx + 4.5, MNT.z0 + 1], [MNT.cx - 4.5, MNT.z0 + 1]], MAG_TOP - 1.6, MAG_TOP + 1.2, 0.3), 'poly2'],   // paddle finger tab
       [cyl(4, 8, 'z', MAG_X1 - 6, MAG_DECK + 3.5, -32, 20), 'nylon'],                                      // winding roller
       ...Array.from({ length: 3 }, (_, k) => [cyl(4.5, 1.1, 'z', MAG_X1 - 6, MAG_DECK + 3.5, -35 + 3 * k, 20), 'nylon']),
       [cyl(3.5, MZ1 - 4 + 27, 'z', MAG_X1 - 6, MAG_DECK + 2.5, (MZ1 - 4 - 27) / 2, 20), 'poly2'],             // rounded rail along the front edge
-      ...Array.from({ length: 7 }, (_, k) => [bx(MAG_X0 + 6, MAG_X1 - 14, MAG_DECK, MAG_DECK + 0.6, 14 + 2.6 * k, 15 + 2.6 * k), 'nylon'])];   // ribbed cover, right end
+      ...Array.from({ length: 4 }, (_, k) => [bx(MAG_X0 + 6, MAG_X1 - 14, MAG_DECK, MAG_DECK + 0.6, 24.5 + 2.4 * k, 25.5 + 2.4 * k), 'nylon'])];   // ribbed cover, right end
   })(), { shell: true });
 
 part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
@@ -868,8 +884,11 @@ part('magMotor', 'Winding motor + sound switch', 'mag', [], [-40, -170, -60],
   [[cyl(7, 24, 'x', -128, -110, -70, 20), 'steel'], [gear(12, 24, 3, -128, -95, -40, { hole: 1.5 }), 'nylon'], [bx(-160, -100, -150, -136, -100, -50), 'white']]);
 
 part('magBracket', 'Magazine bracket', 'mag', [], [0, -60, 0],
-  'Bracket under the receiver that the box mag clamps to. One screw holds it; the bracket slides out to separate the receivers. Stoner mags click in tight; M249 mags on a swapped feed tube wobble and want a wrap of tape on the clamp.',
-  [[profR(P([[598, 395], [709, 395], [709, 401], [598, 401]]), 50, 0.8), 'blued'], [cyl(2, 52, 'z', X(653), Y(398), 0, 12), 'steel']]);
+  'Bracket under the receiver that the box mag clamps to: under its plate hang two rails that taper like the dovetail on top of the mag, with lips that catch under the mag\'s top plate, so the mag slides in from the left, narrow end first, until the paddle catch snaps in. One screw holds it; the bracket slides out to separate the receivers. Stoner mags click in tight; M249 mags on a swapped feed tube wobble and want a wrap of tape on the clamp.',
+  [[plan([[X(709) + 0.8, -40], [X(598) - 0.8, -40], [X(598) - 0.8, 25], [X(709) + 0.8, 25]], MAG_TOP, Y(395), 0.8), 'blued'],
+   ...[1, -1].flatMap(sd => [[plan(side(MNT.plate, 0.6, 3.6, sd), MNT.ySplit - 1.6, MAG_TOP, 0.3), 'blued'],    // tapered side rails
+     [plan(side(MNT.frame, 0.6, 3, sd), MNT.ySplit - 1.6, MNT.ySplit - 0.1, 0.3), 'blued']]),                    // lips under the plate
+   [cyl(2, 52, 'z', X(653), Y(398), -5, 12), 'steel']]);
 
 
 
@@ -1010,7 +1029,7 @@ function showOverview() {
     <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare.</li>
     <li>Day-one fixes: the hop-up (rough casting, the barrel clip lets the barrel shift; Bullgear's Stoner hop-up replaces it), the box mag (tape the loading door, wire it to the trigger) and the weak stock motor.</li>
     <li>M249 mags: the box body is shared, the feed tube collar is not. Swap the feed tube (printed Stoner 96 tube, 3/8in coupler, or a BCI adapter set to Stoner 96) and tape the clamp if the mag wobbles.</li>
-    <li>The Explode slider strips it in order: the box mag drops off (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
+    <li>The Explode slider strips it in order: the box mag slides out of its bracket to the left (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
   </ul>
   <p>${parts.length} modeled assemblies. Classic Army publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
   <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
@@ -1196,11 +1215,11 @@ addEventListener('resize', () => {
 
 // ---------- loop ----------
 const exv = document.getElementById('exv');
-// Staged explode, in field-strip order: the box mag drops off first, then the barrel group runs off forward and the stock
+// Staged explode, in field-strip order: the box mag slides out of its bracket first, then the barrel group runs off forward and the stock
 // off the back, then the receiver parts spread, and last the gearbox comes out and opens. Each part's moves add up to
 // its explode vector, so at 100% every part sits where it always did.
 const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
-const G_MAG = new THREE.Vector3(0, -110, -40), G_FRONT = new THREE.Vector3(160, 0, 0), G_STOCK = new THREE.Vector3(-140, 0, 0);
+const G_MAG = new THREE.Vector3(0, -12, -90), G_FRONT = new THREE.Vector3(160, 0, 0), G_STOCK = new THREE.Vector3(-140, 0, 0);
 const G_GBX = new THREE.Vector3(-120, 60, 0);
 const FRONT = new Set(['flashHider', 'frontSight', 'outerBarrel', 'gasTube', 'handguard', 'vertGrip', 'battery']);
 for (const p of parts) {
