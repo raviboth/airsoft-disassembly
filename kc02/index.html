@@ -230,6 +230,7 @@ const MAT = {
   orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
   lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
   checker: { color: 0x2b2d31, metalness: 0.0, roughness: 0.95 },
+  groove: { color: 0x1d1e22, metalness: 0.0, roughness: 0.9 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
 };
 
@@ -377,15 +378,6 @@ function guard(rail, x0, x1, { halfW = 16 } = {}) {
   for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(rail.face, top, halfW - 2, x, x + 6, 0, 2, rail.yc));
   return out;
 }
-// slanted slot row on both sides of a body at |z| = zs
-function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
-  const out = [];
-  for (const x of xs) for (const s of [1, -1]) {
-    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
-    out.push([g, 'black']);
-  }
-  return out;
-}
 
 // ---------- part registry ----------
 const CATS = {
@@ -440,15 +432,38 @@ const RENDER_POS = 3;                 // stock position shown in the manual rend
 
 // ================= FURNITURE AND STOCK =================
 part('frontStock', 'Front stock', 'ext', ['98'], [0, 0, 0],
-  'The KC-02-specific part: one-piece polymer tactical stock with the forend, ten slanted slots and the socket for the M4 tube. No source names a real product it copies. Swappable for real Ruger 10/22 stocks cut for a .920 in bull barrel: Rogueworx sells underlever kits for the Magpul Hunter X-22, Hogue OverMolded .920, Hera Arms H22 and Boyds At-One Thumbhole, and says the factory Ruger wood stock fits. Forum reports say real stocks need dremel/filing work. RA Tech sells an M1 Carbine conversion kit (wood stock, barrel). List price 1800, the most expensive part on the sheet.',
+  'The KC-02-specific part: one-piece polymer tactical stock with the forend, ten slanted round-ended flutes on each side, a stepped ledge along the bottom, a comb that closes over the rear of the receiver (with an access hole for the rear receiver screw) and slopes down into the socket for the M4 tube. Shape traced from the Redwolf KC-02 V2 side photos. No source names a real product it copies. Swappable for real Ruger 10/22 stocks cut for a .920 in bull barrel: Rogueworx sells underlever kits for the Magpul Hunter X-22, Hogue OverMolded .920, Hera Arms H22 and Boyds At-One Thumbhole, and says the factory Ruger wood stock fits. Forum reports say real stocks need dremel/filing work. RA Tech sells an M1 Carbine conversion kit (wood stock, barrel). List price 1800, the most expensive part on the sheet.',
   (() => {
-    // open-top U-channel (drawing #98): two side walls, a floor, and a solid neck with the tube socket
-    const outline = [[241, 5], [241, -26], [236, -29], [89, -29], [64, -31], [40, -39], [-98, -39], [-138, -31], [-143, -31], [-143, -2], [47, -2], [47, 7], [236, 7]];
+    // open-top U-channel (drawing #98): two side walls, a floor, and a solid neck with the tube socket.
+    // Traced from the Redwolf side photos: forend bottom curving down into the mag well, ten slanted flutes,
+    // a ledge along the bottom, and a comb that closes over the receiver rear and slopes down into the neck.
+    const bottom = [[236, -29], [86, -27.5], [72, -29.2], [60, -32.5], [50, -36.5], [40, -38.6], [-98, -39], [-138, -31], [-143, -31]];
+    const outline = [[241, 5], [241, -26], ...bottom, [-143, -2], [47, -2], [47, 7], [236, 7]];
     const p = [];
     for (const sd of [1, -1]) { const g = prof(outline, 3, 1); g.translate(0, 0, sd * (STOCK_Z + 0.5)); p.push([g, 'poly']); }
-    p.push([prof([[241, -16], [241, -26], [236, -29], [89, -29], [64, -31], [40, -39], [-98, -39], [-138, -31], [-143, -31], [-143, -2], [-126, -2], [-126, -20], [47, -20], [47, -16]], 2 * STOCK_Z - 4, 1), 'poly']);
+    p.push([prof([[241, -16], [241, -26], ...bottom, [-143, -2], [-126, -2], [-126, -20], [47, -20], [47, -16]], 2 * STOCK_Z - 4, 1), 'poly']);
     p.push([tube(TUBE_R + 0.5, 16.5, -147, -130, 32, TUBE_Y), 'poly']);
-    return [...p, ...slots([41, 29, 17, 5, -7, -19, -31, -43, -55, -67], -31, -5, STOCK_Z + 2.6)];
+    // comb over the receiver rear (outline sits 1.5 inside the finished surface, the bevel takes it out)
+    const comb = [[-67.5, -6], [-67.5, 11.8], [-69, 13], [-74, 12.9], [-82, 11.4], [-92, 9.2], [-102, 6.8], [-112, 4.4], [-120, 2.4], [-128, 0.6], [-134, -0.6], [-141.5, -1.1], [-141.5, -6]];
+    p.push([prof(comb, 2 * STOCK_Z + 3, 1.5), 'poly']);
+    // access hole for rear receiver screw #23 in the sloped top of the comb
+    const hole = new THREE.CylinderGeometry(3.2, 3.2, 0.5, 20); hole.rotateZ(0.24); hole.translate(-104, 7.9, 0);
+    p.push([hole, 'black']);
+    // ledge: the lower edge of each side steps out under the flutes
+    const ledge = [[51, -37.6], [42, -39.6], [-98, -40], [-104, -38.8], [-104, -33.4], [44, -33.4]];
+    for (const sd of [1, -1]) { const g = prof(ledge, 1.2, 0.4); g.translate(0, 0, sd * (STOCK_Z + 2.9)); p.push([g, 'poly']); }
+    p.push([bx(-30, 4, -35.4, -34.2, -(STOCK_Z + 4), -(STOCK_Z + 3.85)), 'groove']);   // small slot in the left ledge
+    // flutes: round-ended grooves leaning forward at the top, the rear ones a little shorter
+    const flutes = [];
+    for (let k = 0; k < 10; k++) {
+      const yb = -29.5 + 4 * k / 9, yt = -3.8, r = 1.8, L = (yt - yb) / Math.cos(0.3) - 2 * r, st = [];
+      for (let a = 0; a <= 8; a++) { const t = Math.PI * a / 8; st.push([r * Math.cos(t), L / 2 + r * Math.sin(t)]); }
+      for (let a = 0; a <= 8; a++) { const t = Math.PI + Math.PI * a / 8; st.push([r * Math.cos(t), -L / 2 + r * Math.sin(t)]); }
+      for (const sd of [1, -1]) {
+        const g = prof(st, 0.4, 0); g.rotateZ(-0.3); g.translate(43 - 11.1 * k, (yt + yb) / 2, sd * (STOCK_Z + 3.05)); flutes.push([g, 'groove']);
+      }
+    }
+    return [...p, ...flutes];
   })(), { shell: true });
 
 part('endPlate', 'Front stock end plate', 'ext', ['109'], [-90, 0, 0],
@@ -669,15 +684,15 @@ part('barrelRetainer', 'Barrel retainer + screw', 'bar', ['25', '24'], [130, -11
 part('bolt', 'Bolt', 'rcv', ['46'], [0, 110, 200],
   'Reciprocating bolt carrier, about 80g stock (Rogueworx). Holds the piston (#44, fixed by piston pin #45) and rides on the guide rod. A cam on its underside releases the hammer lock, timed to the carrier length. Aftermarket: Rogueworx V14 aluminium (40g) and stainless (120g), RGW aluminium.',
   [[bx(-104, -18, -11, -3, -9.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, 5.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, -9.5, -5.5), 'dark'],
-   [bx(-104, -88, -3, 12, -9.5, 9.5), 'dark'], [bx(-30, -18, -3, 6, -5.5, 5.5), 'dark']]);
+   [bx(-104, -88, -3, 4.5, -9.5, 9.5), 'dark'], [bx(-30, -18, -3, 6, -5.5, 5.5), 'dark']]);
 
 part('boltPin', 'Bolt pin', 'rcv', ['47'], [0, 190, 200],
   'Pin through the bolt. Evike sells it as part #47 (P-GR-6802-47).',
-  [[cyl(2, 24, 'y', -92, 0, 0, 12), 'steel']]);
+  [[cyl(2, 12, 'y', -92, 0, 0, 12), 'steel']]);
 
 part('boltHandle', 'Bolt handle', 'rcv', ['33'], [0, 110, 330],
   'Charging handle on the right. Manual: pull the handle back to load. It reciprocates with every shot. Known weak point: stock handles snap at the neck (Rogueworx Talon is made to fix this).',
-  [[bx(-78, -66, 0, 7, 9.5, 20), 'steel'], [bx(-80, -60, -1, 9, 20, 26), 'steel'], [bx(-82, -74, -1, 9, 26, 38), 'steel']]);
+  [[bx(-30, -18, 0, 7, 9.5, 20), 'steel'], [bx(-32, -12, -1, 9, 20, 26), 'steel'], [bx(-34, -26, -1, 9, 26, 38), 'steel']]);
 
 part('cylinder', 'Cylinder (loading nozzle) + pin', 'rcv', ['37', '38'], [80, 110, 270],
   'Floating cylinder (the loading nozzle), plastic on the stock gun. Its rear bore slides over the piston head (the 10.5mm O-ring spec puts the bore near 13.5mm), the front is the loading tube, with cylinder pin #38 retaining the return spring. Pushes a BB into the rubber chamber and seals gas behind it. Stock cylinders are known to crack; the Rogueworx Genesis kit replaces it with a 7075 aluminium cylinder-nozzle. Evike lists the OEM part as Noz-KJW-P-GR-6802-37.',
