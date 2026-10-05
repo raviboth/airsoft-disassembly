@@ -800,42 +800,59 @@ part('magRelease', 'Mag release lever + spring, pin', 'trg', ['74', '73', '66'],
 // ================= MAGAZINE =================
 const MG = [0, -330, 0];
 const mg = (dx, dy = 0) => [MG[0] + dx, MG[1] + dy, 40];
+// rounded rectangle in (x, z) extruded along y from y0 to y1 (bevel included), for the mag's vertical edges
+function boxY(x0, x1, z0, z1, y0, y1, r = 1.5, bevel = 0.5) {
+  const pts = [], arc = (cx, cz, a0) => { for (let k = 0; k <= 4; k++) { const a = a0 + Math.PI / 2 * k / 4; pts.push([cx + r * Math.cos(a), cz + r * Math.sin(a)]); } };
+  const X0 = x0 + bevel, X1 = x1 - bevel, Z0 = z0 + bevel, Z1 = z1 - bevel;
+  arc(X1 - r, Z0 + r, -Math.PI / 2); arc(X1 - r, Z1 - r, 0); arc(X0 + r, Z1 - r, Math.PI / 2); arc(X0 + r, Z0 + r, Math.PI);
+  const g = prof(pts, Math.abs(y1 - y0) - 2 * bevel, bevel); g.rotateX(Math.PI / 2); g.translate(0, (y0 + y1) / 2, 0);
+  return g;
+}
 part('magBody', 'Mag body', 'mag', ['142', '126'], MG,
-  'Metal gas magazine (V2 long type, 29 to 30 rounds): a wider head block holding the valve and lips, a narrower body with a column of witness holes, and mag upper body O-ring #126. A CO2 body (#142C) and CO2 parts #187 to #191 are listed too. Manual: fill it upside-down, vertical, for about 5 seconds.',
-  [[bx(-3, 29, -124, -34, -9, 9), 'dark'], [bx(-4, 30, -34, -14, -10.5, 10.5), 'dark'], [bx(4, 16, -30, -18, 10.4, 10.8), 'black'],
-   ...[-52, -64, -76, -88, -100, -112].flatMap(y => [1, -1].map(s => [cyl(2.2, 0.8, 'z', 7, y, s * 9.1, 12), 'black']))], { shell: true });
+  'Metal gas magazine (V2 long type, 29 to 30 rounds), traced from the WGC Shop, eHobby Asia and Redwolf photos. A wider head block sits inside the mag well: its right face is a framed pocket, the feed hump and gas port are on top, the ex-valve is on the rear face, and BB lip pin #145 shows on the front face. Below it the body is a round-edged column with five shallow dimples down the right side only (the left side is plain in the left-profile photos) and a full-length slot down the front face where the follower spring shows. Mag upper body O-ring #126 seals the head. A CO2 body (#142C) and CO2 parts #187 to #191 are listed too. Manual: fill it upside-down, vertical, for about 5 seconds.',
+  [[boxY(-3, 29, -9, 9, -124, -40, 2), 'dark'],                                          // body column
+   [boxY(-2, 32, -10.5, 5.4, -40, -14, 1.2), 'dark'],                                    // head core
+   [bx(-2, 32, -18, -14, 5, 10.5), 'dark'], [bx(-2, 32, -40, -37, 5, 10.5), 'dark'],  // pocket frame: top, bottom
+   [bx(-2, 1, -37, -18, 5, 10.5), 'dark'], [bx(29, 32, -37, -18, 5, 10.5), 'dark'],   // pocket frame: rear, front
+   [bx(1, 29, -37, -18, 5, 5.5), 'poly'],                                             // pocket floor
+   [bx(28.8, 29.3, -122, -41, -1.4, 1.4), 'black'],                                       // spring slot down the front
+   ...[-45, -60, -74.6, -89.4, -104.2].flatMap(y => [[torus(2.5, 0.35, 'z', 11, y, 9.05), 'black'], [cyl(0.5, 0.3, 'z', 11, y, 9.05, 8), 'black']]),
+   [cyl(1.6, 0.8, 'x', 32.2, -19, 0, 12), 'steel'],                                       // BB lip pin #145 end
+   [torus(9.4, 0.6, 'y', 13, -40.3, 0), 'black']], { shell: true });                     // upper body O-ring #126 (drawn as a ring at the head joint)
 
 part('bbLip', 'BB lip + pin', 'mag', ['140', '145'], mg(0, 60),
-  'Feed lips at the top front of the mag, held by BB lip pin #145.',
-  [[bx(18, 30, -14, -6, -5, 5), 'dark']]);
+  'Feed lips in the rounded hump at the top front of the mag, held by BB lip pin #145 through the front of the head.',
+  [[prof([[19, -14], [19, -10.5], [21.5, -7.5], [27, -7.5], [29.5, -10], [30, -14]], 8, 0.6), 'dark'], [bx(21.5, 26.5, -7.6, -7.2, -1.6, 1.6), 'black'],
+   [cyl(1, 21, 'z', 26, -10.5, 0, 8), 'steel']]);
 
 part('follower', 'Follower', 'mag', ['141'], mg(70),
-  'Pushes the BB stack up to the lips.',
-  [[bx(20, 28, -32, -24, -4, 4), 'orange']]);
+  'Pushes the BB stack up to the lips. Its tab rides in the slot down the front of the mag.',
+  [[bx(20, 28, -36, -28, -4, 4), 'orange'], [bx(26, 30.2, -44, -40, -1.1, 1.1), 'orange']]);
 
 part('magSpring', 'Mag spring', 'mag', ['125'], mg(110),
-  'Follower spring in the BB channel.',
-  [[spring(3.4, 0.5, 86, 22, 'y', 24, -118, 0), 'spring']]);
+  'Follower spring in the BB channel, visible through the front slot.',
+  [[spring(3.4, 0.5, 80, 22, 'y', 24, -120, 0), 'spring']]);
 
 part('exValve', 'Ex-valve', 'mag', ['127'], mg(-80),
-  'Outlet (exhaust) valve. The drawing shows it screwed into the side of the mag head, near the rear. The valve knocker strikes its stem and it releases gas up through the gasket to the cylinder.',
-  [[cyl(4, 8, 'z', 2, -22, 11, 20), 'brass'], [cyl(5, 2, 'z', 2, -22, 15.5, 6), 'brass'], [cyl(2.2, 4, 'x', -5, -20, 0, 12), 'steel']]);
+  'Outlet (exhaust) valve, brass, in the rear face of the mag head (eHobby and Redwolf photos). The valve knocker strikes its stem and it releases gas up through the gasket to the cylinder.',
+  [[cyl(3.6, 2, 'x', -2.6, -22, 0, 20), 'brass'], [torus(3.6, 0.5, 'x', -3.6, -22, 0), 'black'], [cyl(1.2, 3, 'x', -4.5, -22, 0, 10), 'steel']]);
 
 part('magGasket', 'Mag gasket', 'mag', ['122'], mg(-120, 20),
-  'Rubber gasket on top of the mag where the gas port seals against the receiver. Evike sells the KJW factory part.',
-  [[bx(4, 14, -14, -10, -5, 5), 'black']]);
+  'Rubber gasket in the rectangular port on top of the head, where the gas port seals against the receiver. Evike sells the KJW factory part.',
+  [[bx(5, 15, -14, -11.8, -3.5, 3.5), 'black'], [bx(8, 12, -11.9, -11.6, -1.3, 1.3), 'dark']]);
 
 part('magBase', 'Mag base + O-ring', 'mag', ['144', '146'], mg(0, -60),
-  'Mag base with O-ring #146. Per the drawing it carries a tall rectangular core that plugs up into the mag body, with the charge valve in the base and the long mag screw running up through it.',
-  [[bx(-5, 31, -131, -124, -10.5, 10.5), 'dark'], [bx(2, 12, -124, -62, -5, 5), 'dark'], [torus(5.5, 0.8, 'y', 7, -62, 0), 'black']]);
+  'Mag base with O-ring #146: a thin plate a little wider than the body, with the charge valve and the mag screw hole in its bottom face (eHobby photo). Per the drawing it carries a tall rectangular core that plugs up into the mag body, with the long mag screw running up through it.',
+  [[boxY(-3.6, 29.6, -9.6, 9.6, -131, -124, 2.4, 0.6), 'dark'], [bx(2, 12, -124, -62, -5, 5), 'dark'], [torus(5.5, 0.8, 'y', 7, -62, 0), 'black'],
+   [cyl(2.2, 0.3, 'y', 6, -131.1, 0, 12), 'black']]);
 
 part('chargeValve', 'Charge valve', 'mag', ['129'], mg(-80, -60),
-  'Gas fill valve in the mag base.',
-  [[cyl(3, 6, 'y', 16, -132, 0, 16), 'brass']]);
+  'Brass gas fill valve in the middle of the mag base.',
+  [[cyl(3.4, 2, 'y', 15, -131.5, 0, 20), 'brass'], [cyl(1.2, 1, 'y', 15, -132.6, 0, 10), 'steel']]);
 
 part('magScrew', 'Mag screw + washer, O-ring', 'mag', ['132', '130', '131'], mg(-140, -60),
-  'Long screw that clamps the mag base to the body, with washer #130 and O-ring #131.',
-  [[cyl(1.3, 100, 'y', 10, -78, 0, 10), 'steel']]);
+  'Long screw that clamps the mag base to the body, with washer #130 and O-ring #131. Its head sits in the hole behind the charge valve.',
+  [[cyl(1.3, 100, 'y', 6, -80, 0, 10), 'steel'], [cyl(1.9, 1.5, 'y', 6, -130, 0, 6), 'steel']]);
 
 // ================= LOADING TOOLS =================
 part('loadingStick', 'Loading stick', 'acc', ['133'], [0, 0, 0],
