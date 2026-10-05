@@ -791,9 +791,25 @@ part('bufferTube', 'Buffer tube + receiver adapter', 'stk', [], [-90, 0, 0],
    [latheX([[12.7, X(976)], [17.6, X(976)], [17.6, X(994)], [12.7, X(994)]].reverse(), 6, 0, 0, Math.PI / 6).translate(0, BUF_Y, 0), 'zinc']]);
 
 part('stock', 'Retractable stock', 'stk', [], [-180, 0, 0],
-  'Retractable stock on the buffer tube; adjusting it takes the gun from 819mm (stock in) to 889mm (stock out). It comes off for the field strip: unscrew the bolt underneath, then press the side lever.',
-  [[profR(P([[1133, 292], [1178, 292], [1181, 300], [1179, 450], [1172, 466], [1158, 471], [1146, 466], [1133, 447], [1125, 400], [1127, 352], [1135, 346], [1135, 300]]), 30, 3,
-    [P([[1150, 362], [1156, 357], [1162, 362], [1163, 421], [1157, 427], [1151, 421]])]), 'poly']]);
+  'Retractable stock on the buffer tube; adjusting it takes the gun from 819mm (stock in) to 889mm (stock out). It comes off for the field strip: unscrew the bolt underneath, then press the side lever. A flat-sided block: the body takes the tube in its front face and has a long through slot (sling or grip) under a cross screw, and its lower front edge sweeps back to a rounded toe. A separate butt plate behind it, parted by a groove, flares slightly to the rear at the top. Shape traced from the Redwolf close-up of the left side, scaled to the height of the main side photo.',
+  (() => {
+    // the close-up is traced in its own pixels: rear top corner pinned to the main-photo trace, 0.3mm per px
+    const Q = pts => pts.map(([a, b]) => [X(1181) - (a - 1176) * 0.3005, Y(292) - (b - 201) * 0.3005]);
+    const body = Q([[1052, 201], [1111, 201], [1111, 615], [1100, 613], [1090, 607], [1080, 595], [1070, 571], [1060, 527], [1053, 495],
+      [1048, 470], [1048, 400], [1049, 340], [1050, 260], [1050, 205]]);
+    const slot = (() => { const c = Q([[1076, 394], [1076, 494]]), r = 11 * 0.3005, pts = [];
+      for (let k = 0; k <= 10; k++) { const a = Math.PI * k / 10; pts.push([c[0][0] + r * Math.cos(a), c[0][1] + r * Math.sin(a)]); }
+      for (let k = 0; k <= 10; k++) { const a = Math.PI + Math.PI * k / 10; pts.push([c[1][0] + r * Math.cos(a), c[1][1] + r * Math.sin(a)]); }
+      return pts.reverse(); })();
+    const pad = Q([[1113, 201], [1166, 201], [1177, 205], [1182, 218], [1181, 262], [1176, 300], [1175, 580], [1171, 592], [1164, 603],
+      [1155, 612], [1138, 619], [1120, 617], [1113, 615]]);
+    const [sx, sy] = Q([[1077, 333]])[0];
+    return [
+      [profR(body, 26, 2.5, [slot]), 'poly'],
+      [profR(pad, 30, 3), 'poly'],
+      [bx(X(1181) - (1111.5 - 1176) * 0.3005 - 0.6, X(1181) - (1111.5 - 1176) * 0.3005 + 0.6, Y(292) - 410 * 0.3005, Y(292) - 2, -12.5, 12.5), 'black'],  // parting groove
+      [cyl(1.6, 26.6, 'z', sx, sy, 0, 16), 'blued']];                                                                                         // cross screw
+  })());
 
 part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
   'Side lever at the back of the receiver that releases the stock and buffer tube.',
