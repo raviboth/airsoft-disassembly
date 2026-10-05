@@ -498,14 +498,39 @@ part('extCap', 'Stock extension cap', 'ext', ['112'], [-260, 0, 0],
   [[latheX([[0, -323], [TUBE_R, -323], [TUBE_R, -318], [12, -318]], 32, TUBE_Y), 'alu']]);
 
 part('rearStock', 'Rear stock', 'ext', ['113'], [-300, 0, 0],
-  'Generic M4 LE-style 5-position collapsible stock (two rows of side slots, lever under the front), not KC-02 specific: retailers say it takes any M4-compatible stock. Sized to a real mil-spec M4 stock: about 1.75 in (44mm) wide and 5.25 in (133mm) tall (NBS listing), about 167mm long (Combathunting lists 6.75 in). Rounded housing over the tube, flat-sided body and toe below. Overall gun length 780mm collapsed, 865mm extended (retail spec); use the stock position slider. Booligan noted slight wobble on the tube.',
-  [[latheX([[TUBE_R + 0.4, -221], [17.5, -221], [17.5, -366], [TUBE_R + 0.4, -366], [TUBE_R + 0.4, -221]], 40, TUBE_Y), 'poly'],
-   [prof([[-221, -17], [-366, -17], [-366, -118], [-360, -118], [-347, -90], [-249, -43], [-221, -40]], 39, 1.5), 'poly'],
-   [prof([[-221, -29], [-182, -29], [-190, -36], [-221, -39]], 10, 0.8), 'poly'],
-   [prof([[-366, -121], [-378, -121], [-378, 1], [-374, 3], [-366, 3]], 42, 0.8), 'black'],
-   [bx(-372, -358, -14, -4, -21.6, 21.6), 'black'],
-   ...[[-22, -27], [-29, -34]].flatMap(([y0, y1]) => [-233, -261, -287, -313, -339].flatMap(x =>
-     [1, -1].map(s => [bx(x - 25, x, y0, y1, s * 21.1 - 0.4, s * 21.1 + 0.4), 'black'])))], { shell: true, slide: true });
+  'Generic M4 LE-style 5-position collapsible stock, not KC-02 specific: retailers say it takes any M4-compatible stock. Shape traced from the Redwolf KC-02 V2 photos (left and right profiles, rear close-up): a flat-sided housing over the tube with a rounded top and a collar at the front, five windows of three slits on each side, a through sling slot behind them, a thinner web below, a checkered rubber butt pad with a keyhole opening at the top and a screw near the bottom, and a swivel loop under the toe. Sized to a mil-spec M4 stock: about 1.75 in (44mm) wide (NBS listing) and about 167mm long (Combathunting lists 6.75 in). The photos trace to about 121mm tall against 133mm on the NBS listing; the drawn height follows the photos. Overall gun length 780mm collapsed, 865mm extended (retail spec); use the stock position slider. Booligan noted slight wobble on the tube.',
+  (() => {
+    // rounded-rectangle section in (z, y), extruded along x from x0 to x1
+    const rrect = (hw, y0, y1, rt, rb) => {
+      const pts = [], arc = (cz, cy, r, a0, a1) => { for (let k = 0; k <= 6; k++) { const a = a0 + (a1 - a0) * k / 6; pts.push([cz + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+      arc(hw - rb, y0 + rb, rb, -Math.PI / 2, 0); arc(hw - rt, y1 - rt, rt, 0, Math.PI / 2);
+      arc(-hw + rt, y1 - rt, rt, Math.PI / 2, Math.PI); arc(-hw + rb, y0 + rb, rb, Math.PI, Math.PI * 1.5);
+      return pts;
+    };
+    const alongX = (pts, x0, x1, bevel) => { const g = prof(pts, x1 - x0 - 2 * bevel, bevel); g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0); return g; };
+    // checkered rear face of the butt pad: plane facing -x, UVs in mm so the bump texture keeps its pitch
+    const padFace = (() => {
+      const g = new THREE.PlaneGeometry(40, 100); const uv = g.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 20, uv.getY(i) * 50);
+      g.rotateY(-Math.PI / 2); g.translate(-379.05, -53, 0); return g;
+    })();
+    // keyhole opening at the top of the pad (round head, narrow neck)
+    const key = [];
+    for (let k = 0; k <= 16; k++) { const a = -Math.PI / 2 + 0.55 + (2 * Math.PI - 1.1) * k / 16; key.push([5.5 * Math.cos(a), -7 + 5.5 * Math.sin(a)]); }
+    key.push([-2.8, -27], [-1.6, -29], [1.6, -29], [2.8, -27]);
+    const keyhole = alongX(key.reverse(), -379.6, -378.6, 0);
+    const slits = [-237.4, -263.2, -289, -314.8, -340.6].flatMap(x => [[-19.6, -22], [-24.6, -27], [-29.6, -32]].flatMap(([y0, y1]) =>
+      [1, -1].map(s => [bx(x - 23.4, x, y1, y0, s * 20 - 0.4, s * 20 + 0.4), 'black'])));
+    return [
+      [alongX(rrect(19, -35, 1, 12, 3), -225, -369, 1), 'poly'],                               // housing over the tube
+      [tube(TUBE_R + 0.4, 18.6, -226, -221, 40, TUBE_Y), 'poly'],                              // front collar
+      [prof([[-226, -30], [-226, -36], [-248, -40], [-252, -45], [-336, -73], [-343, -92], [-358, -110], [-371, -111], [-371, -30]], 32, 1), 'poly'],  // web
+      [bx(-360, -329, -42.8, -37.7, -17.6, 17.6), 'black'],                                     // through sling slot
+      [prof([[-367, 3], [-372, 4.5], [-376.5, 3], [-378, -1], [-378, -104], [-376, -110], [-372, -112], [-357, -112], [-357, -108], [-367, -104]], 42, 0.8), 'black'],  // butt pad
+      [padFace, 'checker'], [keyhole, 'black'],
+      [cyl(2.6, 1, 'x', -379.3, -96, 0, 16), 'steel'], [bx(-380, -379.6, -96.3, -95.7, -2.4, 2.4), 'black'],  // pad screw
+      ...slits];
+  })(), { shell: true, slide: true });
 
 part('stockLock', 'Stock locking pin + spring, nut', 'ext', ['114', '115', '117'], [-300, 70, 0],
   'Per the drawing, locking pin #114 drops in through a hole in the top of the rear stock, with spring #115 on it, and is held by locking nut #117 and screw #63 under the stock where the release lever acts on it. It engages the lock holes in the rib under the stock extension.',
@@ -514,12 +539,14 @@ part('stockLock', 'Stock locking pin + spring, nut', 'ext', ['114', '115', '117'
 
 part('releaseLever', 'Release lever', 'ext', ['116'], [-300, -80, 0],
   'Lever under the rear stock (light grey in the manual render). Pull it to lift the locking pin and slide the stock.',
-  [[prof([[-249, -45], [-286, -45], [-322, -83], [-318, -88], [-280, -60], [-249, -58]], 10, 0.8), 'lever']], { slide: true });
+  [[prof([[-252, -47], [-285, -47], [-320, -71], [-318, -82], [-312, -82], [-284, -57], [-256, -56], [-252, -52]], 16, 0.8), 'lever'],
+   ...[0, 1, 2, 3].map(k => { const g = bx(-1.5, 1.5, -0.6, 0.6, -8, 8); g.rotateZ(-0.6); g.translate(-301 - k * 4, -69 - k * 2.6 - 0.8, 0); return [g, 'black']; })], { slide: true });
 
 part('stockSwivel', 'Stock swivel + screw, sleeve', 'ext', ['121', '120', '119'], [-300, -80, 0],
   'Rear sling swivel #121 held by stock swivel screw #120 through sleeve #119 at the bottom of the butt.',
-  [[prof([[-354, -92], [-358, -92], [-345, -123], [-341, -123]], 3, 0.4), 'steel'], [bx(-350, -336, -126, -123, -4, 4), 'steel'],
-   [cyl(2.2, 44, 'z', -355, -94, 0, 12), 'steel']], { slide: true });
+  [[cyl(2.2, 36, 'z', -352, -101, 0, 12), 'steel'],                        // screw through sleeve
+   ...[4, -4].map(z => [cyl(0.9, 16, 'y', -351, -109, z, 8), 'steel']),    // swivel legs
+   [torus(6, 0.9, 'y', -350, -117, 0), 'steel']], { slide: true });         // loop under the toe
 
 part('frontSwivel', 'Swivel + swivel screw, pin, nut', 'ext', ['97', '95', '96', '100'], [60, -170, 0],
   'Front sling swivel #97 on swivel screw #95 (with pin #96, nut #100), hanging off the front face of the forend.',
