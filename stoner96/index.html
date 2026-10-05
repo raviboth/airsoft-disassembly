@@ -597,11 +597,19 @@ part('flashHider', 'Flash hider (birdcage)', 'frt', [], [70, 0, 0],
     [0, 60, 120].map(a => bx(292, 318, -1.6, 1.6, -14, 14).rotateX(a * D2R)).filter((_, i) => i !== 1).concat([bx(292, 318, -14, 0, -1.6, 1.6)])), 'blued']]);
 
 part('frontSight', 'Front sight block + folding post', 'frt', [], [40, 60, 0],
-  'Front sight block clamped over the outer barrel and the gas tube, with a folding front sight post on top. The post folds back flat for optics.',
-  [[profR(P([[121, 300], [153, 300], [153, 345], [148, 352], [153, 358], [153, 386], [121, 386], [121, 358], [126, 352], [121, 345]]), 24, 2), 'blued'],
-   [profR(P([[122, 230], [151, 230], [153, 236], [153, 301], [121, 301], [121, 236]]), 9, 1.2, [P([[128, 247], [146, 247], [146, 290], [128, 290]])]), 'blued'],
-   [profR(P([[128, 247], [146, 247], [146, 290], [128, 290]]), 4, 0.6), 'blued'],
-   [cyl(1.2, 13, 'y', X(137), Y(268), 0), 'steel']]);
+  'Front sight block clamped over the outer barrel and the gas tube: a ring round each, flat on the left side and waisted on the right. The folding leaf on top hinges on two cross pins; two ears guard the post between them, and the sides carry a recessed window and a slot. The leaf folds back flat for optics.',
+  (() => {   // section and leaf traced from the left-side photo, the ears and post from the rear views
+    const F0 = X(153), F1 = X(121), arc = (cy, r, a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [r * Math.cos(t), cy + r * Math.sin(t)]; });
+    const sec = [...arc(0, 12, -50, 180, 18), ...arc(GT_Y, 10.5, 180, 410, 18)];
+    const win = z => [bx(X(144), X(134), Y(285), Y(248), z - 1, z + 1), bx(X(132), X(129), Y(291), Y(269), z - 1, z + 1)];
+    return [[secX(sec, F0 + 0.6, F1 - 0.6, 0.6, [circ(0, 0, 8.7, 24), circ(0, GT_Y, 9.1, 24)]), 'dark'],
+      [secX(rr(-8, 8, 10, Y(297), 1.5), F0 + 0.5, F1 - 0.5, 0.4), 'dark'],
+      [cut(profR(rr(F0 + 0.3, F1 - 0.3, Y(297), Y(245), 1), 14, 0.8), [...win(7), ...win(-7)]), 'dark'],
+      ...[-4.8, 4.8].map(z => [profR(rr(F0 + 0.3, F1 - 0.3, Y(250), Y(231), 3), 4.4, 0.6).translate(0, 0, z), 'dark']),
+      [latheY([[0, Y(246)], [1.4, Y(246)], [1.4, Y(236)], [0.7, Y(235)], [0, Y(235)]], (F0 + F1) / 2, 0, 16), 'dark'],
+      ...[X(127), X(142)].map(x => [cyl(1.3, 17, 'z', x, Y(311) + 3, 0, 12), 'steel']),
+      [cyl(1.1, 14.6, 'z', X(128), Y(281), 0, 12), 'steel']];
+  })());
 
 part('outerBarrel', 'Outer barrel', 'frt', [], [20, 30, 0],
   'Outer barrel. The thin section ahead of the front sight carries the flash hider thread; behind the block it steps up to about 22mm and runs back inside the handguard to the receiver front. It comes off with the handguard and front end when the barrel release on top of the receiver is pressed.',
@@ -725,14 +733,19 @@ part('charging', 'Charging handle knob + side stud (dummy)', 'rcv', [], [0, 0, 6
    [cyl(5.4, 0.4, 'z', X(759), Y(352), RW - 1.8, 24), 'black'], [cyl(4, 0.4, 'z', X(659), Y(352), RW - 1.8, 20), 'black']]);
 
 part('rearSight', 'Rear sight (flip-up)', 'rcv', [], [0, 70, 0],
-  'Rear aperture sight on the top rail, at the back of the receiver.',
-  (() => {   // clamp base on the top rail; the sight above it is traced from the photo and lifted onto the base
-    const m = picMount(RAIL_TOP, X(955), X(870), { hw: 11.5, t: 2, boltAt: X(930) }), lift = RAIL_TOP.off + PIC.height + 2 - Y(270);
-    return [[m.body, 'blued'], [m.bolt, 'steel'], ...[
-   [profR(P([[875, 255], [893, 255], [896, 270], [872, 270]]), 14, 0.8, [circ(X(884), Y(262), 1.2, 12)]), 'blued'],
-   [cyl(3.6, 24, 'z', X(905), Y(266), 0, 16), 'blued'],
-   [gear(7.6, 30, 7, X(905), Y(264), 15.5, { hole: 0 }), 'blued'],
-   [profR(P([[935, 257], [952, 257], [952, 270], [935, 270]]), 6, 0.8), 'blued']].map(([g, k]) => [g.translate(0, lift, 0), k])];
+  'Flip-up rear aperture sight on a clamp at the back of the top rail. The aperture rides on a knurled elevation drum marked in hundreds of metres (4 and 5 show from behind), with the windage knob on the right and two slotted screws on the left. Folded, the drum lies back along the rail.',
+  (() => {   // housing traced from the left-side photo (sight folded there); the upright drum and knobs from the rear and right quarter views
+    const m = picMount(RAIL_TOP, X(955), X(870), { hw: 11.5, t: 2, boltAt: X(948) }), T = RAIL_TOP.off + PIC.height + 2, D = X(922);
+    const screw = (x, y, z) => [[cyl(2.1, 1.2, 'z', x, y, z, 16), 'steel'], [bx(x - 1.8, x + 1.8, y - 0.35, y + 0.35, z - 0.7, z + 0.7), 'black']];
+    return [[m.body, 'blued'], [m.bolt, 'steel'],
+      [profR(P([[870, 265], [880, 256], [912, 256], [912, 262], [918, 262], [918, 265]]), 18, 0.8), 'blued'],
+      [secX(rr(-11, 11.6, T - 0.5, T + 9.5, 1.2), D - 5, D + 5, 0.4), 'blued'],
+      [latheY([[0, T + 9], [4.4, T + 9], [4.4, T + 10]], D, 0, 24), 'blued'],
+      [gear(4.8, 48, 8.5, D, T + 14.5, 0, { axis: 'y' }), 'blued'],
+      [latheY([[0, T + 18.7], [3.2, T + 18.7], [3.2, T + 20], [2, T + 20], [2, T + 21.5], [0, T + 21.5]], D, 0, 24), 'blued'],
+      [cut(latheX([[0, D - 1.8], [4.8, D - 1.8], [5, D - 1], [5, D + 1], [4.8, D + 1.8], [0, D + 1.8]], 28).translate(0, T + 25.6, 0), [cyl(1, 8, 'x', D, T + 25.6, 0, 12)]), 'blued'],
+      [gear(6.4, 64, 5, D, T + 4.8, 14.3, { hole: 0 }), 'blued'], [cyl(4.6, 0.8, 'z', D, T + 4.8, 17, 24), 'blued'],
+      ...screw(X(887), Y(268), -12.1), ...screw(X(905), Y(260), -9.6)];
   })());
 
 part('selector', 'Selector lever (SAFE / FIRE)', 'rcv', [], [0, 0, -50],
