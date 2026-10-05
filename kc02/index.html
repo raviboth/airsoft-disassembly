@@ -751,15 +751,27 @@ part('barrelConn', 'Inner barrel connection', 'bar', ['7'], [240, 160, 0],
 const TG = [0, -210, 0];
 const tg = (dx, dy = 0) => [TG[0] + dx, TG[1] + dy, 40];
 part('trigGuard', 'Trigger guard (housing)', 'trg', ['51'], TG,
-  'Metal trigger guard: the housing, the guard loop and the rear tang are one part (list price 800). Holds the hammer, trigger, sear, disconnector, safety, valve knocker and mag release.',
+  'Metal trigger guard, Ruger 10/22 pattern: the housing, the round guard loop and the rear tang are one part (list price 800). Traced from the Redwolf right-side close-up: a curved web runs down from the housing front to the safety boss, the loop opening is round, and the thick bottom band runs straight back to the grip. Holds the hammer, trigger, sear, disconnector, safety, valve knocker and mag release.',
   [...[1, -1].map(sd => [prof([[-4, -16], [-96, -16], [-96, -39], [-4, -39]], 2, 0.5).translate(0, 0, sd * 8.5), 'zinc']),
    [bx(-96, -4, -39, -36.5, -9.5, 9.5), 'zinc'], [bx(-6, -3, -39, -16, -9.5, 9.5), 'zinc'], [bx(-97, -94, -39, -16, -9.5, 9.5), 'zinc'],
-   [prof([[-40, -39], [-100, -39], [-100, -68], [-86, -68], [-82, -64], [-66, -68], [-52, -64], [-44, -54]], 10, 1,
-     [[[-50, -43], [-84, -43], [-82, -58], [-67, -63], [-55, -59], [-50, -52]]]), 'zinc']], { shell: true });
+   ...(() => {
+     // guard loop traced from the Redwolf right-side close-up: round opening, thick bottom band running straight back to the grip,
+     // curved web from the housing front down to the safety boss
+     const cx = -71.8, cy = -54.5, out = [[-19, -35], [-19, -39], [-20.5, -43], [-23.5, -49], [-27, -54.5], [-31, -57.3], [-36, -58]];
+     for (let d = -10; d >= -95; d -= 5) { const a = d * Math.PI / 180; out.push([cx + 22.8 * Math.cos(a), cy + 21.5 * Math.sin(a)]); }
+     out.push([-92, -76], [-95.5, -75], [-97.5, -72.5], [-98, -69], [-98, -35]);
+     const hole = []; for (let d = 0; d < 360; d += 10) { const a = -d * Math.PI / 180; hole.push([cx + 16.3 * Math.cos(a), cy + 15 * Math.sin(a)]); }
+     return [[prof(out, 10, 1, [hole]), 'zinc'],
+       [prof([[-32.3, -39], [-57.5, -39], [-57.5, -55], [-54.5, -58], [-35, -58], [-32.3, -55]], 17, 1), 'zinc']];   // safety boss
+   })()], { shell: true });
 
 part('trigger', 'Trigger + pivot pin', 'trg', ['70', '67'], tg(-110),
   'Single-action trigger on pivot pin #67. Rogueworx puts the stock pull at 5 to 6 lb with about 5mm of travel to fire plus over-travel; Booligan called it short and crisp (3 to 4mm). Upgrade: Rogueworx FANG trigger + JUDGEMENT sear, 2 to 2.5 lb.',
-  [[prof([[-62, -27], [-69, -30], [-70, -38], [-77, -38], [-81, -48], [-81, -57], [-77, -59], [-76, -50], [-72, -41], [-64, -36], [-58, -33]], 5, 0.8), 'steel'], [cyl(1.2, 19, 'z', -69, -33, 0, 8), 'steel']]);
+  // blade traced from the Redwolf close-up: wide at the top, curving back to a narrow tip, concave face forward
+  [[prof([[-62, -31], [-68, -26], [-76, -27], [-86.8, -37], [-86.8, -41], [-85, -50], [-83, -60], [-81.5, -68.5], [-79.6, -68.8], [-78.1, -67.6],
+     [-77, -60], [-75.5, -50], [-74.8, -41], [-70, -37], [-62, -35]], 5, 0.8), 'steel'],
+   ...[-46, -52, -58, -64].map(y => [bx(-78.8 + (y + 46) * 0.12, -77.6 + (y + 46) * 0.12, y - 0.4, y + 0.4, -3.3, 3.3), 'dark']),   // face serrations
+   [cyl(1.2, 19, 'z', -69, -31, 0, 8), 'steel']]);
 
 part('trigPlunger', 'Trigger plunger + spring, screw', 'trg', ['65', '64', '63'], tg(-110, -60),
   'Trigger return plunger #65 with spring #64 and screw #63.',
@@ -786,16 +798,17 @@ part('valveKnocker', 'Valve knocker + springs, lock', 'trg', ['49', '50', '53', 
   [[bx(-78, -4, -22, -18, -2, 2), 'steel'], [bx(-6, -1, -24, -16, -2.5, 2.5), 'steel'], [bx(-30, -24, -28, -22, -2, 2), 'steel']]);
 
 part('safety', 'Safety + O-rings, detent', 'trg', ['60', '58', '59', '61', '62'], tg(100),
-  'Crossbolt safety #60 with black (#58) and red (#59) O-rings and detent #61/#62; the round button in front of the trigger guard loop. Manual: push to SAFETY OFF to shoot, press to SAFETY ON when not in use.',
-  [[cyl(3, 30, 'z', -41, -46, 0, 16), 'steel'], [torus(3.1, 0.9, 'z', -41, -46, 12), 'red'], [torus(3.1, 0.9, 'z', -41, -46, -12), 'black']]);
+  'Crossbolt safety #60 with black (#58) and red (#59) O-rings and detent #61/#62; the round button in the boss just ahead of the trigger guard loop, red ring on the right. Manual: push to SAFETY OFF to shoot, press to SAFETY ON when not in use.',
+  [[cyl(3, 23, 'z', -51, -47.5, 0, 16), 'steel'], [torus(3.1, 0.7, 'z', -51, -47.5, 10.4), 'red'], [torus(3.1, 0.7, 'z', -51, -47.5, -10.4), 'black'],
+   [torus(1.6, 0.25, 'z', -51, -47.5, 11.6), 'dark'], [torus(1.6, 0.25, 'z', -51, -47.5, -11.6), 'dark']]);
 
 part('magCatch', 'Mag catch', 'trg', ['48'], tg(140, 40),
   'Catch that holds the magazine up in the gun. Manual: press the mag catch lever and remove the mag.',
   [[bx(-4, 2, -24, -12, -5, 5), 'steel']]);
 
 part('magRelease', 'Mag release lever + spring, pin', 'trg', ['74', '73', '66'], tg(140),
-  'Curved lever just behind the magazine, in front of the trigger guard (#74), with spring #73 on pin #66.',
-  [[prof([[-8, -39], [-18, -39], [-24, -46], [-22, -52], [-17, -50], [-14, -44]], 8, 0.6), 'steel']]);
+  'Hooked lever just behind the magazine, ahead of the guard web (#74): it hangs from the housing and curves forward to a tip by the mag (Redwolf photos). Spring #73, pin #66.',
+  [[prof([[-4.5, -38], [-17.6, -38], [-16, -47], [-13.5, -54], [-11.6, -58.7], [-9.5, -57], [-7.5, -50], [-5, -44]], 8, 0.6), 'steel'], [cyl(1, 12, 'z', -14, -41, 0, 8), 'steel']]);
 
 // ================= MAGAZINE =================
 const MG = [0, -330, 0];
