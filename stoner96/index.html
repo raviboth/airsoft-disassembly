@@ -641,11 +641,20 @@ part('vertGrip', 'Vertical foregrip', 'frt', [], [0, -70, 0],
    [latheY([[0, Y(434)], [12.6, Y(434)], [16, Y(440)], [15.4, Y(470)], [16.2, Y(476)], [15.4, Y(485)], [16.2, Y(491)], [15.4, Y(500)], [16.4, Y(508)], [16.4, Y(526)], [14, Y(529)], [0, Y(529)]], X(344), 0, 32), 'poly']]);
 
 part('battery', 'Battery (7.4V LiPo stick, not included) + leads', 'frt', [], [60, 60, -60],
-  'The battery goes in the handguard: a 7.4V or 8.4V stick pack with a Tamiya plug (not included). The leads come forward out of the gearbox, so the wiring runs along the barrel to the handguard. Shown as a 7.4V 1200mAh-size stick beside the barrel.',
-  [[bx(25, 140, -7, 9, -27, -13), 'wrap'],
-   [tubeAlong([[-10, -12, -16], [10, -8, -18], [25, -2, -20]], 1.1, 24), 'black'],
-   [tubeAlong([[140, 1, -20], [130, 14, -22], [115, 22, -24]], 1.1, 24), 'black'],
-   [bx(105, 118, 18, 27, -27, -21), 'plug']]);
+  'The battery goes in the handguard: a 7.4V or 8.4V stick pack with a Tamiya plug (not included). The leads come forward out of the gearbox, so the wiring runs along the barrel to the handguard. Shown as a 7.4V 1200mAh two-cell stick (about 102 x 20 x 16mm) lying beside the barrel on the left, its Tamiya plug tucked under the top of the handguard where it shows through the upper holes, and the white balance lead folded at the front.',
+  (() => {
+    const BX0 = 30, BX1 = 132, BZ0 = -28, BZ1 = -12, BY0 = -8, BY1 = 8;   // pack: clear of the barrel (r 10.8) and inside the 3mm handguard wall
+    const lead = (pts, dz, m) => [tubeAlong(pts.map(([x, y, z]) => [x, y, z + dz]), 1.1, 24), m];
+    const PX0 = 111, PX1 = 124, PY0 = 12, PY1 = 19, PZ = -19;          // Tamiya pair under the second upper hole from the front
+    return [[secX(rr(BZ0, BZ1, BY0, BY1, 3, 4), BX0 + 1.5, BX1 - 1.5, 0), 'wrap'],
+      ...[[BX0, BX0 + 1.5], [BX1 - 1.5, BX1]].map(([a, b]) => [secX(rr(BZ0 + 0.4, BZ1 - 0.4, BY0 + 0.4, BY1 - 0.4, 2.6, 4), a, b, 0), 'black']),
+      // gun side: red and black pair from the gearbox to the male plug
+      ...[[1.2, 'red'], [-1.2, 'black']].map(([dz, m]) => lead([[-10, -12, -16], [10, -4, -18], [40, 13, -19], [PX0 + 1, 15.5, PZ]], dz, m)),
+      // pack side: from the front end, up and back into the female plug
+      ...[[1.2, 'red'], [-1.2, 'black']].map(([dz, m]) => lead([[BX1, 2, -20], [143, 6, -20], [140, 14, -19], [PX1 - 1, 15.5, PZ]], dz, m)),
+      [bx(PX0, PX0 + 6.5, PY0, PY1, PZ - 4, PZ + 4), 'plug'], [bx(PX0 + 6.5, PX1, PY0 + 0.4, PY1 - 0.4, PZ - 3.8, PZ + 3.8), 'plug'],
+      [tubeAlong([[BX1, -4, -24], [142, -6, -25], [146, -2, -25]], 0.8, 16), 'nylon'], [bx(144, 149, -2, 3, -27.5, -22.5), 'nylon']];
+  })());
 
 // ================= RECEIVER =================
 // upper receiver: traced side outline, the rear section raised with a Picatinny top rail over a row of lightening holes
