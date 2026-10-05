@@ -549,25 +549,58 @@ part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 250, 0],
   'Rear top rail on the receiver, fixed with rail 2 screws #19. The hop-up (trajectory) adjust dial sits in its front end. Scope mounts here.',
   [[picatinny(RAIL2.x0, RAIL2.x1, 'up', RAIL2.off, { riser: 0.7, riserW: 10.5 }), 'alu'], ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 13, 0, 12), 'steel'])]);
 
+// knurled wheel: n ridges around radius r, thickness len, axis 'y' | 'z'
+function knurl(r, n, len, axis, cx, cy, cz) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i <= 2 * n; i++) { const a = i / (2 * n) * Math.PI * 2, rr = i % 2 ? r - 0.35 : r; i ? sh.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : sh.moveTo(rr, 0); }
+  const g = new THREE.ExtrudeGeometry(sh, { depth: len, bevelEnabled: false });
+  g.translate(0, 0, -len / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  return g.translate(cx, cy, cz);
+}
+// MBUS-pattern flip-up sight on an 'up' rail, drawn deployed (manual figures 6-6). Clamp base #160/#176 from xa to xb
+// with a hinge tower at xh: cheeks either side of the upright #162/#178, hinge pin #174/#185 and torsion spring
+// #161/#177. Clamp screw #170 (socket head, right) and nut #171 sit in the groove under the tower. The fixer latch
+// #172 on pin #175 with spring #173 is at the back of the base and holds the upright when folded.
+function flipSight(kind, rail, xa, xb, xh) {
+  const m = picMount(rail, xa, xb, { t: 5, bolt: 'socket', boltAt: xh }), yb = rail.off + PIC.height + 5, yh = yb + 5;
+  const hw = PIC.width / 2 + 2.2, top = kind === 'front' ? 30 : 24, ew = kind === 'front' ? 3.5 : 4.5;
+  const ear = [[xh - ew, yh - 3], [xh + ew, yh - 3], [xh + ew - 0.5, yh + top - 2], [xh + 1.5, yh + top], [xh - 1.5, yh + top], [xh - ew + 0.5, yh + top - 2]];
+  const cheek = [[xh - 11, yb], [xb - 0.5, yb], [xb - 0.5, yh + 1], [xh + 4, yh + 5], [xh - 4, yh + 5], [xh - 11, yb + 3]];
+  const out = [[m.body, 'alu'], [m.bolt, 'steel'],
+    ...[1, -1].flatMap(sd => [[prof(cheek, 4, 0.4).translate(0, 0, sd * (hw - 2.4)), 'alu'], [prof(ear, 2.1, 0.3).translate(0, 0, sd * 6.5), 'alu']]),
+    [bx(xh + 4.5, xb - 0.5, yb, yh, -8.2, 8.2), 'alu'],                        // fold stop between the cheeks
+    [cyl(1.2, 2 * hw + 0.6, 'z', xh, yh, 0, 12), 'steel'],                     // hinge pin
+    [spring(2.3, 0.4, 5.5, 5, 'z', xh, yh, -2.75), 'spring'],                   // torsion spring
+    [bx(xh - ew + 0.8, xh - ew + 2.6, yh + 2, yh + 11, -5.3, 5.3), 'alu'],     // web joining the ears
+    // fixer latch: lugs, lever, pin, spring
+    ...[1, -1].map(sd => [bx(xa + 2, xa + 9, yb, yb + 5.5, sd > 0 ? 5.5 : -8, sd > 0 ? 8 : -5.5), 'alu']),
+    [prof([[xa + 1.5, yb + 2.5], [xa + 12, yb + 2.5], [xa + 15, yb + 7.5], [xa + 12.5, yb + 8.5], [xa + 3, yb + 8], [xa + 1.5, yb + 6]], 10, 0.4), 'alu'],
+    [cyl(0.9, 17, 'z', xa + 4.5, yb + 4, 0, 10), 'steel'],
+    [spring(1.6, 0.3, 2.5, 3, 'y', xa + 10, yb, 0), 'spring']];
+  if (kind === 'front') out.push(
+    [bx(xh - ew + 0.8, xh + ew - 0.8, yh + 2, yh + 7.5, -5.3, 5.3), 'alu'],   // dial seat
+    [knurl(4.6, 18, 3, 'y', xh, yh + 9.5, 0), 'steel'],                        // elevation dial #166
+    [cyl(1.4, 4, 'y', xh, yh + 13, 0, 12), 'steel'],                           // post thread
+    [bx(xh - 1, xh + 1, yh + 15, yh + top - 3, -1, 1), 'steel'],               // post #168
+    [cyl(0.8, 3, 'x', xh, yh + top - 3.6, 0, 8), 'fiber']);                    // fiber #169
+  else out.push(
+    [bx(xh - 2.5, xh + 2.5, yh + 12, yh + 16, -3.2, 3.2), 'steel'],            // aperture carrier
+    [tube(1.0, 2.8, xh - 2, xh + 2, 24, yh + 18.5), 'steel'],                  // aperture #179
+    [cyl(1, 2 * hw - 4, 'z', xh, yh + 14, 1, 10), 'steel'],                    // windage screw #180
+    [knurl(4.2, 16, 4, 'z', xh, yh + 14, 10.2), 'steel'],                      // windage knob
+    [cyl(2.2, 2.5, 'z', xh, yh + 14, -8.8, 16), 'steel'],                      // sleeve #181
+    [torus(1.5, 0.35, 'z', xh, yh + 14, -10.4), 'black']);                     // E-ring #182
+  return out;
+}
+
 part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 390, 0],
-  'Flip-up front sight: bases #160/#162, post #168 with a fiber optic #169, elevation dial #166 with detent #163 to #165, fixer latch #172/#173 (the small lever behind it), pins #174/#175, clamp screw #170 and nut #171. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
-  (() => {   // clamp base on rail 1 with clamp screw #170 and nut #171 in a recoil groove; the sight body is traced 3mm forward
-    const m = picMount(RAIL1, 171, 223, { t: 5, boltAt: 193 });
-    return [[m.body, 'alu'], [m.bolt, 'steel'], ...[[cyl(4.5, 20, 'z', 215, 28, 0, 20), 'alu'],
-   [bx(212, 218, 27, 50, -8, 8), 'alu'], [bx(212.5, 217.5, 38, 46, -5, 5).translate(0, 0, 0), 'black'],
-   [bx(214, 216, 50, 58, -1.3, 1.3), 'steel'], [cyl(0.9, 4, 'x', 215, 58.5, 0, 8), 'fiber'], [cyl(4, 3, 'z', 215, 42, 9.5, 16), 'steel'],
-   [prof([[176, 27], [187, 27], [187, 31], [183, 35], [177, 35]], 8, 0.5), 'alu']].map(([g, k]) => [g.translate(-3, 0, 0), k])];
-  })());
+  'Flip-up front sight in the MBUS pattern. Base #160 clamps to rail 1 with socket head screw #170 and nut #171 in a recoil groove. Upright #162 swings on pin #174 with torsion spring #161; fixer latch #172 on pin #175 with spring #173 holds it down when folded. Post #168 carries a fiber optic #169 and screws through elevation dial #166, held by detent #163 to #165. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
+  flipSight('front', RAIL1, 171, 223, 212));
 
 part('rearSight', 'Rear sight assembly', 'sgt', ['176', '177', '178', '179', '180', '181', '182', '183', '184', '185'], [0, 390, 0],
-  'Flip-up rear aperture: bases #176/#178, aperture #179, spring #177, windage adjust screw #180 with sleeve #181 and E-ring #182, detent #183/#184, pin #185. Manual: turn the screw anticlockwise when impact is right, clockwise when impact is left.',
-  (() => {   // clamp base on rail 2, cross bolt in a recoil groove; the sight body is traced 3mm forward
-    const m = picMount(RAIL2, -63, -11, { t: 5, boltAt: -43 });
-    return [[m.body, 'alu'], [m.bolt, 'steel'], ...[[cyl(4.5, 20, 'z', -19, 28, 0, 20), 'alu'],
-   [bx(-21, -17, 27, 47, -9, 9), 'alu'], [bx(-22, -16, 47, 55, -4.5, 4.5), 'alu'], [cyl(2, 7, 'x', -19, 51, 0, 16), 'black'],
-   [cyl(1.4, 24, 'z', -19, 42, 1, 8), 'steel'], [cyl(4.5, 5, 'z', -19, 42, 13.5, 20), 'steel'],
-   [prof([[-58, 27], [-47, 27], [-47, 31], [-51, 35], [-57, 35]], 8, 0.5), 'alu']].map(([g, k]) => [g.translate(-3, 0, 0), k])];
-  })());
+  'Flip-up rear aperture in the MBUS pattern. Base #176 clamps to rail 2 with socket head screw #170 and nut #171. Upright #178 swings on pin #185 with torsion spring #177. Aperture #179 rides on windage adjust screw #180 (knob on the right), held by sleeve #181 and E-ring #182, with detent #183/#184. Fixer latch #172/#173 at the back. Manual: turn the screw anticlockwise when impact is right, clockwise when impact is left.',
+  flipSight('rear', RAIL2, -63, -11, -22));
 
 part('hopDial', 'Trajectory adjust dial + detent', 'sgt', ['18', '21', '22'], [0, 330, 0],
   'Hop-up adjuster, called the trajectory adjust dial in the manual. Sits in the front of rail 2 with a detent #21 and spring #22: 36 clicks per turn, about 20 microns per click (Rogueworx). Manual: rotating it moves the impact point up or down. Forum reports say the stock hop arm can be too short to reach the bucking.',
