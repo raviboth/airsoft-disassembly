@@ -578,7 +578,7 @@ const SHELL_Z = 15;            // gearbox shell half width
 const BUF_Y = Y(334);          // buffer tube axis
 const MAG_Z = -40, MAG_HZ = 75;   // box mag centre and half length across the gun: it hangs out to the left, the belt side
 const MAG_X0 = X(707), MAG_X1 = X(600);
-const MAG_TOP = Y(401), MAG_FR = Y(413), MAG_BOT = Y(560);
+const MAG_TOP = Y(401), MAG_FR = Y(424), MAG_BOT = Y(560);   // top of the hard box, top of the pouch, bottom
 
 // ================= BARREL AND FRONT END =================
 part('flashHider', 'Flash hider (birdcage)', 'frt', [], [70, 0, 0],
@@ -816,23 +816,42 @@ part('stockLatch', 'Stock release lever', 'stk', [], [-60, 0, -40],
   [[profR(P([[945, 335], [962, 335], [962, 382], [945, 382]]), 4, 0.8).translate(0, 0, -RW - 1), 'blued']]);
 
 // ================= BOX MAGAZINE =================
+// box section in the x/z plane with rounded vertical corners, extruded from y0 up to y1
+const boxY = (x0, x1, z0, z1, y0, y1, r, bevel = 0.6) => { const g = prof(rr(x0, x1, z0, z1, r), y1 - y0 - 2 * bevel, bevel); g.rotateX(Math.PI / 2); g.translate(0, (y0 + y1) / 2, 0); return g; };
+const MZ0 = MAG_Z - MAG_HZ, MZ1 = MAG_Z + MAG_HZ;
 part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
-  '1200-round electric box magazine: a hard inner box under a tan Cordura cover, with a black top frame that clamps to the bracket under the receiver. The loading door tends to pop open (owners tape it after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
-  [[cut(bx(MAG_X0, MAG_X1, MAG_FR, MAG_TOP, MAG_Z - MAG_HZ, MAG_Z + MAG_HZ), [bx(MAG_X0 + 5, MAG_X1 - 5, MAG_FR - 1, MAG_TOP - 3, MAG_Z - MAG_HZ + 5, MAG_Z + MAG_HZ - 5)]), 'poly2'],
-   ...[0, 1, 2].map(i => [bx(MAG_X0 - 0.6, MAG_X1 + 0.6, MAG_FR + 2.5 + i * 2.6, MAG_FR + 3.5 + i * 2.6, MAG_Z - MAG_HZ - 0.6, MAG_Z + MAG_HZ + 0.6), 'black']),
-   [bx(MAG_X0 + 3, MAG_X1 - 3, MAG_BOT + 3, MAG_FR, MAG_Z - MAG_HZ + 3, MAG_Z + MAG_HZ - 3), 'poly']], { shell: true });
+  '1200-round electric box magazine: a hard black box under a tan Cordura cover, the top 16mm or so showing above the pouch, with a lid seam just under the top. The top clamps to the bracket under the receiver; the part that hangs out to the left carries the loading door, and a knurled roller beside it winds the feed by hand. The loading door tends to pop open (owners tape it after filling) and the last 200 or so BBs rattle and won’t feed without a shake.',
+  [[boxY(MAG_X0, MAG_X1, MZ0, MZ1, MAG_BOT + 3, MAG_TOP, 5), 'poly2'],
+   [cut(boxY(MAG_X0 - 0.9, MAG_X1 + 0.9, MZ0 - 0.9, MZ1 + 0.9, Y(411.5), Y(410), 5.9, 0), [boxY(MAG_X0 + 1, MAG_X1 - 1, MZ0 + 1, MZ1 - 1, Y(412), Y(409.5), 4, 0)]), 'black'],  // lid seam
+   [boxY(MAG_X0 + 5, MAG_X1 - 5, MZ0 + 6, -RW - 8, MAG_TOP - 0.5, MAG_TOP + 1.2, 2, 0.4), 'poly2'],                              // loading door
+   [bx(MAG_X0 + 5, MAG_X1 - 5, MAG_TOP + 0.4, MAG_TOP + 1.25, -RW - 8.6, -RW - 7.6), 'black'],                                  // door hinge line
+   [bx(MAG_X0 + 9, MAG_X0 + 15, MAG_TOP + 0.4, MAG_TOP + 1.6, MZ0 + 10, MZ0 + 24), 'black'],                                    // door catch
+   [cyl(4.2, 30, 'z', MAG_X1 - 9, MAG_TOP + 1.5, -RW - 25, 20), 'nylon'],                                                       // winding roller
+   ...Array.from({ length: 9 }, (_, k) => [cyl(4.6, 1.2, 'z', MAG_X1 - 9, MAG_TOP + 1.5, -RW - 37.5 + 3.2 * k, 20), 'nylon'])], { shell: true });
 
 part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
-  'Tan Cordura cover over the box, with a zip, a snap strap and grommets, after the real gun’s soft ammo pouch.',
-  [[cut(secX(rr(MAG_Z - MAG_HZ - 1, MAG_Z + MAG_HZ + 1, MAG_BOT, MAG_FR + 2, 6, 4), MAG_X0 - 1, MAG_X1 + 1, 1.5), [bx(MAG_X0 + 2, MAG_X1 - 2, MAG_BOT + 3, MAG_FR + 6, MAG_Z - MAG_HZ + 2, MAG_Z + MAG_HZ - 2)]), 'tan'],
-   [bx(X(659), X(653), MAG_BOT + 3, Y(458), MAG_Z - MAG_HZ - 3.3, MAG_Z - MAG_HZ - 2.2), 'tan2'],
-   [bx(X(657.5), X(654.5), MAG_BOT + 3, Y(458), MAG_Z - MAG_HZ - 3.7, MAG_Z - MAG_HZ - 3), 'brass'],
-   [bx(X(659), X(653), Y(478), Y(464), MAG_Z - MAG_HZ - 4.4, MAG_Z - MAG_HZ - 3), 'brass'],
-   [profR(P([[642, 414], [676, 414], [676, 452], [668, 462], [650, 462], [642, 452]]), 2.2, 0.5).translate(0, 0, MAG_Z - MAG_HZ - 3.4), 'tan2'],
-   [cyl(4.6, 2.4, 'z', X(659), Y(450), MAG_Z - MAG_HZ - 4.8, 20), 'black'],
-   ...[[X(614), Y(420)], [X(694), Y(420)]].flatMap(([x, y]) => [[cyl(2.6, 1.6, 'z', x, y, MAG_Z - MAG_HZ - 2.8, 16), 'steel'], [cyl(2.6, 1.6, 'z', x, y, MAG_Z + MAG_HZ + 2.8, 16), 'steel']]),
-   [bx(X(659), X(653), MAG_BOT + 3, Y(462), MAG_Z + MAG_HZ + 2.2, MAG_Z + MAG_HZ + 3.3), 'tan2'],
-   [bx(X(657.5), X(654.5), MAG_BOT + 3, Y(462), MAG_Z + MAG_HZ + 3, MAG_Z + MAG_HZ + 3.7), 'brass']], { shell: true });
+  'Tan Cordura cover over the lower part of the box: snaps along the rim, stitched corner seams, and a zip that runs down the left end and round the bottom edge, with a snap strap over the zip pull. It copies the real gun’s soft ammo pouch.',
+  (() => {
+    const xF = MAG_X1 + 1.2, xB = MAG_X0 - 1.2, zL = MZ0 - 1.2;    // outside faces of the cover
+    const snaps = [];
+    for (const z of [-0.85, -0.45, 0, 0.45, 0.85].map(t => MAG_Z + t * MAG_HZ))
+      for (const [x, sd] of [[xF, 1], [xB, -1]]) snaps.push([cyl(2.6, 1.6, 'x', x + sd * 1.6, Y(442), z, 16), 'steel']);
+    for (const x of [X(614), X(694)]) for (const z of [zL - 1.6, MZ1 + 2.8]) snaps.push([cyl(2.6, 1.6, 'z', x, Y(442), z, 16), 'steel']);
+    const seams = [];
+    for (const z of [MZ0 + 4, MZ1 - 4]) for (const [x, sd] of [[xF, 1], [xB, -1]]) seams.push([bx(x + sd * 1.1 - 0.4, x + sd * 1.1 + 0.4, MAG_BOT + 6, MAG_FR - 3, z - 0.4, z + 0.4), 'tan2']);
+    for (const [x, sd] of [[xF, 1], [xB, -1]]) seams.push([bx(x + sd * 1.1 - 0.4, x + sd * 1.1 + 0.4, MAG_FR - 3.6, MAG_FR - 2.8, MZ0 + 3, MZ1 - 3), 'tan2']);   // rim hem
+    const xz = X(656);   // zip line on the left end
+    return [
+      [cut(secX(rr(MZ0 - 1.2, MZ1 + 1.2, MAG_BOT, MAG_FR, 6, 4), xB, xF, 1), [bx(MAG_X0 + 0.5, MAG_X1 - 0.5, MAG_BOT + 3, MAG_FR + 6, MZ0 + 0.5, MZ1 - 0.5)]), 'tan'],
+      ...snaps, ...seams,
+      [bx(xz - 3, xz + 3, MAG_BOT + 6, Y(470), zL - 1.1, zL), 'tan2'],                    // zip tape down the end
+      [bx(xz - 1.5, xz + 1.5, MAG_BOT + 6, Y(470), zL - 1.6, zL - 0.9), 'brass'],         // zip teeth
+      [bx(xF, xF + 1.1, MAG_BOT + 3, MAG_BOT + 9, MZ0 + 6, MZ1 - 20), 'tan2'],             // zip tape round the bottom edge
+      [bx(xF + 0.9, xF + 1.6, MAG_BOT + 4.5, MAG_BOT + 7.5, MZ0 + 6, MZ1 - 20), 'brass'],
+      [bx(xz - 2, xz + 2, Y(490), Y(472), zL - 2.4, zL - 1.4), 'brass'],                  // zip pull
+      [profR(P([[642, 428], [676, 428], [676, 466], [668, 474], [650, 474], [642, 466]]), 2.2, 0.5).translate(0, 0, zL - 1.6), 'tan2'],   // snap strap
+      [cyl(4.6, 2.4, 'z', xz, Y(456), zL - 3.6, 20), 'black']];                           // strap snap
+  })(), { shell: true });
 
 part('feedTube', 'BB feed tube (spring tube)', 'mag', [], [-20, -80, -90],
   'Flexible spring feed tube from the mag to the port in the left side of the receiver. Its collar is Stoner-specific: to run an M249 box mag the collar or the whole tube is swapped (a printed Stoner 96 feed tube, a 3/8in coupler, or a BCI adapter).',
