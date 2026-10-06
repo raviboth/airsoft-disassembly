@@ -579,6 +579,7 @@ const RAIL_TOP = { x0: X(955), x1: X(735), face: 'up', off: Y(277) - 3 };   // r
 const RW = 28;                 // receiver half width (approximate, no top view published)
 const GT_Y = Y(370);           // gas tube axis
 const SHELL_Z = 15;            // gearbox shell half width
+const GB_FLOOR = -48.5, GB_STEM = -56.5, STEM_Z = 11;   // gearbox bottom under the lower receiver, top of the grip stem, stem half width
 const BUF_Y = Y(334);          // buffer tube axis
 const MAG_Z = -40, MAG_HZ = 75;   // box mag centre and half length across the gun: it hangs out to the left, the belt side
 const MAG_X0 = X(707), MAG_X1 = X(600);
@@ -697,7 +698,7 @@ part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
   (() => {
     const tray = profR(P([[470, 386], [965, 386], [962, 392], [905, 400], [887, 410], [835, 410], [835, 400], [705, 400], [705, 396], [600, 396], [600, 398], [470, 398]]), 46, 1.2);
     const guard = profR(P([[740, 399], [835, 399], [835, 455], [828, 462], [750, 462], [740, 452]]), 22, 1.5, [rr(X(822), X(751), Y(451), Y(406), 8, 5)]);
-    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12), bx(-285, -150, -60, -38, -SHELL_Z - 1, SHELL_Z + 1)]), 'anod'], [guard, 'anod'],
+    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12), bx(-285, -150, GB_FLOOR - 0.3, -38, -SHELL_Z - 1, SHELL_Z + 1)]), 'anod'], [guard, 'anod'],
       decal('safeL', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), -23.05, { align: 'left' }),
       decal('safeR', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), 23.05, { align: 'left' })];
   })(), { shell: true });
@@ -767,28 +768,33 @@ const GB_F = -154, GB_R = -339;          // gearbox front and back: the cylinder
 // right) at 3.5 px/mm, pinned so the nozzle tip meets the hop-up. The trigger traced from the receiver photo lands on the
 // trigger in this one, which checks the scale.
 const GX = px => -141 + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
-const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(267)], BEVEL = [GX(295), GY(335)];   // gear axes, all across the gun
+const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];   // gear axes, all across the gun
+// Under the receiver only the stem that drops into the pistol grip reaches lower than the lower receiver's floor; the
+// stem is narrower (11mm a side) so it stays inside the grip.
+const faceZ = y => y < GB_STEM + 2 ? STEM_Z : SHELL_Z;   // outer face of the shell at height y
 const GB_SCREWS = [[62, 215], [100, 215], [205, 218], [240, 372], [310, 397], [600, 232], [662, 232]];
 // a ring round the z axis from z0 to z1
 const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], [ro, z1], [ri, z1], [ri, z0]], seg).rotateY(-Math.PI / 2).translate(cx, cy, 0);
 function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on the centre plane
-  const out = GP([[40, 64], [687, 64], [687, 245], [577, 245], [577, 332], [400, 332], [360, 340], [345, 420], [300, 426], [228, 396], [228, 237], [40, 237]]);
+  const out = GP([[40, 64], [687, 64], [687, 245], [577, 245], [577, 303], [326, 303], [326, 424], [300, 426], [228, 396], [228, 237], [40, 237]]);
   // the open inside, which also leaves the rear opening for the spring guide, the front one for the cylinder head and
   // the tappet plate, the trigger slot and the motor opening in the bottom
-  const inner = GP([[50, 74], [678, 74], [678, 92], [700, 92], [700, 192], [678, 192], [678, 236], [568, 236], [568, 323], [455, 323], [455, 350],
-    [400, 350], [395, 323], [355, 331], [345, 445], [262, 445], [237, 400], [237, 228], [50, 228], [50, 180], [30, 180], [30, 98], [50, 98]]);
+  const inner = GP([[50, 74], [678, 74], [678, 92], [700, 92], [700, 192], [678, 192], [678, 236], [568, 236], [568, 295], [455, 295], [455, 320],
+    [400, 320], [395, 295], [332, 295], [332, 325], [237, 325], [237, 228], [50, 228], [50, 180], [30, 180], [30, 98], [50, 98]]);
+  const stem = GP([[318, 320], [318, 445], [262, 445], [237, 400], [237, 320]]);
   const body = cut(profR(out, SHELL_Z, 0.8).translate(0, 0, s * SHELL_Z / 2), [
-    prof(inner, 13.5, 0).translate(0, 0, s * 5.75),
+    prof(inner, 13.5, 0).translate(0, 0, s * 5.75), prof(stem, 9.5, 0).translate(0, 0, s * 3.75),
+    bx(-300, -240, -130, GB_STEM, s > 0 ? STEM_Z : -SHELL_Z - 5, s > 0 ? SHELL_Z + 5 : -STEM_Z),                       // narrow the stem
     ...[0, 1, 2, 3, 4, 5, 6].map(k => cyl(5.1, 40, 'z', GX(82 + 75 * k), GY(64), 0, 24)),   // scallops along the top
     prof(rr(GX(115), GX(145), GY(160), GY(120), 4, 4), 40, 0),                           // window over the spring guide
     cyl(2.2, 40, 'z', GX(86), GY(172), 0, 16),                                          // spring guide pin
     ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)),             // 8mm bearing seats
     ...GB_SCREWS.map(([px, py]) => cyl(1.4, 40, 'z', GX(px), GY(py), 0, 12))]);
   const pieces = [[body, 'zinc'],
-    ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * SHELL_Z, s * (SHELL_Z + 0.8)), 'zinc'],
-      [ringZ(1.6, 4, x, y, s * (SHELL_Z - 2.5), s * (SHELL_Z + 0.4)), 'steel']])];   // bosses round the bearings
+    ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => { const f = faceZ(y), b = f === SHELL_Z ? 0.8 : 0;   // no boss inside the grip
+      return [...(b ? [[ringZ(4, 6.2, x, y, s * f, s * (f + b)), 'zinc']] : []), [ringZ(1.6, 4, x, y, s * (f - 2.5), s * (f + 0.4 * !!b)), 'steel']]; })];
   if (s > 0) for (const [px, py] of GB_SCREWS)   // screws go in from the right
-    pieces.push([ringZ(1, 2.6, GX(px), GY(py), SHELL_Z, SHELL_Z + 1.6, 16), 'blued']);
+    pieces.push([ringZ(1, 2.6, GX(px), GY(py), faceZ(GY(py)), faceZ(GY(py)) + (faceZ(GY(py)) === SHELL_Z ? 1.6 : 0), 16), 'blued']);
   return pieces;
 }
 part('gearbox', 'Gearbox shell, left half (CA Stoner, V2 pattern)', 'gbx', [], [0, 215, 0],
@@ -826,11 +832,11 @@ part('gears', 'Gear set + anti-reversal latch', 'gbx', [], [0, 130, -90],
     const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => bx(9.6, 13.2, -0.55, 0.55, -4.6, -3.4).rotateZ(i * 10 * D2R))).translate(bx0, by0, 0);
     return [[gear(16.5, 44, 3, sx, sy, -5.5, { hole: 2, lite: 4 }), 'brass'], [gear(12.4, 18, 3.6, sx, sy, 0, { hole: 2, span: [15, 175] }), 'steel'],
       [cyl(6.5, 2, 'z', sx, sy, -2.9, 24), 'brass'],
-      [gear(15, 40, 2.5, px, py, -9.75, { hole: 2, lite: 5 }), 'brass'], [gear(6.5, 15, 3.6, px, py, -5.5, { hole: 2 }), 'steel'],
-      [gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(4.6, 12, 2.6, bx0, by0, -9.75, { hole: 2 }), 'steel'],
+      [gear(14, 37, 2.5, px, py, -9.75, { hole: 2, lite: 5 }), 'brass'], [gear(6.5, 15, 3.6, px, py, -5.5, { hole: 2 }), 'steel'],
+      [gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(7, 17, 2.6, bx0, by0, -9.75, { hole: 2 }), 'steel'],
       ...[SECTOR, SPUR, BEVEL].map(([x, y]) => [cyl(1.9, 25, 'z', x, y, 0, 12), 'steel']),
-      [profR([[-252, -47], [-248.5, -45.5], [-247, -48], [-252.5, -56], [-255, -56.5]], 2, 0.3).translate(0, 0, -10), 'steel'],
-      [cyl(1.2, 5, 'z', -249.5, -47, -10, 10), 'steel']];
+      [profR([[-259, -40], [-255.6, -40.6], [-256, -44], [-260, -49.4], [-262, -48.4]], 2, 0.3).translate(0, 0, -10), 'steel'],
+      [cyl(1.2, 5, 'z', -257.4, -41.6, -10, 10), 'steel']];
   })());
 
 part('trigger', 'Trigger, switch, cut-off lever, tappet plate', 'gbx', [], [0, 100, -60],
@@ -841,9 +847,9 @@ part('trigger', 'Trigger, switch, cut-off lever, tappet plate', 'gbx', [], [0, 1
         const dx = 2 * (1 - t) * (812 - 794) + 2 * t * (788 - 812), dy = 2 * (1 - t) * (426 - 398) + 2 * t * (453 - 426), l = Math.hypot(dx, dy), w = 3 - 1.6 * t;
         F.push([x - dy / l * w, y + dx / l * w]); B.push([x + dy / l * w, y - dx / l * w]); }
       return P([...F, ...B.reverse()]); })(), 6, 1), 'blued'],
-   [profR(rr(GX(455), GX(512), GY(332), GY(250), 1, 2), 10, 0.5), 'black'],                           // switch block
+   [profR(rr(GX(455), GX(512), GB_FLOOR + 1, GY(250), 1, 2), 10, 0.5), 'black'],                           // switch block
    ...[267, 302].map(py => [ringZ(0, 1.4, GX(500), GY(py), 5, 5.8, 12), 'steel']),
-   [bx(GX(470), GX(478), GY(320), GY(262), -3, 3).translate(0, 0, 0), 'brass'],
+   [bx(GX(470), GX(478), GB_FLOOR + 2, GY(262), -3, 3), 'brass'],
    [profR([[-242, -27.5], [-239.5, -26], [-230, -36], [-219, -45], [-220.5, -47.5], [-232, -41]], 1.6, 0.3).translate(0, 0, 4), 'steel'],   // cut-off lever
    [cyl(1.4, 4, 'z', -232, -39, 4, 10), 'steel'],
    // tappet plate: the fork in front of the head holds the nozzle, the bar runs back under the cylinder to the sector
