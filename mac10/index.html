@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JG MAC-10 disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the JG (Jing Gong) MAC-10 electric airsoft SMG, a copy of the Tokyo Marui compact MAC10, with its compact gearbox, field strip order and known weak points.">
+<meta property="og:title" content="JG MAC-10 disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the JG MAC-10 electric SMG: compact gearbox, field strip order and known weak points.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/mac10/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/",
+  "three-mesh-bvh": "../vendor/three-mesh-bvh/index.module.js",
+  "three-bvh-csg": "../vendor/three-bvh-csg/index.module.js"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>JG MAC-10</b><span>Ingram M10 electric SMG, Marui-pattern compact gearbox</span></div>
+  <div class="btns">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
+</div>
+
+<div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
+  <div class="sub">JG publishes no exploded view for this gun, so parts are named, not numbered. Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search parts (press /)" autocomplete="off">
+  <div id="list"></div>
+  <div id="nohit">No parts match.</div>
+</div>
+
+<div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label>Trigger <span id="tpv">released</span></label>
+  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="row">
+    <button id="bReset">Reset view</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Brush, Evaluator, SUBTRACTION, INTERSECTION, ADDITION } from 'three-bvh-csg';
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_TGT = new THREE.Vector3(-100, -105, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(10, -20, 640), HOME_TGT);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-200, 700, -350);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -400, right: 400, top: 400, bottom: -400, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -360; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(1600, 64, 0x2a2f38, 0x1d2027);
+grid.position.y = -359.5; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x232428, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x44464c, metalness: 0.0, roughness: 0.9 },
+  stipple: { color: 0x1d1e21, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
+  nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
+  frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
+  green:  { color: 0x2f6b3a, metalness: 0.1,  roughness: 0.6 },
+  glass:  { color: 0xcfe3ea, metalness: 0.2,  roughness: 0.1, transparent: true, opacity: 0.55 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w', 'n', 'nb', 'ft', 's', 'xr']) if (key in b) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  if (lv.n) { n = lv.n; frontTaper = lv.ft; }
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  if (c < 0 && lv.nb) n = lv.nb;   // optional separate exponent for the back half
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  const x = cx + ax * px;   // a level may be tilted: y = lv.y + (x - lv.xr) * lv.s
+  return [x, lv.s ? lv.y + (x - lv.xr) * lv.s : lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    // lift along the section normal (ellipse approximation), so patches on the front and back stand off too
+    const ax = (lv.xf - lv.xb) / 2, az = lv.w / 2, cx = (lv.xf + lv.xb) / 2;
+    let nx = (x - cx) / (ax * ax), nz = z / (az * az); const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    pos.push(x + nx * lift, y, z + nz * lift); uv.push((x + z) * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    const ccx = (lv.xf + lv.xb) / 2; pos.push(ccx, lv.s ? lv.y + (ccx - lv.xr) * lv.s : lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// the same diamonds as a colour map, so the checkering still reads where the bump is too fine to catch the light
+const CHECKER_MAP = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#8e9096'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#2c2d30'; x.lineWidth = 9;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+})();
+// fine random stipple bump texture, for the Gen3 grip panels (a seeded scatter so every load looks the same)
+const STIPPLE = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0, 0, 128, 128);
+  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 900; k++) { const v = rnd() > 0.5 ? 255 : 0; x.fillStyle = `rgba(${v},${v},${v},0.55)`; x.beginPath(); x.arc(rnd() * 128, rnd() * 128, 1 + rnd() * 2.2, 0, 7); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// ---------- part registry ----------
+const CATS = {
+  frt: 'Front end',
+  upr: 'Upper receiver',
+  bat: 'Battery and wiring',
+  gbx: 'Gearbox, barrel and hop-up',
+  low: 'Lower receiver and trigger',
+  stk: 'Stock',
+  mag: 'Magazine',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, slide: opts.slide === true ? Infinity : (opts.slide || 0) };
+  for (const [geo, matKey] of pieces) {
+    if (opts.dx) geo.translate(opts.dx, 0, 0);
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; mat.map = CHECKER_MAP; }
+    if (matKey === 'stipple') { mat.bumpMap = STIPPLE; mat.bumpScale = 1.6; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout: world units are mm. x = along the gun (muzzle +), y = up (bore axis at 0), z = right side.
+// Side profiles are traced from Taiwangun's left-side product photo of the JG0452 (800px, muzzle to the left) at 1.322 px/mm,
+// which makes the gun 295mm from the muzzle cap to the back of the folded stock: Tokyo Marui's length for the MAC10 that JG
+// copies. The port, the safety and its markings are read off the matching right-side photo. Internal parts are placed from
+// den-ken's strip of the Marui MAC10 and of its compact gearbox (photographed on a 5mm grid), so they are approximate.
+const K = 1.322, OX = 253, OY = 113.5;
+const X = px => (OX - px) / K, Y = py => (OY - py) / K;
+const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
+const D2R = Math.PI / 180;
+
+// extrude a (z, y) section along x from x0 to x1
+function secX(pts, x0, x1, bevel = 0.3, holes = []) {
+  const g = prof(pts, x1 - x0, bevel, holes);
+  g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0);
+  return g;
+}
+// rounded rectangle outline, corners of radius r
+function rr(a0, a1, b0, b1, r, n = 4) {
+  const pts = [];
+  for (const [ca, cb, s] of [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]])
+    for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
+  return pts;
+}
+// arc points around (ca, cb) from angle a0 to a1 in degrees
+const arcPts = (ca, cb, r, a0, a1, n = 6) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [ca + r * Math.cos(t), cb + r * Math.sin(t)]; });
+const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
+const zAt = (g, z) => g.translate(0, 0, z);
+// like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
+function profR(pts, depth, r, holes = []) {
+  const s = new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const h of holes) s.holes.push(new THREE.Path(h.map(([a, b]) => new THREE.Vector2(a, b))));
+  const g = new THREE.ExtrudeGeometry(s, { depth: depth - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 4 });
+  g.translate(0, 0, -(depth - 2 * r) / 2);
+  return g;
+}
+// uvs projected flat from the side (x, y in mm), for textures on CSG output
+function sideUV(g) {
+  const p = g.attributes.position, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { uv[2 * i] = p.getX(i); uv[2 * i + 1] = p.getY(i); }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+// extrude an (x, y) outline between z0 and z1 with no bevel
+const slab = (pts, z0, z1) => prof(pts, z1 - z0, 0).translate(0, 0, (z0 + z1) / 2);
+// subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
+// are kept, so the inputs need no matching uv layout.
+const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
+function cut(geo, cutters, op = SUBTRACTION) {
+  const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
+  let a = brush(geo);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), op);
+  return fixTJunctions(a.geometry);
+}
+// CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
+// triangle with vertices on its edges is re-fanned around its centroid so both sides share the split points.
+function fixTJunctions(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, nt = P.length / 9, E = 1e-4, C = 2;
+  const vk = new Map(), vs = [], grid = new Map();
+  for (let i = 0; i < P.length; i += 3) { const k = P.slice(i, i + 3).map(v => Math.round(v / E)).join(); if (vk.has(k)) continue;
+    vk.set(k, vs.length); const v = [P[i], P[i + 1], P[i + 2]]; vs.push(v);
+    const ck = v.map(c => Math.floor(c / C)).join(); if (!grid.has(ck)) grid.set(ck, []); grid.get(ck).push(v); }
+  const onEdge = (a, b) => { const out = [], lo = [0, 1, 2].map(j => Math.floor((Math.min(a[j], b[j]) - E) / C)), hi = [0, 1, 2].map(j => Math.floor((Math.max(a[j], b[j]) + E) / C));
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    for (let x = lo[0]; x <= hi[0]; x++) for (let y = lo[1]; y <= hi[1]; y++) for (let z = lo[2]; z <= hi[2]; z++) for (const v of grid.get(`${x},${y},${z}`) || []) {
+      const t = ((v[0] - a[0]) * d[0] + (v[1] - a[1]) * d[1] + (v[2] - a[2]) * d[2]) / dd; if (t <= 1e-5 || t >= 1 - 1e-5) continue;
+      const q = [a[0] + d[0] * t - v[0], a[1] + d[1] * t - v[1], a[2] + d[2] * t - v[2]]; if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] < E * E) out.push([t, v]); }
+    return out.sort((p, q) => p[0] - q[0]); };
+  const pos = [], nor = [];
+  for (let t = 0; t < nt; t++) {
+    const V = [0, 1, 2].map(j => [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]), M = [0, 1, 2].map(j => [N[t * 9 + j * 3], N[t * 9 + j * 3 + 1], N[t * 9 + j * 3 + 2]]);
+    const ring = []; let split = false;
+    for (let j = 0; j < 3; j++) { const a = V[j], b = V[(j + 1) % 3], na = M[j], nb = M[(j + 1) % 3]; ring.push([a, na]);
+      for (const [s, v] of onEdge(a, b)) { split = true; ring.push([v, na.map((c, k) => c + (nb[k] - c) * s)]); } }
+    if (!split) { pos.push(...V.flat()); nor.push(...M.flat()); continue; }
+    const c = [0, 1, 2].map(k => (V[0][k] + V[1][k] + V[2][k]) / 3), cn = [0, 1, 2].map(k => (M[0][k] + M[1][k] + M[2][k]) / 3);
+    for (let i = 0; i < ring.length; i++) { const [p0, n0] = ring[i], [p1, n1] = ring[(i + 1) % ring.length]; pos.push(...c, ...p0, ...p1); nor.push(...cn, ...n0, ...n1); }
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return o;
+}
+
+
+// span = [a0, a1] in degrees: teeth only on that arc (a sector gear); lite = number of lightening holes
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z', span = null, lite = 0 } = {}) {
+  const s = new THREE.Shape(), n = teeth * 4, root = r * (1 - Math.min(0.14, 2.4 / r));
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2, d = a / D2R, on = !span || (d >= span[0] && d <= span[1]), rr = (on && i % 4 < 2) ? r : root;
+    i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+  }
+  if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+  for (let i = 0; i < lite; i++) { const h = new THREE.Path(), a = i / lite * Math.PI * 2;
+    h.absarc(0.55 * r * Math.cos(a), 0.55 * r * Math.sin(a), 0.17 * r, 0, Math.PI * 2, true); s.holes.push(h); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
+  g.translate(0, 0, -th / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// tube along a smooth 3D path
+const pathCurve = pts => new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+const tubeAlong = (pts, r, seg = 80) => new THREE.TubeGeometry(pathCurve(pts), seg, r, 12, false);
+// white markings: text drawn on a canvas, laid flat on a side face. alphaTest (not transparency) keeps the letters crisp
+// and lets the x-ray toggle fade them with the shell they sit on.
+function decal(key, lines, x0, x1, y0, y1, z, { align = 'center', bold = true } = {}) {
+  const W = 512, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'), lh = H / lines.length;
+  c.fillStyle = '#e4e6e8'; c.textAlign = align; c.textBaseline = 'middle';
+  c.font = `${bold ? 'bold ' : ''}${Math.round(lh * 0.8)}px Arial, Helvetica, sans-serif`;
+  lines.forEach((t, i) => c.fillText(t, align === 'center' ? W / 2 : 4, lh * (i + 0.5), W - 8));
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  MAT[key] = { color: 0xffffff, map: tex, alphaTest: 0.45, metalness: 0, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -4 };
+  const g = new THREE.PlaneGeometry(x1 - x0, y1 - y0);
+  if (z < 0) g.rotateY(Math.PI);                // left-side marks face -z and still read left to right
+  return [g.translate((x0 + x1) / 2, (y0 + y1) / 2, z), key];
+}
+// scale an outline about the middle of its bounding box, for the hollow inside a shell
+function shrink(pts, d) {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const sx = 1 - 2 * d / (Math.max(...xs) - Math.min(...xs)), sy = 1 - 2 * d / (Math.max(...ys) - Math.min(...ys));
+  return pts.map(([x, y]) => [cx + (x - cx) * sx, cy + (y - cy) * sy]);
+}
+
+// ---------- key dimensions ----------
+const RT = Y(75.5), RB = Y(155);      // receiver top 28.7 and bottom -31.4
+const RR = X(547.5);                  // receiver back face -222.8; the front face is x 0
+const RW = 23;                        // receiver half width (no top view published; a real MAC-10 is about 46mm across)
+const SPLIT = Y(118.75);              // upper/lower part line on the left side, -4
+const DIAG = [X(467.5), X(502.5)];    // where the part line steps up to the top at the back: -162.2 to -188.7
+const GW = 14;                        // grip half width
+const GRIP_F = X(397.5), GRIP_R = X(457.5), GRIP_BOT = Y(275);   // mag well front -109.3, back -154.7, bottom -122.2
+const MAG = { x1: X(400), x0: X(451), bot: Y(466), top: RB + 1, hz: 10 };   // magazine front -111.2, back -149.8, base -266.7
+const PORT = [-148, -106, -3, 22];    // ejection port on the right, from the right-side photo (1.288 px/mm)
+const GF = -131, GR = -219, GZ = 11.5;   // gearbox front and back faces, half width
+const CH = [-128, -104];              // hop-up chamber back and front
+const B_REAR = -114, B_LEN = 131;     // inner barrel: Marui gives 131mm; JG's brass barrel stands about 17mm out of the receiver front
+const DIAL = [-116, 9];               // hop dial: vertical axis, base height; it shows through the ejection port
+const TRG = [X(376.75), Y(134)];      // trigger pin, -93.6, -15.5
+const SEL = [X(322.5), Y(133)];       // selector hub on the left side, -52.6, -14.7
+const MOTOR_Y = -21.5;
+const BEVEL = [-191, MOTOR_Y], SPUR = [-186.5, -12.3], SECTOR = [-196.5, -14.2];   // gear axes, all across the gun
+const STROKE = 38;                    // piston travel
+// gearbox outline traced from den-ken's photo of the closed box (left side, nozzle to the left, 5mm grid), placed so the
+// nozzle meets the chamber and the cylinder lines up with the bore
+const GBX = px => GF - (px - 190) * (GF - GR) / 795, GBY = py => (286 - py) / 9.4;
+const GBP = pts => pts.map(([a, b]) => [GBX(a), GBY(b)]);
+
+// ================= FRONT END =================
+part('frontCap', 'Front end cap + barrel nut', 'frt', [], [130, 0, 0],
+  'The front of the gun is one unit: an end plate that plugs the open front of the receiver, the threaded dummy barrel nut and the hand strap loop underneath. Press the pin on the right side (with the selector on safe) and it pulls straight off forward; that is the way in to the battery.',
+  [[cut(bx(-2.2, 0, -29, 26, -20.3, 20.3), [cyl(4.7, 30, 'x', 0, 0, 0, 24)]), 'blued'],
+   [cut(profR(rr(0, 2.3, -27.6, 14, 0.8, 2), 36, 0.6).rotateY(0), [cyl(4.7, 30, 'x', 0, 0, 0, 24)]), 'blued'],
+   [bx(-14, -2, 22, 25.5, -16, 16), 'blued'],                          // top tongue that hooks under the receiver top
+   [bx(-14, -6, 14, 25.5, -16, -14), 'blued'], [bx(-14, -6, 14, 25.5, 14, 16), 'blued'],
+   [cut(latheX([[4.7, 2.3], [10.5, 2.3], [10.5, 17.4], [4.7, 17.4]], 32), []), 'blued'],
+   ...Array.from({ length: 5 }, (_, i) => [torus(10.3, 0.9, 'x', 4.6 + i * 3, 0, 0), 'blued']),
+   [tube(4.7, 6.9, 17.4, 30, 24), 'steel'],                             // 14mm CCW thread under the muzzle cap
+   [tubeAlong([[-4, RB + 4, -10], [-2, RB - 4, -10], [1, RB - 9, -6], [1, RB - 9, 6], [-2, RB - 4, 10], [-4, RB + 4, 10]], 1.5, 48), 'steel']]);
+
+part('muzzleCap', 'Muzzle cap (14mm CCW)', 'frt', [], [200, 0, 0],
+  'Thread protector on the 14mm counter-clockwise muzzle thread (orange on US guns, black on EU ones). Unscrew it to fit a mock suppressor; JG and Marui both box a large one with the gun.',
+  [[latheX([[4.2, 43], [8, 43], [8, 17.6], [7, 17.6], [7, 41.5], [4.2, 41.5], [4.2, 43]], 32), 'poly2']]);
+
+part('frontPin', 'Front end cap pin', 'frt', [], [75, -30, -40],
+  'Large cross pin through the bottom front of the receiver that holds the end cap in. Its head shows on the left side; press it from the right to free the cap.',
+  [[cyl(5.2, 1.6, 'z', X(267), Y(140.5), -RW - 0.6, 28), 'steel'], [cyl(2.6, 2 * RW + 2, 'z', X(267), Y(140.5), 0, 16), 'steel'],
+   [cyl(2.8, 1.4, 'z', X(267), Y(140.5), RW + 0.5, 16), 'steel']]);
+
+// ================= UPPER RECEIVER =================
+const upperOut = [[0, SPLIT], [0, RT], [RR, RT], [RR, RT - 3.5], [DIAG[1], RT - 3.5], [DIAG[0], SPLIT]];
+part('upper', 'Upper receiver', 'upr', [], [0, 130, 0],
+  'Polymer upper: a channel that covers the top and the upper sides, deep at the front and cut away on a slant at the back, where the lower receiver comes up to meet it. The ejection port on the right is open and shows the hop-up dial; the slot on top is for the dummy cocking knob. One 1.5mm hex screw on the left and the trigger pin hold it on; take both out and it lifts off upward.',
+  [[cut(profR(upperOut, 2 * RW, 1.2), [
+      bx(RR - 5, 5, SPLIT - 5, RT - 2.4, -RW + 2.2, RW - 2.2),
+      bx(PORT[0], PORT[1], PORT[2], PORT[3], 0, RW + 5),
+      bx(-196, -56, RT - 1.6, RT + 5, -3, 3),
+      cyl(2.4, 10, 'z', X(266), Y(99), -RW, 12), cyl(1.6, 10, 'z', X(513), Y(130.5), -RW, 12)]), 'poly'],
+   // two raised flutes on the left side
+   [profR(rr(X(465), X(281), Y(97.5), Y(86), 4, 4), 2, 0.6).translate(0, 0, -RW - 0.4), 'poly'],
+   [profR(rr(X(465), X(281), Y(112.5), Y(101), 4, 4), 2, 0.6).translate(0, 0, -RW - 0.4), 'poly']],
+  { shell: true });
+
+part('frontSight', 'Front sight', 'upr', [], [0, 175, 0],
+  'Fixed front sight on the front of the top: a block with a hole through it and a hood over the blade, sloped at the back.',
+  [[profR([[-2.3, RT - 0.5], [-2.3, 40], [-5, 42.4], [-12, 42.4], [-21, RT - 0.5]], 8, 0.6, [circ(-7.2, 36.3, 2.3, 16)]), 'blued'],
+   [bx(-8, -6.4, RT, 35, -0.8, 0.8), 'blued']]);
+
+part('rearSight', 'Rear sight (peep)', 'upr', [], [-20, 175, 0],
+  'Thin aperture plate standing up at the back of the top, with a raised base in front of it. Fixed.',
+  [[cut(bx(-221.5, -219, RT - 0.5, RT + 15, -7, 7), [cyl(1.4, 10, 'x', -220, RT + 10, 0, 16)]), 'blued'],
+   [bx(-221.5, -200, RT - 0.5, RT + 1.5, -9, 9), 'blued']]);
+
+part('cockingKnob', 'Cocking knob (dummy)', 'upr', [], [0, 175, 0],
+  'Knurled knob on top. On the real MAC-10 it works the bolt; here it is fixed and only a dummy. With the stock folded the shoulder hoop rests behind it.',
+  [[gear(8.3, 24, 9, -49.6, RT + 5.6, 0, { axis: 'y' }), 'blued'], [cyl(3, 6, 'y', -49.6, RT - 1, 0, 16), 'blued'],
+   [cyl(8.3, 1, 'y', -49.6, RT + 10.5, 0, 28), 'blued']]);
+
+part('upperScrews', 'Receiver screw + trigger pin', 'upr', [], [0, 65, -60],
+  'What holds the upper on: a 1.5mm hex screw on the left side at the back, and the trigger pin. The pin is D-shaped in section; it goes back in with the flat toward the muzzle. A second small screw holds the front of the top.',
+  [[cyl(2.2, 1.2, 'z', X(513), Y(130.5), -RW - 0.5, 16), 'steel'], [cyl(1.4, 8, 'z', X(513), Y(130.5), -RW + 3, 12), 'steel'],
+   [cyl(2.2, 1.2, 'z', X(266), Y(99), -RW - 0.5, 16), 'steel'], [cyl(1.4, 8, 'z', X(266), Y(99), -RW + 3, 12), 'steel'],
+   [cyl(2.4, 2 * RW + 1.6, 'z', X(376.75), Y(134), 0, 16), 'steel']]);
+
+// ================= BATTERY AND WIRING =================
+part('battery', 'Battery (7.2V micro)', 'bat', [], [130, 70, 0],
+  '7.2V NiMH micro battery (Marui sizes it as their Micro 500, or the older Micro EX through an adapter). It slides in from the front above the barrel once the end cap is off. Some owners fit a small 7.4V LiPo instead, which means swapping the plug.',
+  [[profR(rr(-76, -6, 5.5, 20.5, 2.5), 22, 1.2), 'green'],
+   decal('batLbl', ['7.2V 500mAh'], -66, -16, 9, 17, 11.05),
+   [bx(-6, -2, 9, 17, -6, 6), 'black']]);
+
+part('battHolder', 'Battery holder + switch + fuse', 'bat', [], [0, 80, 0],
+  'Black polymer tray the battery lies in, screwed to the lower receiver on top of the barrel, with two screws either side of the hop dial and one under it. At its back are the selector slide rail, the semi-auto cut-off base and an open switch the trigger bar pushes closed; a glass fuse sits in its side (lever it out by the metal end, not the glass). The red lead to the switch unhooks itself as the tray comes up, so check it on reassembly.',
+  [[cut(bx(-100, -2, 3.8, 23, -13.5, 13.5), [bx(-80, 0, 5.2, 30, -12, 12), bx(-120, -95, 7, 30, -9, 9), cyl(9.5, 30, 'y', DIAL[0], 15, 0, 24)]), 'nylon'],
+   [cut(bx(-125, -100, 7, 17, -13.5, -3), [cyl(9.5, 30, 'y', DIAL[0], 15, 0, 24)]), 'nylon'],
+   ...[-108, -124].map(x => [cyl(1.7, 1.2, 'y', x, 17.4, -8, 12), 'steel']),
+   [bx(-96, -82, 10, 14, -12.6, -9), 'brass'], [bx(-96, -86, 15, 18, -12.6, -9), 'brass'],          // open switch contacts
+   [tube(0, 2.4, -55, -33, 16, 12).translate(0, 0, -13.6), 'glass'],                            // fuse
+   [tube(0, 2.5, -57, -53, 16, 12).translate(0, 0, -13.6), 'steel'], [tube(0, 2.5, -35, -31, 16, 12).translate(0, 0, -13.6), 'steel'],
+   [bx(-80, -78, 6, 19, -10, 10), 'brass']], { shell: true });
+
+part('wiring', 'Wiring', 'bat', [], [-40, 45, -20],
+  'Short leads from the switch and fuse at the back of the battery tray down to the motor terminals at the front of the gearbox.',
+  [[tubeAlong([[-95, 16, -11.6], [-112, 14, -12.6], [-126, 4, -13], [-136, -8, -12.4], [-142, -13, -11.6]], 0.9, 40), 'red'],
+   [tubeAlong([[-45, 14, -14.4], [-80, 9, -14.6], [-118, 2, -14.2], [-136, -10, -13.4], [-142, -16, -11.6]], 0.9, 50), 'black']]);
+
+// ================= GEARBOX AND HOP-UP =================
+const gbOut = GBP([[190, 145], [668, 145], [690, 168], [985, 168], [985, 300], [935, 305], [935, 488], [885, 535], [600, 540], [575, 522],
+  [292, 522], [292, 575], [190, 575]]);
+const GB_SCREWS = GBP([[636, 157], [240, 392], [943, 352], [737, 540]]).map(([x, y]) => [x, Math.max(y, -25.5)]);
+function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on the centre plane
+  const body = cut(profR(gbOut, GZ, 0.6).translate(0, 0, s * GZ / 2), [
+    prof(shrink(gbOut, 1.8), GZ - 1.6, 0).translate(0, 0, s * (GZ - 1.6) / 2 - s * 0.01),
+    cyl(3.6, 4, 'x', GF, 0, 0, 20),                                            // nozzle hole in the front
+    cyl(2.6, 4, 'x', GR, 0, 0, 16),                                            // spring guide in the back
+    ...[BEVEL, SPUR, SECTOR].map(([x, y]) => cyl(2, 40, 'z', x, y, 0, 16)),
+    ...GB_SCREWS.map(([x, y]) => cyl(1, 40, 'z', x, y, 0, 10))]);
+  const pieces = [[body, 'zinc'],
+    ...[BEVEL, SPUR, SECTOR].map(([x, y]) => [cyl(2.9, 1, 'z', x, y, s * (GZ + 0.4), 20), 'nylon'])];   // nylon bushings
+  if (s < 0) for (const [x, y] of GB_SCREWS) pieces.push([cyl(1.9, 1, 'z', x, y, -GZ - 0.4, 12), 'steel']);   // Torx screws from the left
+  return pieces;
+}
+part('gearboxL', 'Gearbox shell, left half', 'gbx', [], [-130, 215, -20],
+  'Marui-pattern compact gearbox in diecast zinc, about 88mm long: the cylinder lies along the top front over the motor, the spring and the gears at the back. JG fits nylon bushings, not bearings. Four Torx screws (T7, or T6) close it from the left. Before opening it, push the angled bar in the hole on the side to let the spring off while holding the nozzle in, or the tappet can break.',
+  gbHalf(-1), { shell: true });
+part('gearboxR', 'Gearbox shell, right half', 'gbx', [], [-130, 150, 20],
+  'Right half of the shell. Open it spring side first and only a little, pressing the gear axles and the spring guide down into this half so nothing jumps out.',
+  gbHalf(1), { shell: true });
+
+part('motor', 'Motor', 'gbx', [], [40, 250, 0],
+  'Small can motor lying along the bottom front of the gearbox under the cylinder, its pinion pointing back at the bevel gear. It stays in unless you are replacing it; lift the pinion a little to free the bevel gear. The end clip at the front comes out with it.',
+  [[latheX([[0, GBX(292)], [9.8, GBX(292)], [9.8, GBX(575)], [0, GBX(575)]], 32), 'steel'],
+   [latheX([[0, GBX(292)], [6, GBX(292)], [6, GBX(286)], [0, GBX(286)]], 24), 'black'],
+   [cyl(1, 12, 'x', GBX(575) - 6, 0, 0, 10), 'steel'], [gear(2.4, 9, 5, GBX(575) - 13, 0, 0, { axis: 'x' }), 'steel'],
+   [bx(GBX(292) + 1, GBX(292) + 2.4, 4, 10, -2, 2), 'brass'], [bx(GBX(292) + 1, GBX(292) + 2.4, -10, -4, -2, 2), 'brass']]
+    .map(([g, m]) => [g.translate(0, MOTOR_Y, 0), m]));
+
+part('bevelGear', 'Bevel gear', 'gbx', [], [10, 250, 0],
+  'First gear: the motor pinion turns the crown teeth on its face, and its small spur drives the spur gear. The anti-reversal latch rides on it and stops the gears running backwards under spring load.',
+  (() => { const [x, y] = BEVEL;
+    const crown = mergeGeometries(Array.from({ length: 26 }, (_, i) => bx(4.6, 7, -0.5, 0.5, -3.6, -2.4).rotateZ(i * 360 / 26 * D2R))).translate(x, y, 0);
+    return [[gear(7.2, 26, 1.6, x, y, -4.4, { hole: 1.2 }), 'steel'], [crown, 'steel'], [gear(3.3, 10, 4.6, x, y, 0.6, { hole: 1.2 }), 'steel'],
+      [cyl(1.2, 2 * GZ - 1, 'z', x, y, 0, 10), 'steel'],
+      [profR([[x - 9, y - 7], [x - 5.5, y - 8.5], [x - 5, y - 6.5], [x - 8, y - 5]], 1.6, 0.3).translate(0, 0, -6.5), 'steel']]; })());
+
+part('spurGear', 'Spur gear', 'gbx', [], [-10, 250, 0],
+  'Middle gear, taken off the bevel gear\'s spur and driving the sector gear with its own small pinion. Keep its shims with it; on these boxes some shims sit on the axle and some on the bushings.',
+  (() => { const [x, y] = SPUR;
+    return [[gear(6.6, 22, 2.4, x, y, 2, { hole: 1.2, lite: 4 }), 'steel'], [gear(3.2, 10, 4, x, y, -1.4, { hole: 1.2 }), 'steel'],
+      [cyl(1.2, 2 * GZ - 1, 'z', x, y, 0, 10), 'steel']]; })());
+
+part('sectorGear', 'Sector gear', 'gbx', [], [-30, 250, 0],
+  'Last gear: the teeth on part of its rim pick up the rack under the piston, draw it back and let go, once per turn. A cam on it trips the semi-auto cut-off.',
+  (() => { const [x, y] = SECTOR;
+    return [[gear(6.4, 22, 2.8, x, y, -1.6, { hole: 1.2, span: [10, 200] }), 'steel'], [gear(5.6, 20, 2, x, y, 1.8, { hole: 1.2 }), 'steel'],
+      [cyl(1.2, 2 * GZ - 1, 'z', x, y, 0, 10), 'steel'], [bx(x - 1, x + 1, y - 7.5, y - 4.5, 2.8, 4.8), 'steel']]; })());
+
+part('cylinder', 'Cylinder + cylinder head', 'gbx', [], [15, 310, 0],
+  'Brass cylinder along the top front of the box with a ported wall, short to suit the 131mm barrel. The cylinder head stands out of the front of the gearbox into the back of the hop-up chamber.',
+  [[cut(tube(9.4, 10.3, GF - 0.5, GF - 45, 32), [cyl(1.6, 30, 'y', GF - 40, 0, 0, 12)]), 'brass'],
+   [latheX([[3.6, GF + 7.5], [9.4, GF + 7.5], [9.4, GF - 2.5], [3.6, GF - 2.5]], 28), 'black']]);
+
+part('nozzle', 'Nozzle', 'gbx', [], [35, 310, 0],
+  'Nozzle on the cylinder head, reaching into the back of the hop-up chamber. The tappet plate draws it back to let a BB up from the magazine, then pushes it forward to seat the BB in the bucking. It comes off the tappet plate with a twist.',
+  [[tube(2.2, 3.4, GF + 4, -112, 20), 'black'], [tube(2.2, 4.4, GF + 1.5, GF + 4, 20), 'black']]);
+
+part('piston', 'Piston + piston head', 'gbx', [], [-30, 310, 0],
+  'Polymer piston with a steel rack along its underside at the back, and a piston head with an O-ring. At rest it sits forward in the cylinder; the sector gear draws it back about 38mm and lets it fly.',
+  [[latheX([[0, GF - 5], [9, GF - 5], [9, GF - 3], [0, GF - 3]], 28), 'nylon'],
+   [torus(8.8, 0.6, 'x', GF - 4, 0, 0), 'black'],
+   [cut(latheX([[0, GF - 5], [8.6, GF - 5], [8.6, -193], [0, -193]], 28), [cyl(6.8, 52, 'x', -168, 0, 0, 24)]), 'white'],
+   [bx(-193, -160, -10.4, -8, -2, 2), 'steel'],
+   ...Array.from({ length: 7 }, (_, i) => [bx(-192 + i * 4.4, -190.6 + i * 4.4, -11.8, -10.2, -2, 2), 'steel'])]);
+
+part('mainSpring', 'Main spring + spring guide', 'gbx', [], [-95, 310, 0],
+  'Main spring on a polymer guide that bears on the back wall of the box. It is what has to be released before the box is opened.',
+  [[spring(6.2, 0.6, 76, 17, 'x', -216, 0, 0), 'spring'],
+   [latheX([[0, -219.5], [7.4, -219.5], [7.4, -216], [2.4, -216], [2.4, -160], [0, -160]], 20), 'nylon']]);
+
+part('tappet', 'Tappet plate + cut-off lever', 'gbx', [], [0, 205, 0],
+  'Black tappet plate along the right of the box: the fork at the front holds the nozzle, the bar runs back to the sector gear, which pulls the nozzle back to let a BB up into the chamber. The cut-off lever under the sector gear opens the switch line for semi.',
+  [[cut(bx(GF - 3.5, GF - 1.5, -12, 4, -5, 5), [cyl(2.6, 6, 'x', GF - 2.5, 0, 0, 16)]), 'nylon'],
+   [bx(-196, GF - 1.5, -12, -9.6, 5, 7.4), 'nylon'], [bx(-198, -194, -15, -9.6, 5, 7.4), 'nylon'],
+   [spring(1.2, 0.3, 16, 9, 'x', -165, -11, 6.2), 'spring'],
+   [profR([[-205, -20], [-202, -19], [-196, -26], [-198, -28]], 1.4, 0.3).translate(0, 0, 6), 'steel']]);
+
+part('chamber', 'Hop-up chamber + dial', 'gbx', [], [60, 310, 0],
+  'Hop-up chamber between the barrel and the nozzle, with the BB feed coming up from the magazine underneath. The toothed dial on top sets the hop; it shows through the ejection port, so it needs no strip to adjust. Turn it to the weakest before pulling the barrel, or the barrel can stick in the chamber. Two screws hold the barrel in.',
+  [[cut(latheX([[3.8, CH[0]], [8.4, CH[0]], [8.4, CH[1]], [3.8, CH[1]]], 28), [bx(-122, -112, -20, -4, -2.8, 2.8)]), 'nylon'],
+   [cut(bx(-124, -110, -18, -6, -5, 5), [cyl(3.1, 20, 'y', -117, -10, 0, 16)]), 'nylon'],     // feed neck down to the magazine
+   [bx(-121, -111, 6, DIAL[1], -6, 6), 'nylon'],
+   [gear(7.6, 20, 5.5, DIAL[0], DIAL[1] + 2.8, 0, { axis: 'y' }), 'nylon'], [cyl(2, 1, 'y', DIAL[0], DIAL[1] + 6, 0, 12), 'steel'],
+   ...[[-126, 1], [-106, 1]].map(([x, z]) => [cyl(1.4, 2, 'z', x, -5.5, 8.6, 10), 'steel'])]);
+
+part('hopArm', 'Hop arm (H-type)', 'gbx', [], [60, 345, 0],
+  'Arm under the dial with two plastic prongs that press the bucking down into the barrel window.',
+  [[bx(-121, -111, 4.6, 6, -3.5, 3.5), 'nylon'], [bx(-120, -118, 3.6, 4.6, -3.5, 3.5), 'nylon'], [bx(-114, -112, 3.6, 4.6, -3.5, 3.5), 'nylon'],
+   [spring(0.9, 0.25, 4, 4, 'y', -116, 6, 0), 'spring']]);
+
+part('bucking', 'Hop-up bucking', 'gbx', [], [90, 310, 0],
+  'Rubber bucking over the back of the barrel. Fit it with its inner nub in the barrel\'s hop window and both on top, or the hop will not work.',
+  [[tube(3.2, 4.9, B_REAR, B_REAR + 12, 24), 'black']]);
+
+part('innerBarrel', 'Inner barrel (131mm)', 'gbx', [], [105, 310, 0],
+  'Brass inner barrel, 131mm (Marui figure), cut short with a hop window at the back. The front sticks out of the receiver front, inside the barrel nut.',
+  [[tube(3.03, 4.5, B_REAR, B_REAR + B_LEN, 24), 'brass']]);
+
+// ================= LOWER RECEIVER AND TRIGGER =================
+const lowerOut = [[0, RB], [0, SPLIT], [DIAG[0], SPLIT], [DIAG[1], RT - 3.5], [RR, RT - 3.5], [RR, RB]];
+const gripOut = [[GRIP_F, RB + 3], [GRIP_F, GRIP_BOT + 1.5], [GRIP_F - 1.5, GRIP_BOT], [GRIP_R, GRIP_BOT], [GRIP_R, RB + 3]];
+part('lower', 'Lower receiver + mag well', 'low', [], [0, 0, 0],
+  'Polymer lower receiver and the mag well grip in one piece, with a rubberised finish. The trigger unit, the barrel and gearbox and the battery tray all drop into it from the top, and it comes up to full height at the back. The stock struts run in channels along its floor.',
+  [[cut(cut(profR(lowerOut, 2 * RW, 1.2), [profR(gripOut, 2 * GW, 1)], ADDITION), [
+      bx(RR + 2.5, 1, RB + 2.5, RT, -RW + 2.5, RW - 2.5),
+      bx(MAG.x0 - 0.8, MAG.x1 + 0.8, GRIP_BOT - 5, RB + 3, -MAG.hz - 0.7, MAG.hz + 0.7),
+      bx(-100, -84, RB - 1, RB + 3, -3.4, 3.4), bx(-88, -68, RB - 1, RB + 3, -2.6, 2.6), bx(-200, -191, RB - 1, RB + 3, -4.4, 4.4),
+      cyl(2.6, 10, 'z', X(376.75), Y(134), -RW, 12), cyl(2.6, 10, 'z', X(376.75), Y(134), RW, 12),
+      cyl(2.6, 10, 'z', X(267), Y(140.5), -RW, 12), cyl(2.6, 10, 'z', X(267), Y(140.5), RW, 12),
+      cyl(3.2, 10, 'z', SEL[0], SEL[1], -RW, 16)]), 'frame'],
+   decal('semi', ['SEMI'], SEL[0] + 8, SEL[0] + 19, SEL[1] - 2, SEL[1] + 2, -RW - 0.05),
+   decal('auto', ['AUTO'], SEL[0] - 30, SEL[0] - 19, SEL[1] - 2, SEL[1] + 2, -RW - 0.05),
+   decal('safe', ['SAFE'], -87, -77, RB + 2, RB + 5.5, RW + 0.05),
+   decal('fire', ['FIRE'], -67, -57, RB + 2, RB + 5.5, RW + 0.05)],
+  { shell: true });
+
+const panelOut = [[GRIP_R + 0.5, RB + 1], [-175, RB + 1], [-175, -34.4], [-168, -41], [-164.5, -52], [-165, -70], [-168.7, -78],
+  [-168.7, -119], [-166, GRIP_BOT], [GRIP_R + 0.5, GRIP_BOT]];
+part('gripPanel', 'Grip (rear)', 'low', [], [-70, -20, 0],
+  'Textured rubbery backstrap behind the mag well, the part of the grip the palm wraps round. Screwed to the back of the mag well.',
+  [[profR(panelOut, 2 * GW - 1, 1.6), 'checker']]);
+
+part('triggerGuard', 'Trigger guard', 'low', [], [60, -90, 0],
+  'Bent steel strap from the front of the receiver to the front of the mag well. The safety slide sits inside it just ahead of the trigger.',
+  [[profR([[-59.5, RB + 1.5], [-61, -56], [-66.5, -62.5], [-110, -61.5], [-110, -58], [-67.5, -59], [-64, -55.5], [-62.6, RB + 1.5]], 7, 0.5), 'steel']]);
+
+part('trigger', 'Trigger', 'low', [], [130, -100, 0],
+  'Curved trigger with the tip forward. Pulled, it pivots about the trigger pin and its bar closes the open switch at the back of the battery tray: semi or full auto as the selector sets the cut-off.',
+  [[profR([[-89.5, -11.5], [-97.5, -11.5], [-98, -28], [-97, -38], [-94, -48], [-87, -56.3], [-86.2, -55], [-91, -46], [-92.6, -37], [-92.4, -28], [-89.5, -22]], 5, 0.8), 'steel'],
+   [cyl(2.6, 7, 'z', TRG[0], TRG[1], 0, 16), 'steel']]);
+
+part('triggerUnit', 'Trigger unit + selector parts', 'low', [], [130, -60, 0],
+  'Zinc trigger unit in the lower receiver under the barrel, held by two screws hidden in holes; it carries the trigger, the trigger bar that runs back and up to the switch, and the selector cams and springs (one small spring under a screw jumps out easily). It only goes back in with the selector on semi.',
+  [[cut(bx(-108, -62, -29, -9, -9, 9), [bx(-104, -80, -40, -12, -3.2, 3.2), cyl(4.8, 60, 'x', 0, 0, 0, 20)]), 'zinc'],
+   [bx(-100, -88, -18, -15.5, -10.4, -8), 'steel'], [bx(-100, -96.5, -18, 9, -10.4, -8), 'steel'],
+   [cyl(2.2, 4, 'z', -66, -14, -10, 12), 'steel'], [cyl(2.2, 4, 'z', -104, -14, -10, 12), 'steel']]);
+
+part('selector', 'Selector lever', 'low', [], [170, -10, -30],
+  'Selector on the left side above the trigger: a pointed hub with a bar lever, turned half a turn between semi and full auto. It works the selector slide in the battery tray.',
+  [[profR([[SEL[0] + 9.5, SEL[1]], [SEL[0] + 2, SEL[1] + 5.4], ...arcPts(SEL[0], SEL[1], 5.4, 90, 270, 8).slice(1, -1), [SEL[0] + 2, SEL[1] - 5.4]], 2.4, 0.5).translate(0, 0, -RW - 1.1), 'lever'],
+   [profR(rr(SEL[0] - 17, SEL[0], SEL[1] - 2.6, SEL[1] + 2.6, 2.5, 3), 4, 0.8).translate(0, 0, -RW - 2.6), 'lever'],
+   [cyl(2.8, 2 * RW - 4, 'z', SEL[0], SEL[1], 0, 16), 'steel']]);
+
+part('safety', 'Safety slide', 'low', [], [170, -50, 0],
+  'Safety in the trigger guard ahead of the trigger: slide it back to SAFE, forward to FIRE (marked on the right side). It must be on safe before the front cap comes off for a battery change.',
+  [[profR(rr(-82, -73, RB - 4.6, RB + 0.5, 1.2, 2), 5, 0.6), 'steel'], [bx(-90, -66, RB + 0.5, RB + 3.2, -2.4, 2.4), 'steel']]);
+
+part('magCatch', 'Magazine catch', 'low', [], [0, -10, -60],
+  'Lever on the left side at the bottom of the mag well; press it to drop the magazine.',
+  [[profR(rr(-148, -129, -121, -92, 3, 3), 3, 0.8).translate(0, 0, -GW - 0.6), 'frame'], [bx(-146, -131, -96, -93, -GW + 1, -GW + 4), 'steel']]);
+
+part('stockButton', 'Stock lock button', 'low', [], [0, -40, 0],
+  'Small button under the back of the receiver that locks the stock struts in or out. It is loose once the trigger unit is out, so do not lose it.',
+  [[profR(rr(-199, -192, RB - 3.6, RB + 1.5, 1.2, 2), 7, 0.6), 'steel']]);
+
+// ================= STOCK =================
+part('stockStruts', 'Stock struts + end block', 'stk', [], [-150, 60, 0],
+  'Two metal struts that slide in channels along the floor of the lower receiver, tied together at the back by the end block that carries the hinge. Pull the stock out to length with the lock button pressed; fully out, it comes off completely.',
+  [[cyl(2.6, 180, 'x', -132, -25.5, 18, 16), 'blued'], [cyl(2.6, 180, 'x', -132, -25.5, -18, 16), 'blued'],
+   [profR([[RR, -20.5], [RR - 9, -20.5], [RR - 10, -29], [RR, -29]], 44, 1.2), 'blued'],
+   [cyl(1.8, 40, 'z', -243.6, -46.5, 0, 12), 'steel']]);
+
+part('buttPlate', 'Butt plate', 'stk', [], [-170, 50, 0],
+  'Steel butt plate on a hinge at the back of the end block. Folded, it hangs down behind the grip; unfolded it is the shoulder pad of the extended stock.',
+  [[profR([[RR - 3, -28], [RR - 11, -27], [-250.5, -48], [-250, -57], [-241, -57.5], [RR - 6, -40]], 30, 1), 'blued']]);
+
+part('stockHoop', 'Shoulder hoop', 'stk', [], [-170, 70, 0],
+  'Bent steel wire loop. Folded, it lies over the back half of the top; swung down and the struts pulled out, it braces the butt plate.',
+  (() => {
+    const side = z => [[-243.6, -46.5, z], [-247.5, -30, z], [-248.5, 20, z], [-246, 38, z], [-238, 44.5, z], [-200, 46.5, z], [-166, 44, z], [-158, 37, z * 0.9], [-156, 32, z * 0.6]];
+    return [[tubeAlong([...side(15), ...side(-15).reverse()], 2.6, 160), 'blued']];
+  })());
+
+// ================= MAGAZINE =================
+part('magBody', 'Magazine body', 'mag', [], [-190, -45, 0],
+  'Steel-shelled 65-round magazine (Marui pattern; JG also sells a 470-round hi-cap). It goes all the way up the grip and feeds straight up into the chamber.',
+  [[cut(profR(rr(MAG.x0, MAG.x1, MAG.bot + 4, MAG.top, 1.5, 3), 2 * MAG.hz, 1), [bx(-120, -114, MAG.top - 30, MAG.top + 2, -2.5, 2.5)]), 'blued'],
+   [latheX([[1.8, MAG.top], [3, MAG.top], [3, -8], [1.8, -8]], 16).rotateZ(Math.PI / 2).translate(-117, 0, 0), 'nylon'],
+   [bx(MAG.x0 + 3, MAG.x0 + 6, -120, -100, -MAG.hz - 0.3, -MAG.hz + 0.6), 'steel']], { shell: true });
+
+part('magBase', 'Magazine base plate', 'mag', [], [-190, -75, 0],
+  'Base plate, slides off the bottom of the magazine.',
+  [[profR(rr(MAG.x0 - 1, MAG.x1 + 1, MAG.bot, MAG.bot + 4.5, 1.5, 3), 2 * MAG.hz + 2, 1), 'blued']]);
+
+part('magFollower', 'Follower + feed spring', 'mag', [], [-150, -45, 0],
+  'Follower and the long spring that push the BBs up the single-file channel at the front of the magazine to the feed lips.',
+  [[spring(2.2, 0.35, 158, 58, 'y', -117, -258, 0), 'spring'], [bx(-120, -114, -100, -92, -2.4, 2.4), 'nylon'],
+   ...Array.from({ length: 10 }, (_, i) => [new THREE.SphereGeometry(2.95, 12, 8).translate(-117, -89 + i * 6, 0), 'white'])]);
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+const catEls = {};
+let isolated = null;
+function updateVis() {
+  for (const p of parts) p.visible = isolated ? p === isolated : catOn[p.userData.cat];
+}
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-mac10-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-mac10-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span>`;
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+// Search: matches every word of the query against the part name.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => p.userData.name.toLowerCase();
+function matches(p, q) {
+  if (!q) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+    o.castShadow = !e.target.checked;   // a see-through shell must not shade the parts inside it
+    o.material.needsUpdate = true;      // transparent is compiled into the shader (OPAQUE forces alpha 1)
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
+// ---------- info panel ----------
+const SOURCES = `<p class="src">Sources: <a href="https://www.booliganairsoft.com/2013/08/jg-mac-10-aep-submachine-gun.html">Booligan Airsoft review of the JG MAC-10</a>,
+<a href="http://den-ken.net/bunkai/jmacbunkai1.html">den-ken strip of the Marui MAC10</a> and
+<a href="http://den-ken.net/bunkai/jmmechabunkai1.html">of its compact gearbox</a>,
+<a href="https://www.tokyo-marui.co.jp/products/electric/compact/407">Tokyo Marui MAC10 page</a> (specs),
+<a href="https://www.taiwangun.com/submachine-gun-aeg/jg0452-j-g-works">Taiwangun JG0452 photos</a>. Outside shapes are traced from a left-side product photo; internal shapes and positions are approximate.</p>`;
+function showOverview() {
+  infoBody.innerHTML = `<h2>JG MAC-10 (Ingram M10)</h2>
+  <div class="meta">Electric, Marui-pattern compact gearbox. Polymer receiver, metal stock, steel-shelled magazine.</div>
+  <p>295mm long with the stock in, 548mm out, 131mm inner barrel (Marui figures for the MAC10 that JG copies). About 1.4kg without the battery (Marui; Taiwangun lists the JG at 1.73kg). 7.2V micro NiMH battery. Semi and full auto. Booligan clocked 300fps with 0.20g BBs and about 10 rounds a second.</p>
+  <ul>
+    <li>Battery: put the safety on, press the front pin from the right side, pull the end cap off forward and slide the battery out from above the barrel.</li>
+    <li>Hop-up: turn the toothed dial you can see through the ejection port on the right. No strip needed.</li>
+    <li>Field strip (den-ken, on the Marui): drop the mag, take out the battery, pull the stock off and set the hop to its weakest. Take out the 1.5mm hex screw on the left and push the trigger pin out from the other side, then lift the upper off. Undo the two screws beside the hop dial and the one under it, lever the fuse out by its metal end and lift the battery tray. The chamber, barrel and gearbox then come up together; unhook the black motor lead first.</li>
+    <li>Gearbox: let the spring off through the hole in the side while you hold the nozzle in, twist the nozzle off the tappet plate, take out four Torx screws (T7 or T6) and open it spring side first, a little at a time.</li>
+    <li>Reassembly: the upper is the hard part, as it catches on the corners of the lower. The trigger unit only goes back in with the selector on semi, and the switch lead has to be hooked back on under the battery tray.</li>
+    <li>Known issues (Booligan): nylon bushings rather than bearings, a stiff safety, and the dummy cocking knob sits in the sight line. The included hi-cap holds about 470 BBs; Marui 65-round mags fit.</li>
+    <li>The Trigger slider in the View panel fires one shot: the trigger comes back, the gears turn, the sector gear draws the piston back against the spring and lets it go.</li>
+    <li>The Explode slider strips it in order: the mag drops (to 10%), the stock comes off (to 16%), the front pin and the end cap (to 27%), the battery slides out (to 34%), the upper lifts off (to 46%), then the battery tray (to 54%) and the gearbox with the barrel (to 62%); each group spreads into its parts (to 82%), then the trigger parts come out of the lower.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies. JG publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+}
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 25, 1500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
+  setGlow(p, true);
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>${SOURCES}`;
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
+}
+showOverview();
+initPanels();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, viewCam());
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  hover(p);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = p.userData.name; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewDir = dir => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
+};
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+});
+MOBILE.addEventListener('change', initPanels);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
+const TRIG = { pos: 0 };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+trigCtl.oninput = showTrig; showTrig();
+let trigCur = 0;
+// Staged explode, in strip order (den-ken on the Marui MAC10): the magazine drops, the stock pulls off the back, the front
+// pin comes out and the end cap off forward, the battery slides out, the receiver screw and trigger pin come out and the
+// upper lifts off, then the battery tray, then the chamber, barrel and gearbox come up together. Each group then spreads
+// into its parts, and last the trigger parts come out of the lower. Each part's moves add up to its explode vector, so at
+// 100% every part sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const G = { mag: V(0, -50, 0), stk: V(-110, 0, 0), pin: V(0, 0, -30), frt: V(70, 0, 0), bat: V(110, 0, 0), scr: V(0, 0, -35),
+  upr: V(0, 100, 0), hld: V(0, 70, 0), gbx: V(0, 45, 0) };
+const SPREAD = [0.62, 0.82];
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, id = p.userData.id, rest = (...v) => v.reduce((a, b) => a.sub(b), ex.clone());
+  const first = (g, a, b) => [[g, a, b], [rest(g), ...SPREAD]];
+  p.userData.stages = cat === 'mag' ? first(G.mag, 0, 0.1)
+    : cat === 'stk' ? first(G.stk, 0.06, 0.16)
+    : id === 'frontPin' ? first(G.pin, 0.14, 0.2)
+    : cat === 'frt' ? first(G.frt, 0.18, 0.27)
+    : id === 'battery' ? first(G.bat, 0.25, 0.34)
+    : id === 'upperScrews' ? first(G.scr, 0.32, 0.38)
+    : cat === 'upr' ? first(G.upr, 0.36, 0.46)
+    : cat === 'bat' ? first(G.hld, 0.46, 0.54)
+    : cat === 'gbx' ? first(G.gbx, 0.54, 0.62)
+    : [[ex.clone(), 0.82, 1]];
+}
+// turn a part about a pivot (x, y) in the side plane
+const turnAbout = (p, [px, py], a) => {
+  p.rotation.z = a;
+  p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
+const SPRING_BACK = -216, SPRING_LEN = 76;
+renderer.setAnimationLoop(() => {
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
+  exv.textContent = Math.round(exCur * 100) + '%';
+  trigCur += (TRIG.pos - trigCur) * 0.2;
+  // the trigger comes back over the first quarter and closes the switch; over the rest the sector gear turns once,
+  // drawing the piston back until its last tooth slips off the rack at 90% and the piston flies forward
+  const tA = -12 * D2R * THREE.MathUtils.clamp(trigCur / 0.25, 0, 1), u = THREE.MathUtils.clamp((trigCur - 0.25) / 0.75, 0, 1);
+  const pull = u < 0.9 ? STROKE * u / 0.9 : 0, aS = u * 2 * Math.PI;
+  const nozBack = 3.5 * Math.sin(Math.PI * THREE.MathUtils.clamp(u / 0.3, 0, 1));
+  for (const p of parts) {
+    p.position.set(0, 0, 0); p.rotation.z = 0; p.scale.set(1, 1, 1);
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
+    const id = p.userData.id;
+    if (id === 'trigger') turnAbout(p, TRG, tA);
+    if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
+    if (id === 'spurGear') turnAbout(p, SPUR, -aS * 2);
+    if (id === 'bevelGear') turnAbout(p, BEVEL, aS * 4);
+    if (id === 'piston') p.position.x -= pull;
+    if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
+    if (id === 'nozzle' || id === 'tappet') p.position.x -= nozBack;
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
+  }
+  controls.update();
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
+});
+
+const EX_TGT = new THREE.Vector3(-90, -50, 0), EX_POS = fit(new THREE.Vector3(40, 150, 1350), EX_TGT);
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__mac10 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG };
+</script>
+</body>
+</html>
