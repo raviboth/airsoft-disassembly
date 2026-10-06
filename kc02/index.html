@@ -138,6 +138,8 @@
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
   <label>Stock position <span id="spv">1</span></label>
   <input id="stockpos" type="range" min="1" max="5" step="1" value="1">
+  <label>Trigger <span id="tpv">released</span></label>
+  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
   <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
   <div class="row">
     <button id="bReset">Reset view</button>
@@ -600,11 +602,11 @@ part('railGuard', 'Rail guards + springs', 'sgt', ['102', '101'], [0, -150, 0],
    ...[1, -1].flatMap(sd => [[bx(219, 226, -27, 5, -2, 2).translate(0, 0, sd * (STOCK_Z + 2.5 + 10.5)), 'lever'],
      [bx(219, 226, 3, 6, -3.5, 3.5).translate(0, 0, sd * (STOCK_Z + 2.5 + 8)), 'lever'], [bx(219, 226, -28, -25, -3.5, 3.5).translate(0, 0, sd * (STOCK_Z + 2.5 + 8)), 'lever']])]);
 
-part('rail1', 'Rail 1 + screws', 'sgt', ['4', '5'], [70, 250, 0],
+part('rail1', 'Rail 1 + screws', 'sgt', ['4', '5'], [70, 300, 0],
   'Front top rail, screwed to the top of the outer barrel with three rail 1 screws #5. Carries the front sight.',
   [[picatinny(RAIL1.x0, RAIL1.x1, 'up', RAIL1.off, { riser: 5.7, riserW: 10.5 }), 'alu'], ...[90, 150, 205].map(x => [cyl(2, 12, 'y', x, 13, 0, 12), 'steel'])]);
 
-part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 250, 0],
+part('rail2', 'Rail 2 + screws', 'sgt', ['20', '19'], [0, 300, 0],
   'Rear top rail on the receiver, fixed with rail 2 screws #19. The hop-up (trajectory) adjust dial sits in its front end. Scope mounts here.',
   [[picatinny(RAIL2.x0, RAIL2.x1, 'up', RAIL2.off, { riser: 0.7, riserW: 10.5 }), 'alu'], ...[-40, 20].map(x => [cyl(2, 12, 'y', x, 13, 0, 12), 'steel'])]);
 
@@ -653,15 +655,15 @@ function flipSight(kind, rail, xa, xb, xh) {
   return out;
 }
 
-part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 390, 0],
+part('frontSight', 'Front sight assembly', 'sgt', ['160', '161', '162', '163', '164', '165', '166', '168', '169', '170', '171', '172', '173', '174', '175'], [70, 430, 0],
   'Flip-up front sight in the MBUS pattern. Base #160 clamps to rail 1 with socket head screw #170 and nut #171 in a recoil groove. Upright #162 swings on pin #174 with torsion spring #161; fixer latch #172 on pin #175 with spring #173 holds it down when folded. Post #168 carries a fiber optic #169 and screws through elevation dial #166, held by detent #163 to #165. Manual: turn the dial to raise the post when impact is high, lower it when impact is low.',
   flipSight('front', RAIL1, 171, 223, 212));
 
-part('rearSight', 'Rear sight assembly', 'sgt', ['176', '177', '178', '179', '180', '181', '182', '183', '184', '185'], [0, 390, 0],
+part('rearSight', 'Rear sight assembly', 'sgt', ['176', '177', '178', '179', '180', '181', '182', '183', '184', '185'], [0, 430, 0],
   'Flip-up rear aperture in the MBUS pattern. Base #176 clamps to rail 2 with socket head screw #170 and nut #171. Upright #178 swings on pin #185 with torsion spring #177. Aperture #179 rides on windage adjust screw #180 (knob on the right), held by sleeve #181 and E-ring #182, with detent #183/#184. Fixer latch #172/#173 at the back. Manual: turn the screw anticlockwise when impact is right, clockwise when impact is left.',
   flipSight('rear', RAIL2, -63, -11, -22));
 
-part('hopDial', 'Trajectory adjust dial + detent', 'sgt', ['18', '21', '22'], [0, 330, 0],
+part('hopDial', 'Trajectory adjust dial + detent', 'sgt', ['18', '21', '22'], [0, 360, 0],
   'Hop-up adjuster, called the trajectory adjust dial in the manual. Sits in the front of rail 2 with a detent #21 and spring #22: 36 clicks per turn, about 20 microns per click (Rogueworx). Manual: rotating it moves the impact point up or down. Forum reports say the stock hop arm can be too short to reach the bucking.',
   [[cyl(6.5, 3, 'y', 42, 23.5, 0, 24), 'dark'], [cyl(2, 16, 'y', 42, 14, 0, 12), 'steel']]);
 
@@ -672,12 +674,12 @@ part('receiver', 'Receiver', 'rcv', ['26'], [0, 140, 0],
    [bx(-60, -2, 1, 10, 12.5, 13.3), 'black'], [bx(-100, -60, 1, 5, 12.5, 13.3), 'black'],
    [bx(30, 46, -36, -20, -9, 9), 'dark'], [bx(-128, -108, -30, -20, -9, 9), 'dark'], [cyl(5, 20, 'z', -118, -26, 0, 16), 'dark']], { shell: true });
 
-part('rcvScrews', 'Receiver screws + spring washers', 'rcv', ['23', '32', '136'], [0, 60, -180],
+part('rcvScrews', 'Receiver screws + spring washers', 'rcv', ['23', '32', '136'], [0, -80, 0],
   'Receiver screw (rear) #23 and (front) #32 with spring washers #136 fix the receiver into the front stock from below.',
   [[cyl(2.2, 26, 'y', -104, -28, 0, 12), 'steel'], [cyl(3.5, 2, 'y', -104, -42, 0, 16), 'steel'],
    [cyl(2.2, 26, 'y', 40, -28, 0, 12), 'steel'], [cyl(3.5, 2, 'y', 40, -42, 0, 16), 'steel']]);
 
-part('crossPins', 'Receiver cross pins', 'rcv', ['27', '29'], [0, -40, -200],
+part('crossPins', 'Receiver cross pins', 'rcv', ['27', '29'], [0, -135, 60],
   'Two cross pins hold the trigger guard assembly in the receiver. Push both out to drop the trigger group.',
   [[cyl(2, 2 * STOCK_Z + 6, 'z', -22, -30, 0), 'steel'], [cyl(2, 2 * STOCK_Z + 6, 'z', -92, -30, 0), 'steel']]);
 
@@ -690,45 +692,45 @@ part('barrelRetainer', 'Barrel retainer + screw', 'bar', ['25', '24'], [130, -11
   'Barrel retainer (Ruger V-block style) and screw. Booligan: the factory screws are short and strip, swap in longer ones.',
   [[bx(30, 46, -19, -12, -9, 9), 'steel'], [cyl(2, 14, 'y', 38, -19, 0, 12), 'steel'], [cyl(3.6, 3, 'y', 38, -27, 0, 16), 'steel']]);
 
-part('bolt', 'Bolt', 'rcv', ['46'], [0, 110, 200],
+part('bolt', 'Bolt', 'rcv', ['46'], [-290, 210, 0],
   'Reciprocating bolt carrier, about 80g stock (Rogueworx). Holds the piston (#44, fixed by piston pin #45) and rides on the guide rod. A cam on its underside releases the hammer lock, timed to the carrier length. Aftermarket: Rogueworx V14 aluminium (40g) and stainless (120g), RGW aluminium.',
   [[bx(-104, -18, -11, -3, -9.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, 5.5, 9.5), 'dark'], [bx(-88, -18, -3, 10, -9.5, -5.5), 'dark'],
    [bx(-104, -88, -3, 4.5, -9.5, 9.5), 'dark'], [bx(-30, -18, -3, 6, -5.5, 5.5), 'dark']]);
 
-part('boltPin', 'Bolt pin', 'rcv', ['47'], [0, 190, 200],
+part('boltPin', 'Bolt pin', 'rcv', ['47'], [-290, 245, 0],
   'Pin through the bolt. Evike sells it as part #47 (P-GR-6802-47).',
   [[cyl(2, 12, 'y', -92, 0, 0, 12), 'steel']]);
 
-part('boltHandle', 'Bolt handle', 'rcv', ['33'], [0, 110, 330],
+part('boltHandle', 'Bolt handle', 'rcv', ['33'], [-250, 205, 30],
   'Charging handle on the right. Manual: pull the handle back to load. It reciprocates with every shot. Known weak point: stock handles snap at the neck (Rogueworx Talon is made to fix this).',
   [[bx(-30, -18, 0, 7, 9.5, 20), 'steel'], [bx(-32, -12, -1, 9, 20, 26), 'steel'], [bx(-34, -26, -1, 9, 26, 38), 'steel']]);
 
-part('cylinder', 'Cylinder (loading nozzle) + pin', 'rcv', ['37', '38'], [80, 110, 270],
+part('cylinder', 'Cylinder (loading nozzle) + pin', 'rcv', ['37', '38'], [-34, 210, 0],
   'Floating cylinder (the loading nozzle), plastic on the stock gun. Its rear bore slides over the piston head (the 10.5mm O-ring spec puts the bore near 13.5mm), the front is the loading tube, with cylinder pin #38 retaining the return spring. Pushes a BB into the rubber chamber and seals gas behind it. Stock cylinders are known to crack; the Rogueworx Genesis kit replaces it with a 7075 aluminium cylinder-nozzle. Evike lists the OEM part as Noz-KJW-P-GR-6802-37.',
   [[latheX([[6.4, -66], [7.6, -66], [7.6, -6], [5, -2], [5, 12], [4.4, 16], [3.2, 16], [3.2, -8], [6.4, -8], [6.4, -66]], 32), 'poly'],
    [cyl(1.2, 18, 'z', -60, 0, 0, 8), 'steel']]);
 
-part('cylValve', 'Cylinder valve + spring, O-ring', 'rcv', ['40', '39', '41'], [60, 170, 270],
+part('cylValve', 'Cylinder valve + spring, O-ring', 'rcv', ['40', '39', '41'], [-112, 210, 0],
   'Valve inside the cylinder (#40) with valve spring #39 and O-ring #41. Routes gas forward to the BB, then back to the piston. The Rogueworx Apollo NPAS valve replaces #39/#40 for power adjustment (about 0.6 to 2.5 J).',
   [[latheX([[0, -16], [3, -16], [3, -10], [2, -9], [2, -4], [0, -4]], 16), 'brass'], [spring(2, 0.4, 7, 5, 'x', -4, 0, 0), 'spring'], [torus(2.8, 0.5, 'x', -12, 0, 0), 'black']]);
 
-part('cylSpring', 'Cylinder spring', 'rcv', ['42'], [130, 110, 270],
+part('cylSpring', 'Cylinder spring', 'rcv', ['42'], [-126, 210, 0],
   'Returns the cylinder forward after each shot.',
   [[spring(3.2, 0.45, 26, 8, 'x', -44, 0, 0), 'spring']]);
 
-part('piston', 'Piston + piston pin', 'rcv', ['44', '45'], [-60, 110, 270],
+part('piston', 'Piston + piston pin', 'rcv', ['44', '45'], [-178, 210, 0],
   'Gas piston fixed in the bolt by piston pin #45, about 22g stock. Gas from the mag pushes the cylinder and bolt back over it. Rogueworx pistons use two O-rings instead of one. Evike lists the piston as parts #44/#45.',
   [[latheX([[0, -62], [6.25, -62], [6.25, -46], [3, -46], [3, -24], [0, -24]], 28), 'dark'], [cyl(1.2, 18, 'z', -34, 0, 0, 8), 'steel']]);
 
-part('pistonOring', 'Piston O-ring', 'rcv', ['43'], [-120, 110, 270],
+part('pistonOring', 'Piston O-ring', 'rcv', ['43'], [-131, 210, 0],
   'Seal on the piston head (Evike #43). Rogueworx gives the O-ring size as 10.5mm ID by 1.5mm cross-section. Common wear item when the bolt short-strokes.',
   [[torus(5.68, 0.71, 'x', -54, 0, 0), 'black']]);
 
-part('guideRod', 'Guide rod + E-ring', 'rcv', ['35', '36'], [0, 60, 400],
+part('guideRod', 'Guide rod + E-ring', 'rcv', ['35', '36'], [-434, 207, 0],
   'Guide rod #35 retained by E-ring #36. The bolt and recoil spring ride on it. Evike part #35.',
   [[cyl(2.5, 136, 'x', -58, -7, 0, 12), 'steel'], [torus(2.8, 0.7, 'x', 9, -7, 0), 'steel']]);
 
-part('recoilSpring', 'Recoil spring', 'rcv', ['34'], [0, 60, 440],
+part('recoilSpring', 'Recoil spring', 'rcv', ['34'], [-430, 242, 0],
   'Returns the bolt forward after blowback.',
   [[spring(4.5, 0.8, 84, 16, 'x', -104, -7, 0), 'spring']]);
 
@@ -746,28 +748,28 @@ part('muzzle', 'Muzzle (thread cap)', 'bar', ['1'], [380, 0, 0],
   'Cap over the muzzle thread; the slightly fatter ring at the very front in the render. Open in the middle so the BB exits (9mm bore hole here).',
   [[latheX([[7, 390], [BORE_R + 0.6, 390], [BORE_R + 0.6, 400], [4.5, 400], [4.5, 397], [7, 397], [7, 390]], 32), 'alu']]);
 
-part('chamber', 'Chamber (hop-up unit)', 'bar', ['11'], [110, 110, 0],
+part('chamber', 'Chamber (hop-up unit)', 'bar', ['11'], [110, 120, 0],
   'Proprietary hop-up chamber at the rear of the barrel, in the front of the receiver. Slides out once the outer barrel and rail are off. KJW later revised it ("Gen2" hop, per A+ Airsoft bucking listings). Aftermarket: Rogueworx Genesis V5 hop unit (6061 aluminium) for VSR/GBB barrels and buckings.',
   [[tube(6, 8.8, 30, 52, 32), 'zinc'], [bx(14, 31, -8.8, 8.8, -8.8, 8.8), 'zinc'], [bx(18, 28, 8.8, 10, -3, 3), 'black'],
    [bx(38, 46, 7, 11, -3, 3), 'zinc']]);
 
-part('rubberChamber', 'Rubber chamber (bucking)', 'bar', ['10'], [110, 170, 0],
+part('rubberChamber', 'Rubber chamber (bucking)', 'bar', ['10'], [60, 120, 0],
   'Hop-up bucking. A+ Airsoft sells KC-02 buckings for the original and the "Gen2 new hop system" chambers, described as GBB/VSR inner-barrel pattern. With the Genesis kit any VSR/GBB bucking fits (50 to 70 degree advised).',
   [[tube(3, 5.5, 20, 48, 28), 'rubber']]);
 
-part('barrelNut', 'Inner barrel nut', 'bar', ['9'], [150, 150, 0],
+part('barrelNut', 'Inner barrel nut', 'bar', ['9'], [128, 120, 0],
   'Locks the inner barrel into the chamber.',
   [[latheX([[4.6, 52], [8, 52], [8, 58], [4.6, 58], [4.6, 52]], 6), 'brass'], [tube(4.6, 6.5, 58, 66, 20), 'brass']]);
 
-part('innerBarrel', 'Inner barrel', 'bar', ['8'], [170, 110, 0],
+part('innerBarrel', 'Inner barrel', 'bar', ['8'], [186, 120, 0],
   'Smoothbore inner barrel. Stock length is not reliably published (sources disagree); Booligan says it stops short of the muzzle, so the drawn length is a guess. Full-length replacements: 380mm (Maple Leaf) for the standard barrel, 510mm with a long outer barrel. The Genesis kit makes VSR barrels drop in.',
   [[tube(3, 4.5, 24, 376, 24), 'brass']]);
 
-part('barrelSleeve', 'Inner barrel sleeve', 'bar', ['6'], [170, 160, 0],
+part('barrelSleeve', 'Inner barrel sleeve', 'bar', ['6'], [186, 150, 0],
   'Sleeve that centers the front half of the inner barrel in the outer barrel. Aftermarket option: Rogueworx nylon barrel spacers with inner and outer O-rings (a design that started with Tim Stalford).',
   [[tube(4.6, 8.8, 200, 362, 24), 'poly2']]);
 
-part('barrelConn', 'Inner barrel connection', 'bar', ['7'], [240, 160, 0],
+part('barrelConn', 'Inner barrel connection', 'bar', ['7'], [200, 150, 0],
   'Front bushing that joins the inner barrel to the adaptor.',
   [[tube(4.6, 8.8, 362, 376, 24), 'alu']]);
 
@@ -978,6 +980,7 @@ applyFilter();
 const exSlider = document.getElementById('explode');
 let exTarget = 0, exCur = 0;
 exSlider.oninput = () => exTarget = +exSlider.value;
+const EXP_TGT = new THREE.Vector3(30, 10, 0), EXP_POS = fit(new THREE.Vector3(90, 200, 2350), EXP_TGT);
 let camTween = null;
 document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
 const spin = document.getElementById('spin');
@@ -1039,6 +1042,8 @@ function showOverview() {
     <li>Fill the mag vertical for about 5 seconds. Bolt locks back on empty.</li>
     <li>Front sight dial sets elevation, rear sight screw sets windage, rail 2 dial sets hop.</li>
     <li>V1 vs V2 (both KJW manuals): same receiver, bolt, barrel, trigger group and stock. V1 had different sights (fixed front base #15, rear sight with windage/elevation knobs #75 to #94) and a two-piece 22-round mag (#123/#128). V2 has the flip-up sights and the long mag, plus a CO2 option.</li>
+    <li>The Trigger slider in the View panel fires one shot: the trigger comes back and the sear lets the hammer go, the hammer falls on the valve knocker, which kicks the mag's ex-valve open, the gas blows the bolt back (the cylinder follows once the bolt has moved a few mm) and the bolt rolls the hammer back onto the sear, then the recoil spring returns the bolt.</li>
+    <li>The Explode slider follows the Ruger 10/22 field strip: mag out, rear stock off the tube, tube and end plate unscrewed, grip off, receiver screws out and the barrelled action lifted from the stock. Then the cross pins push out and the trigger group drops, the bolt handle and bolt group come out of the bottom of the receiver, and the barrel slides forward with its rail, front sight and hop-up, before every group spreads into its parts.</li>
     <li>Scale: traced from the manual render, then scaled so the barrel is 0.920 in and the gun measures 780/865mm collapsed/extended; both anchors agree within 1%. The render itself shows the stock at position 3.</li>
     <li>Generic vs specific: the rear stock, tube and grip are generic M4 parts. The front stock, receiver and internals are KC-02 specific. The barrel copies the real 10/22 .920 in bull profile.</li>
   </ul>
@@ -1243,15 +1248,81 @@ const STOCK = { pos: 1, cur: (RENDER_POS - 1) * STOCK_STEP };
 const showLen = () => { const p = +stockCtl.value; STOCK.pos = p; spv.textContent = `${p} (${Math.round((778 - (RENDER_POS - p) * STOCK_STEP) * S)} mm overall)`; };
 stockCtl.oninput = showLen; showLen();
 let stockOff = STOCK.cur;
+const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
+const TRIG = { pos: 0 };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+trigCtl.oninput = showTrig; showTrig();
+let trigCur = 0;
+// Staged explode, in the Ruger 10/22 field-strip order: the magazine drops, the rear stock slides off the tube, the
+// tube and end plate unscrew from the front stock, the grip drops, the front swivel and the two receiver screws come
+// out, and the barrelled action lifts out of the stock. Then the cross pins push out and the trigger group drops, the
+// bolt handle pulls out and the bolt group drops out of the bottom of the receiver, the barrel retainer comes off and
+// the barrel slides forward with its rail, front sight and the hop-up inside it. Each group then spreads into its
+// parts, and last the receiver's bolt stop and the forend rails come off. Each part's moves add up to its explode
+// vector, so at 100% every part sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const SPREAD = [0.72, 0.88];
+const LIFT = [V(0, 140, 0), 0.36, 0.45];
+const STOCK_IDS = new Set(['rearStock', 'stockLock', 'releaseLever', 'stockSwivel']);
+const BOLT_IDS = new Set(['bolt', 'boltPin', 'boltHandle', 'cylinder', 'cylValve', 'cylSpring', 'piston', 'pistonOring', 'guideRod', 'recoilSpring']);
+const BARREL_IDS = new Set(['outerBarrel', 'adaptor', 'muzzle', 'rail1', 'frontSight', 'chamber', 'rubberChamber', 'barrelNut', 'innerBarrel', 'barrelSleeve', 'barrelConn']);
+const ON_STOCK = new Set(['frontStock', 'rail3', 'railGuard', 'rcvScrews', 'endPlate', 'grip', 'stockExt', 'innerTube', 'extCap', 'frontSwivel', ...STOCK_IDS]);
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, id = p.userData.id;
+  // the listed moves, then whatever is left of the explode vector in the spread (or at the very end)
+  const seq = (moves, last = SPREAD) => [...moves, [moves.reduce((a, [v]) => a.sub(v), ex.clone()), ...last]];
+  const action = ['rcv', 'bar', 'trg', 'sgt'].includes(cat) && !ON_STOCK.has(id);
+  p.userData.stages = cat === 'mag' ? seq([[V(0, -60, 0), 0, 0.08]])
+    : STOCK_IDS.has(id) ? seq([[V(-120, 0, 0), 0.07, 0.15]])
+    : id === 'extCap' ? seq([[V(-40, 0, 0), 0.13, 0.18], [V(-90, 0, 0), 0.17, 0.24]])
+    : id === 'stockExt' || id === 'innerTube' ? seq([[V(-90, 0, 0), 0.17, 0.24]])
+    : id === 'endPlate' ? seq([[V(-60, 0, 0), 0.22, 0.27]])
+    : id === 'grip' ? seq([[V(0, -50, 0), 0.25, 0.31]])
+    : id === 'frontSwivel' ? seq([[V(30, 0, 0), 0.29, 0.33]])
+    : id === 'rcvScrews' ? seq([[V(0, -40, 0), 0.32, 0.36]])
+    : id === 'crossPins' ? seq([LIFT, [V(0, 0, 50), 0.45, 0.49]])
+    : cat === 'trg' ? seq([LIFT, [V(0, -40, 60), 0.48, 0.55]])
+    : id === 'boltHandle' ? seq([LIFT, [V(0, 0, 35), 0.54, 0.57], [V(0, -45, 0), 0.56, 0.61], [V(0, 0, 75), 0.6, 0.64]])
+    : BOLT_IDS.has(id) ? seq([LIFT, [V(0, -45, 0), 0.56, 0.61], [V(0, 0, 75), 0.6, 0.64]])
+    : id === 'barrelRetainer' ? seq([LIFT, [V(0, -30, 0), 0.6, 0.64]])
+    : BARREL_IDS.has(id) ? seq([LIFT, [V(230, 0, 0), 0.63, 0.71]])
+    : id === 'boltStop' ? seq([LIFT], [0.88, 1])
+    : action ? seq([LIFT])
+    : seq([], [0.88, 1]);
+}
+// turn a part about a pivot (x, y) in the side plane
+const turnAbout = (p, [px, py], a) => {
+  p.rotation.z = a;
+  p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
+const deg = Math.PI / 180, ramp = stageT;
+const TRG_PV = [-69, -31], HAMMER_PV = [-88, -28], BOLT_STROKE = 22, SPRING_BACK = -104, SPRING_LEN = 84;
 renderer.setAnimationLoop(() => {
-  exCur += (exTarget - exCur) * 0.12;
-  if (Math.abs(exTarget - exCur) < 1e-4) exCur = exTarget;
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
   exv.textContent = Math.round(exCur * 100) + '%';
   stockOff += ((RENDER_POS - STOCK.pos) * STOCK_STEP - stockOff) * 0.15;
-  const e = exCur * exCur * (3 - 2 * exCur);
+  trigCur += (TRIG.pos - trigCur) * 0.2;
+  // the trigger comes back over the first fifth and the sear lets the hammer go; the hammer falls forward onto the
+  // valve knocker, which kicks the mag's ex-valve; the gas blows the bolt back (the cylinder follows once the bolt has
+  // taken up its slack), the bolt rolls the hammer back past the sear, and the recoil spring returns it
+  const t = trigCur, tA = -10 * deg * ramp(t, 0, 0.2);
+  const hA = -20 * deg * ramp(t, 0.2, 0.27) + 26 * deg * ramp(t, 0.34, 0.5) - 6 * deg * ramp(t, 0.62, 0.72);
+  const knock = 2.5 * (ramp(t, 0.26, 0.3) - ramp(t, 0.3, 0.4));
+  const boltBack = BOLT_STROKE * (ramp(t, 0.3, 0.48) - ramp(t, 0.55, 0.8)), cylBack = Math.max(0, boltBack - 5);
   for (const p of parts) {
-    p.position.copy(p.userData.explode).multiplyScalar(e);
+    p.position.set(0, 0, 0); p.rotation.z = 0; p.scale.set(1, 1, 1);
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     if (p.userData.slide) p.position.x += stockOff;
+    const id = p.userData.id;
+    if (id === 'trigger') turnAbout(p, TRG_PV, tA);
+    if (id === 'hammer') turnAbout(p, HAMMER_PV, hA);
+    if (id === 'valveKnocker') p.position.x += knock;
+    if (['bolt', 'boltPin', 'boltHandle', 'piston', 'pistonOring', 'guideRod'].includes(id)) p.position.x -= boltBack;
+    if (id === 'cylinder' || id === 'cylValve' || id === 'cylSpring') p.position.x -= cylBack;
+    if (id === 'recoilSpring') { const s = (SPRING_LEN - boltBack) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
@@ -1276,9 +1347,9 @@ renderer.setAnimationLoop(() => {
   cubeR.render(cubeScene, cubeCam);
 });
 
-const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; } };
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EXP_POS.clone(), tgt: EXP_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__kc02 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, STOCK, STOCK_STEP, RENDER_POS };
+window.__kc02 = { TRIG, parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, STOCK, STOCK_STEP, RENDER_POS };
 </script>
 </body>
 </html>
