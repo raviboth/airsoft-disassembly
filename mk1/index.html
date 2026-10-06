@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KJW MK1 disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the KJ Works MK1 (Ruger Mark I) non-blowback gas airsoft pistol, with the part numbers from the KJW manual, specs and known weak points.">
+<meta property="og:title" content="KJW MK1 disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the KJW MK1 gas pistol with KJW part numbers, specs and known weak points.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/mk1/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/",
+  "three-mesh-bvh": "../vendor/three-mesh-bvh/index.module.js",
+  "three-bvh-csg": "../vendor/three-bvh-csg/index.module.js"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>KJW MK1</b><span>Ruger Mark I non-blowback gas pistol</span></div>
+  <div class="btns">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
+</div>
+
+<div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
+  <div class="sub">Part numbers from the KJW MK1 exploded drawing (1 to 71). Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search name or part # (press /)" autocomplete="off">
+  <div id="list"></div>
+  <div id="nohit">No parts match.</div>
+</div>
+
+<div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label>Trigger <span id="tpv">released</span></label>
+  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="row">
+    <button id="bReset">Reset view</button>
+    <button id="bList">Manual parts list</button>
+    <button id="bInfo">Overview</button>
+  </div>
+</div>
+
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Brush, Evaluator, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
+
+// KJW MK1 manual exploded drawing and parts list, plain numbers 1 to 71. 114 (hammer return spring) is only in the Japanese
+// distributor list. Names as KJW prints them, with "sturt" spelled strut; the third field marks names not in the KJW list.
+const MANUAL = [["1", "Outer barrel part A", false], ["2", "Outer barrel part B", false], ["3", "Front sight", false], ["4", "Inner barrel", false], ["5", "Rear sight part A", false], ["6", "Rear sight part B", false], ["7", "Rear sight part C", false], ["8", "Rear sight pin", false], ["9", "Rear sight screw A", false], ["10", "Rear sight spring A", false], ["11", "Rear sight screw B", false], ["12", "Rear sight spring B", false], ["13", "Rear sight pin", false], ["14", "Receiver", false], ["15", "Frame", false], ["16", "Bolt", false], ["17", "Cam spring", false], ["18", "Barrel buffer", false], ["19", "Buffer spring", false], ["20", "Chamber", false], ["21", "Adjust rubber (hop rubber)", false], ["22", "Barrel lock washer", false], ["23", "Adjust screw (hop screw)", false], ["24", "Receiver base", false], ["25", "Bullet stop", false], ["26", "Bullet stop spring", false], ["27", "Bullet stop pin", false], ["28", "Front lock", false], ["29", "Cam", false], ["30", "Front lock pin", false], ["31", "Trigger", false], ["32", "Trigger spring", false], ["33", "Trigger pivot", false], ["34", "Disconnector", false], ["35", "Hammer", false], ["36", "Hammer strut", false], ["37", "Hammer strut pin", false], ["38", "Firing pin", false], ["39", "Safety", false], ["40", "Safety hook", false], ["41", "Mainspring housing", false], ["42", "Bolt stop pin", false], ["43", "Bolt stop retaining pin", false], ["44", "Mainspring plunger", false], ["45", "Mainspring", false], ["46", "Mainspring detent", false], ["47", "Housing latch", false], ["48", "Magazine latch", false], ["49", "Magazine latch spring", false], ["50", "Magazine latch pin", false], ["51", "Grip plate L", false], ["52", "Grip plate R", false], ["53", "Grip plate screw", false], ["54", "Magazine case", false], ["55", "Valve catch", false], ["56", "Magazine base", false], ["57", "Gas valve", false], ["58", "Valve O-ring A", false], ["59", "Valve O-ring B", false], ["60", "Valve spring", false], ["61", "Valve catch O-ring", false], ["62", "Valve catch O-ring", false], ["63", "Valve catch screw", false], ["64", "Valve catch pin", false], ["65", "Follower", false], ["66", "Follower spring", false], ["67", "Joint packing", false], ["68", "Filling valve", false], ["69", "Guide packing", false], ["70", "Magazine collar", false], ["71", "Barrel screw", false], ["114", "Hammer return spring", true]];
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_TGT = new THREE.Vector3(18, -30, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(110, 50, 470), HOME_TGT);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-200, 700, -350);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -400, right: 400, top: 400, bottom: -400, near: 10, far: 3000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -300; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(1600, 64, 0x2a2f38, 0x1d2027);
+grid.position.y = -299.5; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x232428, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x44464c, metalness: 0.0, roughness: 0.9 },
+  stipple: { color: 0x1d1e21, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
+  nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
+  frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w', 'n', 'nb', 'ft', 's', 'xr']) if (key in b) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  if (lv.n) { n = lv.n; frontTaper = lv.ft; }
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  if (c < 0 && lv.nb) n = lv.nb;   // optional separate exponent for the back half
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  const x = cx + ax * px;   // a level may be tilted: y = lv.y + (x - lv.xr) * lv.s
+  return [x, lv.s ? lv.y + (x - lv.xr) * lv.s : lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    // lift along the section normal (ellipse approximation), so patches on the front and back stand off too
+    const ax = (lv.xf - lv.xb) / 2, az = lv.w / 2, cx = (lv.xf + lv.xb) / 2;
+    let nx = (x - cx) / (ax * ax), nz = z / (az * az); const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    pos.push(x + nx * lift, y, z + nz * lift); uv.push((x + z) * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    const ccx = (lv.xf + lv.xb) / 2; pos.push(ccx, lv.s ? lv.y + (ccx - lv.xr) * lv.s : lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// the same diamonds as a colour map, so the checkering still reads where the bump is too fine to catch the light
+const CHECKER_MAP = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#8e9096'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#2c2d30'; x.lineWidth = 9;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+})();
+// fine random stipple bump texture, for the Gen3 grip panels (a seeded scatter so every load looks the same)
+const STIPPLE = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0, 0, 128, 128);
+  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 900; k++) { const v = rnd() > 0.5 ? 255 : 0; x.fillStyle = `rgba(${v},${v},${v},0.55)`; x.beginPath(); x.arc(rnd() * 128, rnd() * 128, 1 + rnd() * 2.2, 0, 7); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// ---------- part registry ----------
+const CATS = {
+  upr: 'Barrel and receiver',
+  inb: 'Bolt, inner barrel and hop-up',
+  frm: 'Frame, grips and front lock',
+  trg: 'Trigger and hammer',
+  hsg: 'Mainspring housing',
+  mag: 'Magazine',
+};
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, slide: opts.slide === true ? Infinity : (opts.slide || 0) };
+  for (const [geo, matKey] of pieces) {
+    if (opts.dx) geo.translate(opts.dx, 0, 0);
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; mat.map = CHECKER_MAP; }
+    if (matKey === 'stipple') { mat.bumpMap = STIPPLE; mat.bumpScale = 1.6; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout: world units are mm. x = along the gun (muzzle +), y = up (bore axis at 0), z = right side.
+// Side profiles are traced from Taiwangun's right-side product photo (640px, muzzle to the right) at 2.208 px/mm, which
+// makes the gun 245mm from the bolt ears to the muzzle (KJW spec 245mm). Internal parts are placed from the KJW exploded
+// drawing, the manual's field-strip pages and owner teardown photos (Tanukichi, Evolutor), so they are approximate.
+const K = 2.208, OX = 300, OY = 157;
+const X = px => (px - OX) / K, Y = py => (OY - py) / K;
+const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
+const D2R = Math.PI / 180;
+
+// extrude a (z, y) section along x from x0 to x1
+function secX(pts, x0, x1, bevel = 0.3, holes = []) {
+  const g = prof(pts, x1 - x0, bevel, holes);
+  g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0);
+  return g;
+}
+// rounded rectangle outline, corners of radius r
+function rr(a0, a1, b0, b1, r, n = 4) {
+  const pts = [];
+  for (const [ca, cb, s] of [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]])
+    for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
+  return pts;
+}
+// arc points around (ca, cb) from angle a0 to a1 in degrees
+const arcPts = (ca, cb, r, a0, a1, n = 6) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [ca + r * Math.cos(t), cb + r * Math.sin(t)]; });
+const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
+const zAt = (g, z) => g.translate(0, 0, z);
+// like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
+function profR(pts, depth, r, holes = []) {
+  const s = new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const h of holes) s.holes.push(new THREE.Path(h.map(([a, b]) => new THREE.Vector2(a, b))));
+  const g = new THREE.ExtrudeGeometry(s, { depth: depth - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 4 });
+  g.translate(0, 0, -(depth - 2 * r) / 2);
+  return g;
+}
+// uvs projected flat from the side (x, y in mm), for textures on CSG output
+function sideUV(g) {
+  const p = g.attributes.position, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { uv[2 * i] = p.getX(i); uv[2 * i + 1] = p.getY(i); }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+// extrude an (x, y) outline between z0 and z1 with no bevel
+const slab = (pts, z0, z1) => prof(pts, z1 - z0, 0).translate(0, 0, (z0 + z1) / 2);
+// subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
+// are kept, so the inputs need no matching uv layout.
+const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
+function cut(geo, cutters, op = SUBTRACTION) {
+  const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
+  let a = brush(geo);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), op);
+  return fixTJunctions(a.geometry);
+}
+// CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
+// triangle with vertices on its edges is re-fanned around its centroid so both sides share the split points.
+function fixTJunctions(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, nt = P.length / 9, E = 1e-4, C = 2;
+  const vk = new Map(), vs = [], grid = new Map();
+  for (let i = 0; i < P.length; i += 3) { const k = P.slice(i, i + 3).map(v => Math.round(v / E)).join(); if (vk.has(k)) continue;
+    vk.set(k, vs.length); const v = [P[i], P[i + 1], P[i + 2]]; vs.push(v);
+    const ck = v.map(c => Math.floor(c / C)).join(); if (!grid.has(ck)) grid.set(ck, []); grid.get(ck).push(v); }
+  const onEdge = (a, b) => { const out = [], lo = [0, 1, 2].map(j => Math.floor((Math.min(a[j], b[j]) - E) / C)), hi = [0, 1, 2].map(j => Math.floor((Math.max(a[j], b[j]) + E) / C));
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    for (let x = lo[0]; x <= hi[0]; x++) for (let y = lo[1]; y <= hi[1]; y++) for (let z = lo[2]; z <= hi[2]; z++) for (const v of grid.get(`${x},${y},${z}`) || []) {
+      const t = ((v[0] - a[0]) * d[0] + (v[1] - a[1]) * d[1] + (v[2] - a[2]) * d[2]) / dd; if (t <= 1e-5 || t >= 1 - 1e-5) continue;
+      const q = [a[0] + d[0] * t - v[0], a[1] + d[1] * t - v[1], a[2] + d[2] * t - v[2]]; if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] < E * E) out.push([t, v]); }
+    return out.sort((p, q) => p[0] - q[0]); };
+  const pos = [], nor = [];
+  for (let t = 0; t < nt; t++) {
+    const V = [0, 1, 2].map(j => [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]), M = [0, 1, 2].map(j => [N[t * 9 + j * 3], N[t * 9 + j * 3 + 1], N[t * 9 + j * 3 + 2]]);
+    const ring = []; let split = false;
+    for (let j = 0; j < 3; j++) { const a = V[j], b = V[(j + 1) % 3], na = M[j], nb = M[(j + 1) % 3]; ring.push([a, na]);
+      for (const [s, v] of onEdge(a, b)) { split = true; ring.push([v, na.map((c, k) => c + (nb[k] - c) * s)]); } }
+    if (!split) { pos.push(...V.flat()); nor.push(...M.flat()); continue; }
+    const c = [0, 1, 2].map(k => (V[0][k] + V[1][k] + V[2][k]) / 3), cn = [0, 1, 2].map(k => (M[0][k] + M[1][k] + M[2][k]) / 3);
+    for (let i = 0; i < ring.length; i++) { const [p0, n0] = ring[i], [p1, n1] = ring[(i + 1) % ring.length]; pos.push(...c, ...p0, ...p1); nor.push(...cn, ...n0, ...n1); }
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return o;
+}
+
+
+// ---------- key dimensions ----------
+const R_RCV = 12.2;                 // receiver tube: top edge 27px above the bore line in the photo
+const RCV0 = X(75), RCV1 = X(375);   // receiver rear face -102.4, front face 34
+const R_BAR = 10.6;                 // outer barrel, 47px across in the photo
+const MUZ = X(609);                 // muzzle face, 140
+const FW = 11.5;                    // frame half width (Ruger frame about 23mm across the grip without panels)
+const FT = Y(176);                  // frame top along the receiver, -8.6
+// magazine: leaned back 27 deg, square to its own axis at the base (the base plate edge in the photo falls 25 deg toward
+// the front). Its rear bottom corner sits on the base plate lip; 22mm deep, so its front face meets the bore at x -22.7.
+const MAG_A = 27 * D2R;
+const MAG_R0 = [-99.8, -102.8];
+const MD = 22, MW = 8;              // depth (front to back) and half width
+const UP = [Math.sin(MAG_A), Math.cos(MAG_A)], NF = [Math.cos(MAG_A), -Math.sin(MAG_A)];
+const magX = (y, d = 0) => MAG_R0[0] + (y - MAG_R0[1]) * UP[0] / UP[1] + d / Math.cos(MAG_A);   // x of the line d mm in front of the mag's back face, at height y
+const magT = g => g.rotateZ(-MAG_A).translate(MAG_R0[0], MAG_R0[1], 0);   // mag local frame: x forward from the back face, y up the axis from the base
+const MAG_FB = [MAG_R0[0] + MD * NF[0], MAG_R0[1] + MD * NF[1]];   // front bottom corner
+const MAG_TOP = -6;                 // the mag shell stops here; the valve catch block above it carries the outlet valve on the bore line
+const B_REAR = magX(0, MD);         // inner barrel rear end, flush with the mag front face: -22.7
+const B_LEN = 133;                  // inner barrel unit: brass barrel plus the chamber collar, scaled off Evolutor's strip photo
+const PULL = 5.5;                   // the trigger draws the inner barrel this far back, over the BB in the lips
+const HAM = [-64, -14];             // hammer pivot
+const BSP_X = -76.5;                  // bolt stop pin, up from the mainspring housing through the bolt
+const TRG = [X(304), Y(204)];       // trigger pivot pin, read off the right side of the frame
+const CAM = [X(346), Y(201)];       // front lock pin, the large pin head at the front of the frame
+
+// ================= BARREL AND RECEIVER =================
+part('receiver', 'Receiver', 'upr', ['14'], [0, 70, 0],
+  'Round receiver tube, like the Ruger Mark I it copies. The outer barrel screws into its front, the bolt rides in its rear half, and the inner barrel unit sits in a sleeve (the receiver base) in its front half. Ejection port on the right side, open over the hop-up chamber. A small hole in the top just behind the port lines up with the hop adjust screw; a 1mm hex key goes in through it. Slots underneath let the magazine top, the hammer, the cam and the bolt stop pin up into it. The KJW receiver is metal.',
+  (() => {
+    let g = latheX([[10.6, RCV0], [11.2, RCV0], [R_RCV, RCV0 + 1.2], [R_RCV, RCV1 - 0.8], [11.6, RCV1], [10.6, RCV1], [10.6, RCV0]], 48);
+    g = cut(g, [
+      bx(X(213), X(300), -5, Y(140), 4, 16),                     // ejection port, right side
+      bx(-66, -20, -16, -6, -7.4, 7.4),                           // mag top, hammer and firing pin slot underneath
+      bx(8, 30, -16, -6, -8, 8),                                  // cam and receiver base lug
+      cyl(2.6, 10, 'y', BSP_X, -9, 0, 16),                       // bolt stop pin hole
+      cyl(1.1, 8, 'y', B_REAR + 9.5, 11, 0, 12),                  // hop screw access, over the hop screw
+    ]);
+    return [[g, 'slide']];
+  })(), { shell: true });
+
+part('outerBarrel', 'Outer barrel B + barrel screw', 'upr', ['2', '71'], [70, 70, 0],
+  'Main outer barrel tube, a straight bull barrel 21mm across. It screws into the receiver and is locked by barrel screw 71 from underneath. The front sight is pinned on top near the muzzle. The inner barrel runs inside it with plenty of room, centred only at the chamber end.',
+  [[latheX([[4.8, RCV1 - 8], [10.4, RCV1 - 8], [10.4, RCV1], [R_BAR, RCV1], [R_BAR, 126], [4.8, 126], [4.8, RCV1 - 8]], 44), 'slide'],
+   [cyl(1.3, 4, 'y', RCV1 + 4, -R_BAR - 0.5, 0, 10), 'steel']], { shell: true });
+
+part('barrelCap', 'Outer barrel A (muzzle end)', 'upr', ['1'], [110, 70, 0],
+  'Muzzle end piece: closes the front of the outer barrel, with the bore hole and a rounded crown. On the SILENT EVO version this carries a 14mm counter-clockwise thread for a suppressor.',
+  [[latheX([[3.4, 122], [9.8, 122], [9.8, 126], [R_BAR, 126], [R_BAR, MUZ - 2.5], [9.4, MUZ - 0.3], [8.4, MUZ], [3.4, MUZ], [3.4, 122]], 44), 'slide']]);
+
+part('frontSight', 'Front sight + pin', 'upr', ['3', '13'], [90, 100, 0],
+  'Ramped front sight blade with a serrated rear face, pinned to the outer barrel by pin 13.',
+  (() => {
+    const blade = P([[524, 133], [531, 128], [548, 123], [572, 121], [574, 110], [597, 110], [602, 121], [602, 133]]);
+    const g = cut(slab(blade, -1.6, 1.6), [cyl(R_BAR, 60, 'x', 120, 0, 0, 40)]);
+    const base = cut(bx(X(522), X(602), 6, Y(130), -3.4, 3.4), [cyl(R_BAR - 0.05, 60, 'x', 120, 0, 0, 40)]);
+    return [[g, 'blued'], [base, 'blued'], [cyl(0.8, 7.4, 'z', 120, 11.4, 0, 8), 'steel']];
+  })());
+
+const RS0 = X(118), RS1 = X(185);   // rear sight from -82.4 to -52.1
+part('rearSightBase', 'Rear sight base (A)', 'upr', ['5'], [0, 110, 0],
+  'Rear sight base, dovetailed into the top of the receiver behind the ejection port. The leaf hinges on its front end.',
+  [[cut(bx(RS0 + 4, RS1, 10.5, 15.2, -5.4, 5.4), [cyl(R_RCV, 40, 'x', (RS0 + RS1) / 2, 0, 0, 48)]), 'blued']]);
+
+part('rearSightLeaf', 'Rear sight leaf (B) + pins', 'upr', ['6', '8', '13'], [0, 128, 0],
+  'Adjustable leaf on the base: hinged at the front on pin 8, its rear end is raised or lowered by the elevation screw. It carries the notch blade in a cross slot.',
+  [[bx(RS0 + 1, RS1 - 8, 15.2, 17.8, -5.6, 5.6), 'blued'], [cyl(0.7, 11, 'z', RS1 - 10, 16.4, 0, 8), 'steel']]);
+
+part('rearSightBlade', 'Rear sight blade (C)', 'upr', ['7'], [-20, 140, 0],
+  'Notch blade, slid across the leaf for windage.',
+  [[cut(bx(RS0, RS0 + 4, 15.2, Y(108), -5.2, 5.2), [bx(RS0 - 1, RS0 + 5, Y(108) - 3, Y(108) + 1, -1.3, 1.3)]), 'blued']]);
+
+part('rearSightScrews', 'Rear sight screws + springs', 'upr', ['9', '10', '11', '12'], [-20, 160, 0],
+  'Elevation screw A with spring A, down through the leaf into the base; windage screw B with spring B, across the leaf against the blade.',
+  [[cyl(1.2, 6, 'y', RS0 + 12, 16.5, 0, 12), 'steel'], [cyl(1.8, 0.8, 'y', RS0 + 12, 19.6, 0, 14), 'steel'],
+   [spring(0.9, 0.18, 3.5, 5, 'y', RS0 + 12, 11.5, 0), 'spring'],
+   [cyl(0.9, 9, 'z', RS0 + 2, 17, 0, 10), 'steel'], [cyl(1.6, 0.8, 'z', RS0 + 2, 17, 5.6, 12), 'steel'],
+   [spring(0.6, 0.15, 3, 5, 'z', RS0 + 2, 17, -5), 'spring']]);
+
+// ================= BOLT, INNER BARREL AND HOP-UP =================
+part('bolt', 'Bolt', 'inb', ['16'], [-40, 180, 0],
+  'Cosmetic bolt: it does not move when firing and its ears charge nothing (the gun does not blow back). It fills the rear of the receiver, with a long slot under it where the magazine top and the hammer come up, and a cross hole for the bolt stop pin that holds it in. KJW makes it in plastic. Slides out of the back of the receiver once the barrel unit is off the frame.',
+  (() => {
+    let tubeG = latheX([[7, -97], [9.4, -97], [9.4, -26], [7, -26], [7, -97]], 40);
+    tubeG = cut(tubeG, [
+      bx(-66, -26, -12, 2.5, -7.6, 7.6),                         // mag top and hammer slot underneath
+      bx(-74, -32, -2, 6, 5, 12),                                 // side window, seen through the ejection port
+      cyl(2.6, 24, 'y', BSP_X, 0, 0, 16),                        // bolt stop pin cross hole
+    ]);
+    const ears = bx(X(68), X(86), Y(173), Y(143.5), -13.6, 13.6);
+    const knurl = [];
+    for (let i = 0; i < 4; i++) knurl.push([bx(X(68) - 0.2, X(68) + 0.6, Y(173) + 2.5 + i * 3, Y(173) + 3.5 + i * 3, -13.8, 13.8), 'black']);
+    return [[tubeG, 'poly2'], [latheX([[0, -104], [9.4, -104], [9.4, -97], [0, -97]], 32), 'poly2'], [ears, 'poly2'], ...knurl];
+  })(), { shell: true });
+
+part('firingPin', 'Firing pin', 'inb', ['38'], [-40, 200, 0],
+  'Short striker in the bolt between the hammer face and the outlet valve stem at the back of the magazine.',
+  [[cyl(1.3, 4.9, 'x', -55.05, 0, 0, 12), 'steel'], [cyl(2.2, 0.8, 'x', -57.2, 0, 0, 14), 'steel']]);
+
+const CH0 = B_REAR + 4.5, CH1 = CH0 + 11;   // chamber collar on the barrel, the brass shows for 4.5mm behind it (owner photo)
+const BUF0 = CH1 + 8, BUF1 = BUF0 + 10;
+const INB = new Set(['innerBarrel', 'chamber', 'hopRubber', 'hopScrew', 'bufferSpring', 'barrelBuffer', 'lockWashers']);
+part('innerBarrel', 'Inner barrel', 'inb', ['4'], [10, 140, 0],
+  'Brass inner barrel, 6.05mm bore. It is not fixed: the trigger draws it back about 5mm so its rear end slides over the BB held in the magazine lips and seals against the outlet valve face, then the hammer falls and the gas goes straight from the magazine into the barrel (Marushin-style fixed-slide system). The hop window is cut in the top near the rear end.',
+  [[cut(tube(3.03, 4.25, B_REAR, B_REAR + B_LEN, 28), [bx(CH0 + 3, CH0 + 7, 2, 6, -1.6, 1.6)]), 'brass']]);
+
+part('chamber', 'Chamber', 'inb', ['20'], [-20, 140, 0],
+  'Hop-up chamber collar on the rear of the inner barrel, with a tab on top that holds the adjust screw. Later production has a metal chamber, earlier guns a plastic one. Stock length 17.1mm (Evolutor, with calipers); aftermarket chambers from Side Arms are longer and tighter.',
+  [[tube(4.3, 6, CH0, CH1, 32), 'steel'], [bx(CH0 + 1.5, CH1 - 1.5, 5, 7.6, -3.4, 3.4), 'steel']]);
+
+part('hopRubber', 'Adjust rubber (hop rubber)', 'inb', ['21'], [-20, 152, 0],
+  'Small curved rubber pad with a single bump, sitting in the window on top of the inner barrel under the chamber. The screw presses it down into the bore.',
+  [[cut(bx(CH0 + 3.2, CH0 + 6.8, 3.0, 4.8, -2.4, 2.4), [cyl(3.03, 10, 'x', CH0 + 5, 0, 0, 20)]), 'black'],
+   [cyl(0.9, 0.9, 'y', CH0 + 5, 2.9, 0, 10), 'black']]);
+
+part('hopScrew', 'Adjust screw (hop)', 'inb', ['23'], [-20, 168, 0],
+  'Grub screw in the chamber tab, turned with a 1mm hex key through the hole in the top of the receiver. The manual: if BBs rise, screw up (out); if they drop, screw down (in). Too far in and BBs jam in the chamber.',
+  [[cyl(1, 5, 'y', CH0 + 5, 7.2, 0, 12), 'black']]);
+
+part('bufferSpring', 'Buffer spring', 'inb', ['19'], [0, 140, 0],
+  'Return spring on the inner barrel, between the chamber and the barrel buffer; pushes the barrel forward again when the trigger is released.',
+  [[spring(4.9, 0.35, BUF0 - CH1, 4, 'x', CH1, 0, 0), 'spring']]);
+
+part('barrelBuffer', 'Barrel buffer', 'inb', ['18'], [8, 140, 0],
+  'Square collar fixed on the inner barrel with lugs top and bottom. The cam on the front lock hooks the lugs and pulls the barrel back when the trigger is pressed.',
+  (() => {
+    const lugs = [];
+    for (const yy of [1, -1]) for (const [a, b] of [[BUF0, BUF0 + 2.6], [BUF1 - 2.6, BUF1]]) lugs.push([bx(a, b, yy > 0 ? 5 : -7.2, yy > 0 ? 7.2 : -5, -5.2, 5.2), 'zinc']);
+    return [[cut(bx(BUF0, BUF1, -5.2, 5.2, -5.2, 5.2), [cyl(4.3, 20, 'x', (BUF0 + BUF1) / 2, 0, 0, 24)]), 'zinc'], ...lugs];
+  })());
+
+part('lockWashers', 'Barrel lock washers', 'inb', ['22'], [8, 156, 0],
+  'Two lock washers (clips) on the inner barrel: one holds the buffer, one stops the spring at the chamber.',
+  [[torus(4.5, 0.45, 'x', BUF1 + 0.6, 0, 0), 'steel'], [torus(4.5, 0.45, 'x', CH0 - 0.6, 0, 0), 'steel']]);
+
+part('receiverBase', 'Receiver base', 'inb', ['24'], [10, 108, 0],
+  'Sleeve inside the front half of the receiver that the inner barrel unit slides in, with a lug underneath that the internal hook on the front of the frame catches (field strip: slide the barrel and receiver forward to free it, then lift). The bullet stop is pinned at its rear end.',
+  (() => {
+    let g = tube(6.4, 9.4, B_REAR + 2, 26, 36);
+    g = cut(g, [bx(CH0 - 1, 19.5, -10, -2.5, -10, 10), bx(CH0 - PULL - 0.5, CH1 + 0.5, 4, 10, -3.7, 3.7)]);
+    return [[g, 'zinc'], [bx(20, 26, -11.8, -8.6, -4, 4), 'zinc']];
+  })());
+
+part('bulletStop', 'Bullet stop + spring, pin', 'inb', ['25', '26', '27'], [-30, 108, 0],
+  'Spring-loaded catch at the rear of the receiver base that holds the BB in the lips until the barrel comes back over it.',
+  [[slab([[B_REAR + 2, -9.4], [B_REAR + 5, -9.4], [B_REAR + 4.5, -4.6], [B_REAR + 2.8, -4.2]], -1.4, 1.4), 'steel'],
+   [cyl(0.6, 6, 'z', B_REAR + 4, -8.4, 0, 8), 'steel'], [spring(0.7, 0.15, 2.4, 4, 'y', B_REAR + 2.2, -9, 0), 'spring']]);
+
+// ================= FRAME, GRIPS AND FRONT LOCK =================
+// traced frame outline (right side photo), trigger guard added as its own narrower ring
+const FRAME_PX = [[75, 176], [375, 176], [375, 198], [371, 211], [361, 219], [338, 222], [258, 222], [251, 262], [240, 276], [225, 286],
+  [180, 355], [175, 372], [176, 387], [167, 400], [150, 411], [120, 407]];
+const GUARD = { c: [X(294), Y(250)], ro: [18.6, 17.4], ri: [16.9, 14.8] };
+// backstrap curve under the hump down to the heel
+const BACK_PX = [[60, 380], [62.5, 362], [75, 340], [127.5, 255], [131, 237.5], [127.5, 225], [117.5, 215], [100, 210], [82.5, 202.5], [75, 190]];
+const HSG_OUT = P([[131, 240], [127.5, 255], [75, 340], [62.5, 362], [60, 380], [67.5, 388]]);
+const HSG = [...HSG_OUT, [-101.4, -104.6], [magX(-104, -1), -104], [magX(-36, -1), -36], [-74, -36]];
+part('frame', 'Frame', 'frm', ['15'], [0, 0, 0],
+  'Grip frame in alloy (KJW: ABS and polymer over an alloy frame on export guns, metal on the Japan-market version). The receiver sits in the shallow saddle on top, held by the hook at the front and the bolt stop pin at the back. The mainspring housing fills the channel in the backstrap, the magazine goes up the grip in front of it, and the trigger, hammer, disconnector and front lock live inside. Integral trigger guard. Three pins through the upper frame hold the trigger group.',
+  (() => {
+    // bottom edge just above the magazine base, square to the mag axis, then round the heel
+    const bottom = [[MAG_FB[0] + 0.6 * NF[0] + 1.2 * UP[0], MAG_FB[1] + 1.2 * UP[1]], [MAG_R0[0] + 1.2 * UP[0] - 0.6, MAG_R0[1] + 1.2 * UP[1]]];
+    const outline = [...P(FRAME_PX), ...bottom, [-101.4, -103.6], ...P(BACK_PX)];
+    let g = profR(outline, 2 * FW, 1.2);
+    const ring = profR([...circ(GUARD.c[0], GUARD.c[1], 1).map(([a, b]) => [GUARD.c[0] + (a - GUARD.c[0]) * GUARD.ro[0], GUARD.c[1] + (b - GUARD.c[1]) * GUARD.ro[1]])], 8.4, 1.4);
+    const hole = profR(circ(GUARD.c[0], GUARD.c[1], 1, 40).map(([a, b]) => [GUARD.c[0] + (a - GUARD.c[0]) * GUARD.ri[0], GUARD.c[1] + (b - GUARD.c[1]) * GUARD.ri[1]]), 30, 0.1);
+    g = cut(g, [
+      cyl(R_RCV + 0.1, RCV1 - RCV0 + 2, 'x', (RCV0 + RCV1) / 2, 0, 0, 64),             // receiver saddle
+      hole,                                                                              // trigger guard opening through the frame
+      slab([[magX(8, -0.4), 8], [magX(8, MD + 0.4), 8], [magX(-115, MD + 0.4), -115], [magX(-115, -0.4), -115]], -MW - 0.4, MW + 0.4),   // magwell
+      slab(HSG, -7.3, 7.3),                                                             // mainspring housing channel
+      bx(-82, -48, -36, FT + 1, -5, 5),                                                 // hammer, strut and bolt stop pin space
+      bx(-50, 32, -26, FT + 1, -7, 7),                                                   // trigger, disconnector and front lock
+      bx(X(258) + 4, X(338) - 3, -32, -20, -3, 3),                                      // trigger slot
+    ]);
+    // guard ring: the part below the frame
+    const guard = cut(ring, [hole, bx(-40, 40, -29, 0, -10, 10)]);
+    return [[g, 'blued'], [guard, 'blued']];
+  })(), { shell: true });
+
+const GRIP_PX = [[170, 191], [257, 198], [256, 214], [249, 229], [231, 270], [179, 358], [174, 376], [166, 398], [150, 407], [122, 402],
+  [80, 383], [63, 374], [64, 358], [76, 336], [124, 256], [146, 214], [158, 199]];
+const GRIP_SCREWS = [[X(199), Y(226)], [X(118), Y(370)]];
+for (const [id, name, no, s] of [['gripL', 'Grip plate L', '51', -1], ['gripR', 'Grip plate R', '52', 1]]) {
+  part(id, name, 'frm', [no], [0, 0, s * 45],
+    `${s < 0 ? 'Left' : 'Right'} grip panel, checkered plastic in the Ruger pattern with the round medallion near the top. Held by two screws into bosses in the frame.`,
+    (() => {
+      const g = cut(profR(P(GRIP_PX), 3.6, 1.2).translate(0, 0, s * (FW + 1.6)), GRIP_SCREWS.map(([a, b]) => cyl(2.2, 3, 'z', a, b, s * (FW + 3.6), 16)));
+      sideUV(g);   // CSG drops the uvs; the checkering is mapped flat from the side
+      return [[g, 'checker'], [cyl(4.2, 0.6, 'z', X(175), Y(258), s * (FW + 3.4), 28), 'dark']];
+    })(), { shell: true });
+}
+part('gripScrews', 'Grip plate screws', 'frm', ['53'], [0, 0, 70],
+  'Four slotted screws, two per side.',
+  GRIP_SCREWS.flatMap(([a, b]) => [1, -1].map(s => [cut(cyl(2.1, 1.4, 'z', a, b, s * (FW + 3.2), 20), [bx(a - 2.4, a + 2.4, b - 0.3, b + 0.3, s * (FW + 3.4) - 0.5, s * (FW + 3.4) + 0.5)]), 'blued'])));
+
+part('frontLock', 'Front lock + pin', 'frm', ['28', '30'], [129, -3, 0],
+  'Block pinned in the front of the frame. Its upper edge is the internal hook that catches the receiver base lug, and it carries the cam. The large pin head on the frame side above the trigger guard is front lock pin 30.',
+  [[cut(bx(12, 31, -24, -11, -4.4, 4.4), [bx(11, 28, -20, -10, -2.6, 2.6)]), 'steel'], [bx(26, 31, -11, -9.4, -4, 4), 'steel'],
+   [cyl(3.1, 2 * FW + 0.4, 'z', CAM[0], CAM[1], 0, 24), 'steel']]);
+
+part('cam', 'Cam + cam spring', 'frm', ['29', '17'], [163, 0, 0],
+  'Forked lever on the front lock. The trigger pushes its tail, its two prongs swing back against the barrel buffer lugs and draw the inner barrel back; cam spring 17 returns it.',
+  (() => {
+    const prong = [[CAM[0] - 2.5, CAM[1] + 2], [CAM[0] + 2.5, CAM[1] + 2], [BUF1 + 2.6, -1], [BUF1 + 2.6, 2.5], [BUF1 + 0.4, 2.5], [BUF1 + 0.4, -3], [CAM[0] - 3, CAM[1] + 6]];
+    const tail = [[CAM[0] - 3, CAM[1] - 1.5], [CAM[0] - 10, CAM[1] + 1], [CAM[0] - 10, CAM[1] + 3.5], [CAM[0] - 1, CAM[1] + 3]];
+    return [[slab(prong, 5.4, 6.6), 'steel'], [slab(prong, -6.6, -5.4), 'steel'], [slab(tail, -1.2, 1.2), 'steel'],
+      [spring(2.4, 0.3, 4, 4, 'z', CAM[0], CAM[1], -2), 'spring']];
+  })());
+
+part('magLatch', 'Magazine latch + spring, pin', 'frm', ['48', '49', '50'], [-47, -26, 0],
+  'Heel catch at the bottom of the backstrap, in the Ruger and Luger style: push it back to drop the magazine. Spring 49 and pin 50.',
+  [[slab([[-104.5, -106.8], [-100.8, -106.8], [-100.2, -102.6], [-103.6, -100.6], [-106.4, -102.6]], -3, 3), 'steel'],
+   [cyl(0.8, 9, 'z', -103.4, -102.6, 0, 8), 'steel'], [spring(0.8, 0.18, 3, 4, 'x', -104.6, -101.2, 0), 'spring']]);
+
+// ================= TRIGGER AND HAMMER =================
+const TRIGGER_PX = [[279, 215], [283, 226], [284, 240], [287, 253], [294, 266], [302, 274], [305, 271], [300, 262], [297, 252], [294, 240], [294, 228], [297, 216]];
+part('trigger', 'Trigger', 'trg', ['31'], [58, -55, 0],
+  'Curved trigger, pivoting on pin 33 in the frame. Double action: one long pull draws the inner barrel back through the cam, cocks the hammer through the disconnector, then lets the hammer fall.',
+  (() => {
+    const blade = slab(P(TRIGGER_PX), -3, 3);
+    const head = slab([[-2.2, -26.7], [-2.8, -21.3], [-1.5, -18], [1.8, -16.9], [5, -17.6], [9.4, -17], [9.6, -19.2], [6.2, -21.5], [6.3, -26.7]], -3, 3);
+    return [[blade, 'blued'], [cut(head, [cyl(1.2, 8, 'z', TRG[0], TRG[1], 0, 12)]), 'blued']];
+  })());
+
+part('triggerSpring', 'Trigger spring', 'trg', ['32'], [85, -64, 0],
+  'Torsion spring on the trigger pin, with a long leg that returns the trigger.',
+  [[torus(2.4, 0.3, 'z', TRG[0], TRG[1], 3.8), 'spring'], [cyl(0.3, 14, 'x', TRG[0] - 7, TRG[1] - 2.4, 3.8, 6), 'spring']]);
+
+part('triggerPins', 'Trigger pivot pins', 'trg', ['33'], [100, -60, 0],
+  'Two cross pins in the upper frame: one for the trigger and one for the hammer. With the front lock pin they are the three pins the manual lists for the full strip.',
+  [[cyl(1.2, 2 * FW, 'z', TRG[0], TRG[1], 0, 12), 'steel'], [cyl(1.4, 2 * FW, 'z', HAM[0], HAM[1], 0, 12), 'steel']]);
+
+part('disconnector', 'Disconnector', 'trg', ['34'], [107, -23, 0],
+  'Long flat bar pinned to the top of the trigger, running back along the right side of the frame to the hammer. It pushes the hammer back as the trigger comes back and slips off its notch at the end of the pull.',
+  [[slab([[3, -18.6], [-57, -14.6], [-57, -16.8], [3.8, -21.6]], 3.8, 5), 'steel'], [bx(-58, -55.5, -16.8, -11.8, 3.8, 5), 'steel']]);
+
+part('hammer', 'Hammer + return spring', 'trg', ['35', '114'], [183, -53, 0],
+  'Hammer, pivoting just behind the magazine top. It strikes the firing pin, which knocks the outlet valve open at the back of the magazine. Driven by the mainspring in the housing through the hammer strut. The return spring (114, only in the Japanese parts list) is a small torsion spring on its pin.',
+  [[cut(slab([[-68, -18.5], [-63, -19], [-59.5, -15], [-57.6, -4], [-57.6, 3.5], [-61, 4.5], [-63.5, 0], [-68.5, -9], [-70, -14], [-70.5, -17.5]], -3.6, 3.6),
+    [cyl(1.4, 8, 'z', HAM[0], HAM[1], 0, 12), cyl(1, 8, 'z', -68.5, -17.8, 0, 10)]), 'steel'],
+   [torus(2.6, 0.3, 'z', HAM[0], HAM[1], -4.1), 'spring']]);
+
+part('safety', 'Safety', 'trg', ['39'], [223, -78, 0],
+  'Safety lever on the left rear of the frame above the grip panel, thumb-down to fire (F/S marked).',
+  [[slab([...arcPts(-70, -20, 3.6, 0, 360, 20).slice(0, -1)], -FW - 1.6, -FW), 'blued'],
+   [slab([[-70.8, -17], [-77, -12.6], [-78.6, -14.6], [-72.4, -19.6]], -FW - 1.6, -FW), 'blued'], [cyl(1.4, 8, 'z', -70, -20, -FW + 3.6, 10), 'steel']]);
+
+part('safetyHook', 'Safety hook', 'trg', ['40'], [240, -77, 0],
+  'Hook inside the frame turned by the safety; it blocks the hammer.',
+  [[slab([[-71, -18.5], [-64, -21], [-62.5, -19], [-69.5, -16.4]], -6.8, -5.4), 'steel']]);
+
+// ================= MAINSPRING HOUSING =================
+const HPIV = [-74.4, -38.2];   // upper housing pin: the housing swings out about it at the bottom
+part('housing', 'Mainspring housing + pins', 'hsg', ['41', '43'], [-80, 10, 0],
+  'Mainspring housing, the backstrap of the grip. It hinges on the upper pin; the housing latch at the bottom holds it shut. Field strip: lever the latch out, swing the housing out about 15 degrees, then pull it down to draw the bolt stop pin out of the receiver.',
+  [[cut(slab(HSG, -7, 7), [slab([[-79, -44], [-75.5, -44], [-97, -92], [-100.5, -92]], -3.4, 3.4)]), 'blued'],
+   [cyl(1.1, 14.6, 'z', HPIV[0], HPIV[1], 0, 10), 'steel'], [cyl(1.1, 14.6, 'z', -101.6, -99.6, 0, 10), 'steel']], { shell: true });
+
+part('boltStopPin', 'Bolt stop pin', 'hsg', ['42'], [-95, 20, 0],
+  'Pin carried in the top of the housing. It runs up through the frame, the receiver and the bolt, so it holds the receiver and the bolt on the frame. Its lower end takes the hammer strut.',
+  [[cyl(2.2, 32, 'y', BSP_X, -10, 0, 16), 'steel'], [bx(BSP_X - 2.2, BSP_X + 2.2, -37, -25, 2.2, 5), 'steel']]);
+
+const MS0 = [-77.4, -48], MS1 = [-98.6, -88];
+const MS_A = Math.atan2(MS1[1] - MS0[1], MS1[0] - MS0[0]);
+const msLen = Math.hypot(MS1[0] - MS0[0], MS1[1] - MS0[1]);
+const along = (g, x0, y0) => g.rotateZ(MS_A).translate(x0, y0, 0);
+part('mainspring', 'Mainspring + plunger, detent', 'hsg', ['44', '45', '46'], [-117, 8, 0],
+  'Hammer spring in the housing. The plunger on top takes the hammer strut; the detent closes the bottom. A lighter spring lightens the long pull but lowers velocity, since the same spring sets how hard the valve is knocked.',
+  [[along(spring(2.4, 0.4, msLen - 9, 12, 'x', 0, 0, 0), MS0[0] + 7 * Math.cos(MS_A), MS0[1] + 7 * Math.sin(MS_A)), 'spring'],
+   [along(latheX([[0, 0], [2.6, 0], [2.6, 7], [0, 7]], 20), MS0[0], MS0[1]), 'steel'],
+   [along(latheX([[0, msLen - 1.5], [2.4, msLen - 1.5], [2.4, msLen + 1.5], [0, msLen + 1.5]], 20), MS0[0], MS0[1]), 'steel']]);
+
+part('strut', 'Hammer strut + pin', 'hsg', ['36', '37'], [-67, 33, 0],
+  'Strut from the hammer down into the housing onto the mainspring plunger. The manual has you seat it in the housing before closing the latch.',
+  [[slab([[-67.4, -17.6], [-69.4, -18.2], [MS0[0] - 0.8, MS0[1] + 0.6], [MS0[0] + 1.2, MS0[1] + 0.2]], -1.2, 1.2), 'steel'],
+   [cyl(0.9, 6, 'z', -68.5, -17.8, 0, 10), 'steel']]);
+
+part('housingLatch', 'Housing latch', 'hsg', ['47'], [-113, -20, 0],
+  'Latch set into the bottom of the backstrap. Lever it out at its lower end to unlock the housing.',
+  [[slab([[-104.4, -98.6], [-101.6, -81], [-99.6, -81.4], [-102.2, -98.8]], -2.2, 2.2), 'steel']]);
+
+// ================= MAGAZINE =================
+const MAG_FT = magX(MAG_TOP, MD), MAG_BT = magX(MAG_TOP, 0);
+const VC0 = magX(MAG_TOP, 0) + 2.6, VC1 = B_REAR - 6.3;   // valve catch block, from behind the outlet to the lips
+part('magCase', 'Magazine case', 'mag', ['54'], [0, -130, 0],
+  'Zinc die-cast magazine body, also the gas tank. 17 BBs. 191g empty and about 7g of gas when full (Evolutor). Marushin MK1 magazines do not fit: the valve is in another place.',
+  [[cut(slab([[MAG_BT, MAG_TOP], [MAG_FT, MAG_TOP], [...MAG_FB], [...MAG_R0]], -MW, MW),
+    [magT(bx(MD - 4.6, MD - 0.6, 8, 140, -2.2, 2.2))]), 'dark']], { shell: true });
+
+part('valveCatch', 'Valve catch + screw, pin, O-rings', 'mag', ['55', '61', '62', '63', '64'], [10, -112, 0],
+  'Block on top of the magazine that carries the outlet valve on the bore line, sealed with two O-rings and held by a cross pin. The plug screw at its back holds the valve and spring in.',
+  [[secX(rr(-4.8, 4.8, MAG_TOP, 5.4, 1.4), VC0, VC1 - 0.01, 0.3), 'dark'],
+   [cyl(1.8, 1.4, 'x', VC0 - 0.7, 0, 0, 16), 'steel'],
+   [cyl(0.8, 9.2, 'z', VC0 + 4, -3.6, 0, 8), 'steel'],
+   [torus(2.4, 0.5, 'x', VC1 - 1.2, 0, 0), 'rubber']]);
+
+part('gasValve', 'Gas (outlet) valve + spring, O-rings', 'mag', ['57', '58', '59', '60'], [40, -100, 0],
+  'Outlet valve in the valve catch, on the bore line. The firing pin knocks its stem; gas flows forward through the BB into the inner barrel, which is sealed against the valve face. Export valves give 80 to 94 m/s, Japan-spec 69 m/s.',
+  [[cyl(1, 4, 'x', VC0 - 2.6, 0, 0, 10), 'brass'], [cyl(2.2, 6, 'x', VC0 + 4, 0, 0, 16), 'brass'],
+   [spring(1.6, 0.2, 5, 5, 'x', VC0 + 7, 0, 0), 'spring'], [torus(2.2, 0.4, 'x', VC0 + 2, 0, 0), 'rubber']]);
+
+const LIPS = [[VC1, MAG_TOP], [magX(MAG_TOP, MD), MAG_TOP], [magX(3, MD), 3], [VC1, 4]];
+part('magLips', 'Feed lips (BB)', 'mag', [], [50, -118, 0],
+  'Lips at the front of the magazine top hold the next BB on the bore line. The rear of the inner barrel comes back over it when the trigger is pressed.',
+  [[slab(LIPS, 3, 4.8), 'dark'], [slab(LIPS, -4.8, -3), 'dark'],
+   [new THREE.SphereGeometry(2.97, 20, 14).translate(B_REAR - 3.2, 0, 0), 'white']]);
+
+part('follower', 'Follower + spring', 'mag', ['65', '66'], [45, -140, 0],
+  'Follower and spring in the BB channel at the front of the magazine.',
+  [[magT(bx(MD - 4.4, MD - 0.8, 111, 115, -2, 2)), 'orange'], [magT(spring(1.6, 0.25, 103, 36, 'y', MD - 2.6, 8, 0)), 'spring']]);
+
+part('magBase', 'Magazine base + fill valve', 'mag', ['56', '67', '68', '69', '70'], [0, -160, 0],
+  'Base of the magazine with the fill valve 68, the joint packing 67 and the guide packing 69 that seal it, and the collar 70. Fill valves on export magazines swap with the Japan-spec fill valves WE uses.',
+  [[magT(secX(rr(-MW - 0.4, MW + 0.4, -6, 0, 1.6), -1, MD + 1.2, 0.4)), 'dark'],
+   [magT(cyl(2.3, 4, 'y', 8, -7.2, 0, 16)), 'brass'],
+   [magT(bx(1, MD - 1, 0, 1, -MW + 1, MW - 1)), 'black']]);
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+const catEls = {};
+let isolated = null;
+function updateVis() {
+  for (const p of parts) p.visible = isolated ? p === isolated : catOn[p.userData.cat];
+}
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-mk1-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-mk1-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span><span class="pn">#${p.userData.nos[0]}</span>`;
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+// Search: matches the name or any manual part number. "112" and "#112" both work.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => { const d = p.userData; return [d.name, ...d.nos.map(n => '#' + n)].join(' ').toLowerCase(); };
+function matches(p, q) {
+  if (!q) return true;
+  const d = p.userData, n = q.replace(/^#/, '');
+  if (d.nos.some(x => x.toLowerCase() === n)) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+    o.castShadow = !e.target.checked;   // a see-through shell must not shade the parts inside it
+    o.material.needsUpdate = true;      // transparent is compiled into the shader (OPAQUE forces alpha 1)
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
+// ---------- info panel ----------
+const SOURCES = `<p class="src">Sources: <a href="https://www.kjworks.com.tw/products-detail.php?p=38">KJW MK1 product page</a> and
+<a href="https://www.kjworks.com.tw/photo/12918959323.pdf">KJW MK1 manual</a> (exploded drawing, parts list, field strip),
+<a href="https://www.hyperdouraku.com/airgun/kjw_mk1/index.html">Hyperdouraku review</a> (Japanese parts list),
+<a href="https://worap.wordpress.com/2017/06/29/kj-works-ruger-mk-1/">worap review</a>,
+<a href="https://pistolplace.wordpress.com/2020/09/01/kj-works-mk-1/">The Pistol Place review</a>,
+<a href="https://blog.evolutor.net/2018/01/16/kj-works-mk-1-22-target-pistol-silent-evo/">Evolutor SILENT EVO teardown</a> and
+<a href="https://blog.evolutor.net/2018/07/18/side-arms-mk1-custom-chamber/">chamber comparison</a>,
+<a href="https://tanukichi-in-mtsemba.hatenablog.com/entry/2018/12/31/023623">Tanukichi full strip</a>,
+<a href="https://www.taiwangun.com/">Taiwangun product photos</a>,
+<a href="https://archive.org/details/Ruger_Mki">Ruger Mark I manual</a>. Outside shapes are traced from a right-side product photo; internal shapes and positions are approximate.</p>`;
+function showOverview() {
+  infoBody.innerHTML = `<h2>KJW MK1 (Ruger Mark I)</h2>
+  <div class="meta">Gas pistol, non-blowback, double action only. Metal receiver, barrel and magazine, alloy frame.</div>
+  <p>245mm long (KJW). 565g (KJW; reviews weigh 530 to 600g). Green gas, 17 BBs. About 380 to 400fps on export valves (KJW), 69 m/s in Japan spec. Copies the Ruger Mark I target pistol with the bull barrel.</p>
+  <ul>
+    <li>How it fires: nothing blows back and the bolt is for show. One long trigger pull draws the inner barrel back over the BB in the magazine lips until it seals on the outlet valve, cocks the hammer, then drops it. The hammer knocks the valve through the firing pin and the gas goes straight from the magazine into the barrel, so it is very gas efficient but sensitive to magazine temperature.</li>
+    <li>Hop-up: a grub screw on the chamber, set with a 1mm hex key through the hole in the top of the receiver (no need to strip). Screw it up if BBs rise, down if they drop; too far down jams BBs.</li>
+    <li>Field strip (KJW manual): drop the mag, lever the housing latch out at the bottom of the backstrap, swing the mainspring housing out and pull it down to draw the bolt stop pin, then slide the barrel and receiver forward off the hook and lift it off. The bolt and the inner barrel unit slide out of the back of the receiver.</li>
+    <li>Reassembly is the fiddly part, as on the Ruger: with the hammer forward, seat the receiver about 1mm back, put the bolt stop pin in through the receiver base with the hammer strut in place, then close the housing.</li>
+    <li>Known issues: the plastic bolt, early plastic chambers, heavy trigger (a lighter mainspring helps but lowers velocity), and Marushin MK1 mags do not fit.</li>
+    <li>The Trigger slider in the View panel works the action: the trigger swings back, the cam draws the inner barrel over the BB, the hammer cocks and falls at the end.</li>
+    <li>The Explode slider strips it in order: the mag drops (to 12%), the housing swings out and down (to 25%), the barrel and receiver lift off (to 40%), the bolt and inner barrel come out (to 55%), each group spreads into its parts (to 80%), then the frame internals come out.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} part numbers in the KJW list. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+}
+function showList(hitNos = []) {
+  const rows = MANUAL.map(([no, name, guess]) => {
+    const mod = byNo.has(no);
+    return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>${no}</td><td>${name}</td><td>${guess ? '*' : ''}</td></tr>`;
+  }).join('');
+  infoBody.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Numbers and names from the KJW manual; * marks the one part only in the Japanese list. Blue rows are modeled, click to find them.</div><table>${rows}</table>`;
+  infoBody.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+}
+document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 25, 1500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
+  setGlow(p, true);
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  const rows = d.nos.map(n => MANUAL.find(r => r[0] === n)).filter(Boolean)
+    .map(([no, name, guess]) => `<tr><td>${no}</td><td>${name}</td><td>${guess ? '*' : ''}</td></tr>`).join('');
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>
+    <table>${rows}</table><p class="src">Part names from the KJW manual; * from the Japanese distributor list.</p>${SOURCES}`;
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
+}
+showOverview();
+initPanels();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, viewCam());
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  hover(p);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = `#${p.userData.nos[0]} ${p.userData.name}`; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewDir = dir => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
+};
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+});
+MOBILE.addEventListener('change', initPanels);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
+const TRIG = { pos: 0 };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+trigCtl.oninput = showTrig; showTrig();
+let trigCur = 0;
+// Staged explode, in field-strip order (KJW manual): the mag drops out first, the mainspring housing swings out and drops,
+// the barrel and receiver lift off the frame, the bolt and inner barrel come out of it, then each group spreads into its
+// parts, and last the frame internals come out. Each part's moves add up to its explode vector, so at 100% every part
+// sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const G_MAG = new THREE.Vector3(-Math.sin(MAG_A), -Math.cos(MAG_A), 0).multiplyScalar(90);   // straight down the mag axis
+const G_HSG = new THREE.Vector3(-35, -45, 0);
+const G_UP = new THREE.Vector3(25, 60, 0);
+const G_INB = new THREE.Vector3(-40, 50, 0);
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, rest = (...v) => v.reduce((a, b) => a.sub(b), ex.clone());
+  p.userData.stages = cat === 'mag' ? [[G_MAG, 0, 0.12], [rest(G_MAG), 0.6, 0.8]]
+    : cat === 'hsg' ? [[G_HSG, 0.12, 0.25], [rest(G_HSG), 0.6, 0.8]]
+    : cat === 'upr' ? [[G_UP, 0.25, 0.4], [rest(G_UP), 0.6, 0.8]]
+    : cat === 'inb' ? [[G_UP, 0.25, 0.4], [G_INB, 0.4, 0.55], [rest(G_UP, G_INB), 0.6, 0.8]]
+    : [[ex.clone(), 0.8, 1]];
+}
+// turn a part about a pivot (x, y) in the side plane
+const turnAbout = (p, [px, py], a) => {
+  p.rotation.z = a;
+  p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
+renderer.setAnimationLoop(() => {
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
+  exv.textContent = Math.round(exCur * 100) + '%';
+  trigCur += (TRIG.pos - trigCur) * 0.2;
+  // the trigger swings back 15 deg; over the first 70% the cam draws the inner barrel back, the hammer cocks up to 95%,
+  // then slips off the disconnector and falls
+  const tA = -15 * D2R * trigCur, draw = THREE.MathUtils.clamp(trigCur / 0.7, 0, 1);
+  const hA = trigCur < 0.95 ? 36 * D2R * THREE.MathUtils.clamp(trigCur / 0.95, 0, 1) : 0;
+  for (const p of parts) {
+    p.position.set(0, 0, 0); p.rotation.z = 0;
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
+    const id = p.userData.id;
+    if (INB.has(id)) p.position.x -= PULL * draw;
+    if (id === 'trigger') turnAbout(p, TRG, tA);
+    if (id === 'disconnector') p.position.x -= 3 * THREE.MathUtils.clamp(trigCur / 0.95, 0, 1);   // draws the hammer back until it slips off
+    if (id === 'cam') turnAbout(p, CAM, 14 * D2R * draw);
+    if (id === 'hammer') turnAbout(p, HAM, hA);
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
+  }
+  controls.update();
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
+});
+
+const EX_TGT = new THREE.Vector3(0, -40, 0), EX_POS = fit(new THREE.Vector3(150, 120, 1150), EX_TGT);
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__mk1 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG };
+</script>
+</body>
+</html>
