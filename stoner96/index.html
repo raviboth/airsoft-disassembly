@@ -241,6 +241,7 @@ const MAT = {
   plug:   { color: 0xd2ea5c, metalness: 0.0,  roughness: 0.5 },
   tan2:   { color: 0x6c5537, metalness: 0.0,  roughness: 0.97 },
   olive:  { color: 0x4f4e43, metalness: 0.6,  roughness: 0.42 },
+  yellow: { color: 0xe3b50f, metalness: 0.0,  roughness: 0.5 },
 };
 
 // ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
@@ -452,13 +453,16 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
 }
 
 
-function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z' } = {}) {
-  const s = new THREE.Shape(), n = teeth * 4;
+// span = [a0, a1] in degrees: teeth only on that arc (a sector gear); lite = number of lightening holes
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z', span = null, lite = 0 } = {}) {
+  const s = new THREE.Shape(), n = teeth * 4, root = r * (1 - Math.min(0.14, 2.4 / r));
   for (let i = 0; i <= n; i++) {
-    const a = i / n * Math.PI * 2, rr = (i % 4 < 2) ? r : r * (1 - Math.min(0.14, 2.4 / r));
+    const a = i / n * Math.PI * 2, d = a / D2R, on = !span || (d >= span[0] && d <= span[1]), rr = (on && i % 4 < 2) ? r : root;
     i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
   }
   if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+  for (let i = 0; i < lite; i++) { const h = new THREE.Path(), a = i / lite * Math.PI * 2;
+    h.absarc(0.55 * r * Math.cos(a), 0.55 * r * Math.sin(a), 0.17 * r, 0, Math.PI * 2, true); s.holes.push(h); }
   const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
   g.translate(0, 0, -th / 2);
   if (axis === 'y') g.rotateX(Math.PI / 2);
@@ -675,7 +679,7 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       bx(X(700) + 1, X(597) - 1, Y(322) - 30, Y(322) + 1, -RW + 4, RW - 4),           // feed tray well under the cover
       cyl(4.2, 10, 'z', X(660), -11, -RW + 1, 20),                                       // BB feed port in the left wall
       cyl(3.6, 80, 'z', X(575), Y(384), 0, 16),                                         // front lightening hole
-      bx(X(963), X(700), -16, 16, -SHELL_Z - 1, SHELL_Z + 1),                         // gearbox tunnel
+      bx(X(963), -150, -16, 21, -SHELL_Z - 1, SHELL_Z + 1),                           // gearbox tunnel
       prof(rr(X(952), X(733), Y(359), Y(320), 7, 4), 2.4, 0).translate(0, 0, -RW),        // left side panel
       prof(rr(X(952), X(733), Y(342), Y(320), 6, 4), 2.4, 0).translate(0, 0, RW),         // right side panel
       ...[[RW - 4, RW + 4], [-RW - 4, -RW + 4]].map(([z0, z1]) => bx(X(952), X(702), Y(304), Y(277) + 6, z0, z1)),   // hole band under the rail, set back 4mm a side
@@ -693,7 +697,7 @@ part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
   (() => {
     const tray = profR(P([[470, 386], [965, 386], [962, 392], [905, 400], [887, 410], [835, 410], [835, 400], [705, 400], [705, 396], [600, 396], [600, 398], [470, 398]]), 46, 1.2);
     const guard = profR(P([[740, 399], [835, 399], [835, 455], [828, 462], [750, 462], [740, 452]]), 22, 1.5, [rr(X(822), X(751), Y(451), Y(406), 8, 5)]);
-    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12)]), 'anod'], [guard, 'anod'],
+    return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12), bx(-285, -150, -60, -38, -SHELL_Z - 1, SHELL_Z + 1)]), 'anod'], [guard, 'anod'],
       decal('safeL', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), -23.05, { align: 'left' }),
       decal('safeR', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), 23.05, { align: 'left' })];
   })(), { shell: true });
@@ -758,43 +762,106 @@ part('bodyPins', 'Body pins (x2)', 'rcv', [], [0, -20, -70],
   [[cyl(2.8, 48, 'z', X(761), Y(390), 0, 20), 'steel'], [cyl(2.8, 48, 'z', X(500), Y(392), 0, 20), 'steel']]);
 
 // ================= GEARBOX AND HOP-UP =================
-const GB_F = -158, GB_R = -330;          // gearbox front and back: the cylinder head sits at the back of the feed tray, the hop-up ahead of it
-part('gearbox', 'Gearbox shell (CA Stoner, V2 pattern)', 'gbx', [], [0, 170, 0],
-  'Classic Army’s own 8mm gearbox shell for the Stoner, long at the front, built round standard V2 internals. The shell is not sold as a spare, the main reason owners look at BCI’s aftermarket shells (including an HPA version for a PolarStar engine). Quick-change spring guide at the back.',
-  [[cut(prof([[GB_F, 14], [GB_R, 14], [GB_R, -17], [-305, -17], [-303, -47], [-205, -47], [-205, -18], [-180, -18], [-170, -14], [GB_F, -14]], SHELL_Z * 2, 1), [
-      cyl(13, 40, 'z', -245, -16, 0, 32), bx(-275, -160, -10, 10, -9, 9), cyl(5, 40, 'z', -268, -30, 0, 16)]), 'zinc']], { shell: true });
+const GB_F = -154, GB_R = -339;          // gearbox front and back: the cylinder head sits at the back of the feed tray, the hop-up ahead of it
+// The shell and its internals are traced from Team Black Sheep's photo of the open left half (inside face, muzzle to the
+// right) at 3.5 px/mm, pinned so the nozzle tip meets the hop-up. The trigger traced from the receiver photo lands on the
+// trigger in this one, which checks the scale.
+const GX = px => -141 + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
+const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(267)], BEVEL = [GX(295), GY(335)];   // gear axes, all across the gun
+const GB_SCREWS = [[62, 215], [100, 215], [205, 218], [240, 372], [310, 397], [600, 232], [662, 232]];
+// a ring round the z axis from z0 to z1
+const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], [ro, z1], [ri, z1], [ri, z0]], seg).rotateY(-Math.PI / 2).translate(cx, cy, 0);
+function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on the centre plane
+  const out = GP([[40, 64], [687, 64], [687, 245], [577, 245], [577, 332], [400, 332], [360, 340], [345, 420], [300, 426], [228, 396], [228, 237], [40, 237]]);
+  // the open inside, which also leaves the rear opening for the spring guide, the front one for the cylinder head and
+  // the tappet plate, the trigger slot and the motor opening in the bottom
+  const inner = GP([[50, 74], [678, 74], [678, 92], [700, 92], [700, 192], [678, 192], [678, 236], [568, 236], [568, 323], [455, 323], [455, 350],
+    [400, 350], [395, 323], [355, 331], [345, 445], [262, 445], [237, 400], [237, 228], [50, 228], [50, 180], [30, 180], [30, 98], [50, 98]]);
+  const body = cut(profR(out, SHELL_Z, 0.8).translate(0, 0, s * SHELL_Z / 2), [
+    prof(inner, 13.5, 0).translate(0, 0, s * 5.75),
+    ...[0, 1, 2, 3, 4, 5, 6].map(k => cyl(5.1, 40, 'z', GX(82 + 75 * k), GY(64), 0, 24)),   // scallops along the top
+    prof(rr(GX(115), GX(145), GY(160), GY(120), 4, 4), 40, 0),                           // window over the spring guide
+    cyl(2.2, 40, 'z', GX(86), GY(172), 0, 16),                                          // spring guide pin
+    ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)),             // 8mm bearing seats
+    ...GB_SCREWS.map(([px, py]) => cyl(1.4, 40, 'z', GX(px), GY(py), 0, 12))]);
+  const pieces = [[body, 'zinc'],
+    ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * SHELL_Z, s * (SHELL_Z + 0.8)), 'zinc'],
+      [ringZ(1.6, 4, x, y, s * (SHELL_Z - 2.5), s * (SHELL_Z + 0.4)), 'steel']])];   // bosses round the bearings
+  if (s > 0) for (const [px, py] of GB_SCREWS)   // screws go in from the right
+    pieces.push([ringZ(1, 2.6, GX(px), GY(py), SHELL_Z, SHELL_Z + 1.6, 16), 'blued']);
+  return pieces;
+}
+part('gearbox', 'Gearbox shell, left half (CA Stoner, V2 pattern)', 'gbx', [], [0, 215, 0],
+  'Classic Army’s own 8mm gearbox shell for the Stoner, long at the front, built round standard V2 internals. Shape traced from Team Black Sheep’s photo of the open left half: a row of scallops along the top, a window over the spring guide at the back, a stepped bottom with the trigger slot and the motor opening, and a long front section where the cylinder head and the tappet plate come out. The gears turn in 8mm bearings set in bosses. The shell is not sold as a spare, the main reason owners look at BCI’s aftermarket shells (including an HPA version for a PolarStar engine).',
+  gbHalf(-1), { shell: true });
+part('gearboxR', 'Gearbox shell, right half', 'gbx', [], [0, 215, 80],
+  'Right half of the shell, a mirror of the left. Seven screws go in from this side to close the gearbox.',
+  gbHalf(1), { shell: true });
 
 part('cylinder', 'Cylinder + head, nozzle', 'gbx', [], [40, 170, -90],
-  'Bore-up cylinder, slightly shorter than standard, with a double O-ring cylinder head and a nozzle just under 19mm long.',
-  [[tube(11.3, 12.2, -272, -166, 32), 'steel'], [latheX([[0, -166], [11.2, -166], [11.2, -159], [5, -159], [5, -166]], 28), 'blue'],
-   [tube(2.2, 3.4, -160, -141, 20), 'blue']]);
+  'Bore-up cylinder (no port), shorter than a standard one: in the teardown photo it covers only the front half of the shell. Double O-ring cylinder head flush with the front of the shell, and a nozzle just under 19mm long that reaches into the hop-up.',
+  [[tube(11.3, 12.2, GX(395), GX(655), 32), 'steel'],
+   [latheX([[3.4, -170], [11.2, -170], [11.2, GX(655)], [12.2, GX(655)], [12.2, GX(683)], [11, GX(690)], [3.4, GX(690)]], 28), 'blue'],
+   ...[-168.5, -166.2].map(x => [latheX([[10.6, x - 0.6], [11.4, x - 0.6], [11.4, x + 0.6], [10.6, x + 0.6]], 24), 'black']),
+   [tube(2.2, 3.4, -160, -141, 20), 'blue'], [tube(2.2, 4.2, -160, -158, 20), 'blue']]);
 
 part('piston', 'Piston + piston head', 'gbx', [], [0, 170, -130],
-  'Polymer piston with a full steel-tooth rack, and the piston head with a double O-ring seal.',
-  [[latheX([[0, -205], [10.8, -205], [10.8, -200], [9.6, -200], [9.6, -276], [0, -276]].reverse(), 28), 'nylon'], [bx(-276, -212, -11.5, -9, -2, 2), 'steel']]);
+  'Polymer piston (yellow in the teardown photo) with a steel-tooth rack along the bottom of its rear end, and an aluminium piston head with a double O-ring seal. At rest it sits forward in the cylinder with the rack just behind it, where the sector gear picks it up.',
+  [[latheX([[0, -250], [10.6, -250], [10.6, -172], [0, -172]], 28), 'yellow'],
+   [latheX([[0, -172], [10.8, -172], [10.8, -168], [0, -168]], 28), 'alu'],
+   [latheX([[10, -171], [11.2, -171], [11.2, -169], [10, -169]], 24), 'black'],
+   [bx(-250, -237, -11.6, -9, -2, 2), 'steel'],
+   ...Array.from({ length: 6 }, (_, i) => [bx(-249.4 + i * 2.2, -248.2 + i * 2.2, -13, -11.5, -2, 2), 'steel'])]);
 
 part('mainSpring', 'Main spring + QD spring guide', 'gbx', [], [-60, 170, -170],
-  'Main spring on a quick-change spring guide held by a pin at the back of the shell, so the spring swaps without opening the gearbox.',
-  [[spring(7.2, 0.7, 120, 26, 'x', -326, 0, 0), 'spring'], [latheX([[0, -335], [8, -335], [8, -326], [3, -326], [3, -250], [0, -250]], 20), 'steel']]);
+  'Main spring on a quick-change spring guide held by a cross pin at the back of the shell, so the spring swaps without opening the gearbox. The guide flange sits in the opening in the rear wall.',
+  [[spring(7.2, 0.7, 128, 28, 'x', -336, 0, 0), 'spring'],
+   [latheX([[0, -342], [8.5, -342], [8.5, -337], [3, -337], [3, -262], [0, -262]], 20), 'steel'],
+   [cyl(2, 32, 'z', GX(86), GY(172), 0, 12), 'steel']]);
 
-part('gears', 'Gear set (sector, spur, bevel)', 'gbx', [], [0, 130, -90],
-  'Standard V2/V3 gear set (generic CA gears) on 8mm bearings. The bevel gear meshes with the motor pinion in the grip.',
-  [[gear(17, 33, 4, -245, -16, 0, { hole: 2 }), 'steel'], [gear(11, 22, 4, -268, -30, 3, { hole: 2 }), 'steel'],
-   [gear(13, 28, 4, -282, -40, 0, { hole: 2, axis: 'y' }), 'steel']]);
+part('gears', 'Gear set + anti-reversal latch', 'gbx', [], [0, 130, -90],
+  'Standard V2/V3 gear set (generic CA gears) on 8mm bearings, all three turning across the gun. The motor pinion drives the crown teeth on the face of the bevel gear; the bevel’s small pinion drives the spur gear, and the spur’s pinion the sector gear, whose part-toothed sector draws the piston back. The anti-reversal latch rides on the bevel gear and stops the gears running backwards under spring load.',
+  (() => {
+    const [sx, sy] = SECTOR, [px, py] = SPUR, [bx0, by0] = BEVEL;
+    const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => bx(9.6, 13.2, -0.55, 0.55, -4.6, -3.4).rotateZ(i * 10 * D2R))).translate(bx0, by0, 0);
+    return [[gear(16.5, 44, 3, sx, sy, -5.5, { hole: 2, lite: 4 }), 'brass'], [gear(12.4, 18, 3.6, sx, sy, 0, { hole: 2, span: [15, 175] }), 'steel'],
+      [cyl(6.5, 2, 'z', sx, sy, -2.9, 24), 'brass'],
+      [gear(15, 40, 2.5, px, py, -9.75, { hole: 2, lite: 5 }), 'brass'], [gear(6.5, 15, 3.6, px, py, -5.5, { hole: 2 }), 'steel'],
+      [gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(4.6, 12, 2.6, bx0, by0, -9.75, { hole: 2 }), 'steel'],
+      ...[SECTOR, SPUR, BEVEL].map(([x, y]) => [cyl(1.9, 25, 'z', x, y, 0, 12), 'steel']),
+      [profR([[-252, -47], [-248.5, -45.5], [-247, -48], [-252.5, -56], [-255, -56.5]], 2, 0.3).translate(0, 0, -10), 'steel'],
+      [cyl(1.2, 5, 'z', -249.5, -47, -10, 10), 'steel']];
+  })());
 
-part('trigger', 'Trigger + trigger switch', 'gbx', [], [0, 100, -60],
-  'Trigger in the gearbox and the micro switch it closes. No electronic trigger from the factory; the wires leave the gearbox at the front.',
+part('trigger', 'Trigger, switch, cut-off lever, tappet plate', 'gbx', [], [0, 100, -60],
+  'Trigger in the gearbox and the micro switch block it closes (black, two screws, wires out of the front). No electronic trigger from the factory. The cut-off lever under the sector gear lifts off the switch once per cycle for semi; the tappet plate under the cylinder pulls the nozzle back to load a BB, with its return spring along the front of the shell.',
   [[profR((() => {   // blade along a quadratic curve, tapering to the tip
       const q = (t, a, b, c) => (1 - t) ** 2 * a + 2 * t * (1 - t) * b + t * t * c, F = [], B = [];
       for (let i = 0; i <= 12; i++) { const t = i / 12, x = q(t, 794, 812, 788), y = q(t, 398, 426, 453);
         const dx = 2 * (1 - t) * (812 - 794) + 2 * t * (788 - 812), dy = 2 * (1 - t) * (426 - 398) + 2 * t * (453 - 426), l = Math.hypot(dx, dy), w = 3 - 1.6 * t;
         F.push([x - dy / l * w, y + dx / l * w]); B.push([x + dy / l * w, y - dx / l * w]); }
       return P([...F, ...B.reverse()]); })(), 6, 1), 'blued'],
-   [bx(-222, -200, -34, -20, -6, 6), 'black'], [bx(-216, -205, -20, -17, -3, 3), 'brass']]);
+   [profR(rr(GX(455), GX(512), GY(332), GY(250), 1, 2), 10, 0.5), 'black'],                           // switch block
+   ...[267, 302].map(py => [ringZ(0, 1.4, GX(500), GY(py), 5, 5.8, 12), 'steel']),
+   [bx(GX(470), GX(478), GY(320), GY(262), -3, 3).translate(0, 0, 0), 'brass'],
+   [profR([[-242, -27.5], [-239.5, -26], [-230, -36], [-219, -45], [-220.5, -47.5], [-232, -41]], 1.6, 0.3).translate(0, 0, 4), 'steel'],   // cut-off lever
+   [cyl(1.4, 4, 'z', -232, -39, 4, 10), 'steel'],
+   // tappet plate: the fork in front of the head holds the nozzle, the bar runs back under the cylinder to the sector
+   [cut(bx(-152.5, -150, -17, 5, -5, 5), [cyl(3.5, 6, 'x', -151, 0, 0, 16)]), 'nylon'],
+   [bx(-238, -150, -16, -13.2, 5, 8), 'nylon'], [bx(-238, -233, -21, -13.2, 5, 8), 'nylon'],
+   [spring(1.6, 0.35, 22, 12, 'x', GX(545), -18.6, 6.5), 'spring']]);
 
 part('motor', 'Motor (long type, in the grip)', 'gbx', [], [-40, 60, -70],
-  'Long-shaft motor in the pistol grip, pinion up into the bevel gear. The stock motor is weak; a high-torque motor (SHS is the usual pick) is the common first upgrade along with the hop-up.',
-  [[latheX([[0, -6], [3, -6], [3, 0], [12, 0], [12, 62], [0, 62]], 28).rotateZ(-(90 + 22) * D2R).translate(-282, -44, 0), 'steel']]);
+  'Long-shaft motor in the pistol grip, its pinion up against the crown teeth on the bevel gear. The stock motor is weak; a high-torque motor (SHS is the usual pick) is the common first upgrade along with the hop-up.',
+  (() => {   // built along +x from the pinion, then tipped back to the grip angle
+    const g = [[gear(3.5, 12, 6, 0, 0, 0, { axis: 'x' }), 'steel'], [latheX([[1.5, 3], [1.5, 16], [0, 16]], 12), 'steel'],
+      [latheX([[0, 16], [12, 16], [12, 74], [10.5, 74], [10.5, 79], [0, 79]], 28), 'steel'],
+      [latheX([[0, 74], [10.6, 74], [10.6, 79], [0, 79]], 28), 'black'],
+      [bx(76, 80, 9, 13, -1.6, 1.6), 'brass'], [bx(76, 80, -13, -9, -1.6, 1.6), 'brass']];
+    const [bx0, by0] = BEVEL, a = 22 * D2R;
+    g.forEach(([geo]) => geo.rotateZ(-(90 + 22) * D2R).translate(bx0 - 10 * Math.sin(a), by0 - 10 * Math.cos(a), 0));
+    return g;
+  })());
 
 part('hopUp', 'Hop-up chamber + adjuster dial (M249-type)', 'gbx', [], [60, 120, 0],
   'M249-type hop-up unit in the channel under the top cover, set with the knurled dial at its back: lift the cover to reach it. It is the gun’s known weak point: a rough casting whose barrel clip lets the barrel shift even when locked. The Bullgear Stoner hop-up is the usual replacement.',
@@ -812,7 +879,7 @@ part('innerBarrel', 'Inner barrel (410mm, 6.05mm bore)', 'gbx', [], [140, 120, 0
 
 part('wiring', 'Wiring (front wired)', 'gbx', [], [0, 150, -40],
   'The leads come out of the front of the gearbox and run forward to the battery in the handguard.',
-  [[tubeAlong([[-210, -28, -8], [-180, -20, -12], [-150, -18, -16], [-100, -16, -18], [-10, -12, -18]], 1.1, 60), 'red']]);
+  [[tubeAlong([[-206, -40, -3], [-188, -41, -5], [-165, -38, -10], [-120, -28, -16], [-10, -12, -18]], 1.1, 60), 'red']]);
 
 // ================= GRIP AND STOCK =================
 part('grip', 'Pistol grip + motor plate', 'stk', [], [0, -120, 0],
@@ -1050,7 +1117,7 @@ function showOverview() {
   <p>819mm long with the stock in, 889mm with it out (Evike). 410mm inner barrel, 6.05mm bore. About 400 FPS with 0.20g BBs. 1200-round electric box mag. 7.4V or 8.4V stick battery in the handguard, Tamiya plug, not included. Real steel: Eugene Stoner and Knight's Armament, 1996; belt-fed 5.56mm, 895mm long.</p>
   <ul>
     <li>Field strip (teardown threads): press the button on top of the receiver and pull the barrel group forward; unscrew the bolt under the stock and press the side lever to take the stock off; take out the mag-bracket screw and slide the bracket out; part the upper and lower; take off the grip; push out the two body pins; pull the trigger a little and slide the gearbox out.</li>
-    <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare.</li>
+    <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare. The shell outline, gear axes, cylinder, switch block and tappet spring are traced from Team Black Sheep's photo of the open left half; the smaller parts (crown teeth, anti-reversal latch, cut-off lever, tappet plate) follow the standard V2 layout and are approximate.</li>
     <li>Day-one fixes: the hop-up (rough casting, the barrel clip lets the barrel shift; Bullgear's Stoner hop-up replaces it), the box mag (tape the loading door, wire it to the trigger) and the weak stock motor.</li>
     <li>M249 mags: the box body is shared, the feed tube collar is not. Swap the feed tube (printed Stoner 96 tube, 3/8in coupler, or a BCI adapter set to Stoner 96) and tape the clamp if the mag wobbles.</li>
     <li>The Explode slider strips it in order: the box mag slides out of its bracket to the left (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
