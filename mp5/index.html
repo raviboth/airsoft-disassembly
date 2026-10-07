@@ -676,8 +676,11 @@ const HG = { x0: 1.5, x1: X(199), top: Y(168), bot: Y(275), hw: 22 };
 const NOZ_TIP = -20.9, D = NOZ_TIP + 141;           // nozzle tip; shift from the Stoner page's gearbox frame
 const HOP = [-24, 8], IB = [-18, 190];               // hop-up chamber, 208mm inner barrel
 const GRIP_A = 21.5 * D2R;                           // grip and motor lean, from the photo
-const MAGP = P([[587, 240], [585, 322], [568, 385], [550, 440], [530, 490], [510, 540], [490, 580], [470, 617], [527, 660], [560, 600], [595, 550],
-  [615, 500], [630, 450], [645, 400], [657, 347], [663, 300], [664, 244], [600, 244], [598, 236], [590, 236]]);
+// spines smoothed through the traced points: the H&K magazine bends gradually from a straight top, with no kink
+const magSpine = pts => new THREE.SplineCurve(P(pts).map(([a, b]) => new THREE.Vector2(a, b))).getPoints(32).map(v => [v.x, v.y]);
+const MAG_F = magSpine([[587, 240], [586, 300], [578, 360], [564, 420], [545, 480], [522, 535], [497, 583], [470, 617]]);   // front, top to bottom
+const MAG_R = magSpine([[664, 244], [663, 300], [656, 360], [643, 420], [625, 480], [602, 535], [575, 590], [548, 635], [527, 660]]);   // back
+const MAGP = [...MAG_F, ...MAG_R.slice().reverse(), ...P([[600, 244], [598, 236], [590, 236]])];
 const MAG_HW = 11.5;
 const MAG_FEED = [X(594), Y(236)];                   // top of the feed lip, under the hop-up's feed port
 
@@ -1203,9 +1206,32 @@ part('stock', 'Retractable stock (rails + butt)', 'stk', ['04-17'], [-640, 0, 0]
    [bx(X(1102), X(1075), Y(243), Y(208), -20, 20), 'blued']]);
 
 // ================= MAGAZINE =================
+// The H&K shape, from GunMag Warehouse's six views of an H&K 30-round magazine: a pressed rib down each side close to
+// the front spine, two short dimples at the top, the catch notch in the left side at the back, and a plastic floorplate
+// that slides on and stands proud of the body all round.
+function along(pts, s) {                                // point at fraction s of a polyline's length
+  const L = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1])), tot = L.reduce((a, b) => a + b);
+  let d = s * tot;
+  for (let i = 0; i < L.length; i++) { if (d <= L[i] || i === L.length - 1) { const t = Math.min(1, d / L[i]); return [pts[i][0] + t * (pts[i + 1][0] - pts[i][0]), pts[i][1] + t * (pts[i + 1][1] - pts[i][1])]; } d -= L[i]; }
+}
+// band between fractions t0 and t1 of the way from the front spine to the back, from s0 to s1 down the magazine
+function magBand(t0, t1, s0, s1, n = 24) {
+  const at = (t, s) => { const f = along(MAG_F, s), r = along(MAG_R, s); return [f[0] + t * (r[0] - f[0]), f[1] + t * (r[1] - f[1])]; };
+  const ss = Array.from({ length: n + 1 }, (_, i) => s0 + (s1 - s0) * i / n);
+  return [...ss.map(s => at(t0, s)), ...ss.reverse().map(s => at(t1, s))];
+}
+const magPlate = (() => {                                // floorplate: the bottom of the body, 0.8mm bigger and 2mm deeper
+  const f0 = along(MAG_F, 0.955), r0 = along(MAG_R, 0.955), f1 = along(MAG_F, 1), r1 = along(MAG_R, 1);
+  const u = [r1[0] - f1[0], r1[1] - f1[1]], k = Math.hypot(...u), e = [u[0] / k, u[1] / k], dn = [e[1], -e[0]];
+  const o = (p, a, b) => [p[0] + a * e[0] + b * dn[0], p[1] + a * e[1] + b * dn[1]];
+  return [o(f0, -0.8, 0), o(f1, -0.8, 2), o(r1, 0.8, 2), o(r0, 0.8, 0)];
+})();
 part('mag', 'Magazine (VFC, 30 rounds)', 'mag', [], [60, -100, 0],
-  'Curved magazine. VFC lists the gun at 30 rounds; its feed lip sits under the hop-up chamber. VFC sells magazines separately, so the parts list does not number them.',
-  [[profR(MAGP, 2 * MAG_HW, 1.5), 'blued']]);
+  'Curved magazine in the H&K shape: a pressed rib down each side near the front, two dimples at the top, the notch for the catch in the left side at the back, and a plastic floorplate. VFC lists the gun at 30 rounds; its feed lip sits under the hop-up chamber. VFC sells magazines separately, so the parts list does not number them.',
+  [[cut(profR(MAGP, 2 * MAG_HW, 1.5), [bx(X(665), X(651), Y(304), Y(288), -MAG_HW - 1, -MAG_HW + 1.6),
+     ...[621, 631].flatMap(px => [-1, 1].map(s => cyl(0.9, 1.4, 'z', 0, 0, 0, 10).scale(1, 4, 1).translate(X(px), Y(258), s * MAG_HW)))]), 'blued'],
+   [profR(magBand(0.07, 0.18, 0.05, 0.94), 2 * MAG_HW + 2, 0.45), 'blued'],
+   [profR(magPlate, 2 * MAG_HW + 1.6, 0.8), 'poly2']]);
 
 part('bb', 'BB (in the chamber)', 'mag', [], [130, 100, 0],
   'A 6mm BB, chambered in the bucking: the tappet plate has pushed it up from the magazine and the nozzle forward into the rubber.',
@@ -1341,6 +1367,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.airsoftzone.com/en/p/v2-gearbox-shell-8mm-g2-enhanced-109097/">Airsoftzone, G&amp;G V2 shell</a> (its size),
 <a href="https://www.patrolbase.co.uk/gearboxes">Patrol Base product photos of CYMA V2 gearboxes</a> (the cylinder window),
 <a href="https://www.vsdmotor.com/airsoft-motor/high-speed-long-d-axis-airsoft-aeg-motor.html">VSD, long-type AEG motor outline drawing</a> (the motor's dimensions),
+<a href="https://gunmagwarehouse.com/hk-mp5-sp5-hk94-9mm-30-round-magazine.html">GunMag Warehouse, H&amp;K MP5 30-round magazine</a> (six views: the magazine's curve, side ribs, dimples, catch notch and floorplate),
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
