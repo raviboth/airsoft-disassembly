@@ -458,6 +458,40 @@ function sideUV(g) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return g;
 }
+// loft a closed side outline (x, y) into a solid with rounded cross-sections: at each x the section is a superellipse
+// (power n) between the outline's top and bottom, half width hwAt(x). Gives a stock its rounded edges, which a side
+// profile cut by a plan view cannot.
+function loftX(pts, hwAt, n = 4, seg = 40, step = 3) {
+  const xs = pts.map(p => p[0]), xMax = Math.max(...xs), xMin = Math.min(...xs);
+  const iT = xs.indexOf(xMax), iB = xs.lastIndexOf(xMax);
+  const top = pts.slice(0, iT + 1), bot = pts.slice(iB).reverse();
+  if (bot[0][0] !== xMin) bot.unshift(pts[0]);
+  const at = (ch, x) => { for (let i = 1; i < ch.length; i++) if (x <= ch[i][0]) { const [a, b] = [ch[i - 1], ch[i]]; return b[0] === a[0] ? b[1] : a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]); } return ch[ch.length - 1][1]; };
+  const st = new Set([...xs]); for (let x = xMin; x < xMax; x += step) st.add(x);
+  const sx = [...st].sort((a, b) => a - b);
+  const sg = (v, e) => Math.sign(v) * Math.abs(v) ** e;
+  const pos = [], idx = [];
+  for (const x of sx) {
+    let yT = at(top, x), yB = at(bot, x); if (yT - yB < 1) { const m = (yT + yB) / 2; yT = m + 0.5; yB = m - 0.5; }
+    const yc = (yT + yB) / 2, hh = (yT - yB) / 2, hw = hwAt(x);
+    for (let j = 0; j < seg; j++) { const t = j / seg * 2 * Math.PI; pos.push(x, yc + hh * sg(Math.sin(t), 2 / n), hw * sg(Math.cos(t), 2 / n)); }
+  }
+  const R = sx.length;
+  for (let i = 0; i < R - 1; i++) for (let j = 0; j < seg; j++) {
+    const a = i * seg + j, b = i * seg + (j + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, c, b, b, c, d);
+  }
+  for (const [i, s] of [[0, -1], [R - 1, 1]]) {           // flat end caps, own vertices so they shade flat
+    const base = pos.length / 3, x = sx[i];
+    let cy = 0; for (let j = 0; j < seg; j++) cy += pos[(i * seg + j) * 3 + 1]; cy /= seg;
+    pos.push(x, cy, 0);
+    for (let j = 0; j < seg; j++) pos.push(...pos.slice((i * seg + j) * 3, (i * seg + j) * 3 + 3));
+    for (let j = 0; j < seg; j++) { const a = base + 1 + j, b = base + 1 + (j + 1) % seg; s > 0 ? idx.push(base, b, a) : idx.push(base, a, b); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
 // extrude an (x, y) outline between z0 and z1 with no bevel
 const slab = (pts, z0, z1) => prof(pts, z1 - z0, 0).translate(0, 0, (z0 + z1) / 2);
 // subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
@@ -632,13 +666,13 @@ const stockSide = P([[50, 327], [200, 326], [318, 325], [328, 329], [340, 338], 
   [442, 371], [425, 375], [405, 383], [388, 395], [376, 410], [368, 425], [360, 440], [345, 442.5], [322, 438], [303, 429], [297, 422], [291, 417],
   [200, 441], [100, 470], [50, 483]]);
 // half widths seen from above: broad butt, slim wrist, then the action and the forend
-const stockPlan = (() => {
-  const hw = [[-496, 20], [-300, 20.5], [-262, 16], [-205, 16], [-180, 19.5], [150, 19.5], [222, 17], [230, 12]];
-  return [...hw.map(([x, w]) => [x, w]), ...hw.slice().reverse().map(([x, w]) => [x, -w])];
-})();
+const STOCK_HW = [[-496, 20], [-300, 20.5], [-262, 16], [-205, 16], [-180, 19.5], [150, 19.5], [222, 17], [230, 12]];
+const stockHW = x => { const h = STOCK_HW; if (x <= h[0][0]) return h[0][1];
+  for (let i = 1; i < h.length; i++) if (x <= h[i][0]) return h[i - 1][1] + (h[i][1] - h[i - 1][1]) * (x - h[i - 1][0]) / (h[i][0] - h[i - 1][0]);
+  return h[h.length - 1][1]; };
 part('stock', 'Stock', 'stk', ['VSR-2'], [0, 0, 0],
   'One-piece polymer stock with a rubberised matte finish, the Pro Sniper shape Marui uses on the G-Spec. The action drops into it from the top and is held by two hex bolts from underneath; the barrel floats clear of the forend. The magazine catch and its button stay in the stock when the action comes out, so do not lose them.',
-  [[sideUV(cut(cut(profR(stockSide, 42, 5), [prof(stockPlan, 400, 0).rotateX(Math.PI / 2)], INTERSECTION), [
+  [[sideUV(cut(loftX(stockSide, stockHW), [
       cyl(RCV.r + 0.4, RCV.x1 - RCV.x0 + 12, 'x', (RCV.x0 + RCV.x1) / 2 - 6, 0, 0, 40),
       cyl(BAR.r + 1.2, 260, 'x', 130, 0, 0, 40),
       bx(-200, -142, -12, 12, -11.5, 11.5),                    // bolt sleeve and receiver end tang
@@ -651,7 +685,7 @@ part('stock', 'Stock', 'stk', ['VSR-2'], [0, 0, 0],
 
 part('buttPad', 'Butt plate', 'stk', ['VSR-3'], [-60, 0, 0],
   'Rubber butt pad, pushed onto the back of the stock.',
-  [[cut(profR(P([[21, 333], [24, 328], [50, 327], [50, 483], [24, 484], [21, 480]]), 40, 3), [prof(stockPlan.map(([x, z]) => [x - 23, z]), 400, 0).rotateX(Math.PI / 2)], INTERSECTION), 'poly2']]);
+  [[loftX(P([[21, 333], [24, 328], [50, 327], [50, 483], [24, 484], [21, 480]]), () => stockHW(-496) - 0.5, 4, 40, 1), 'poly2']]);
 
 const swivel = (x, y) => [[cyl(2.6, 9, 'y', x, y - 2, 0, 12), 'steel'], [cyl(4.4, 1.6, 'y', x, y + 0.4, 0, 16), 'steel'],
   [tubeAlong([[x - 3, y - 7, 0], [x - 9, y - 12, 0], [x - 14, y - 22, 0], [x - 6, y - 25, 0], [x + 1, y - 13, 0], [x - 3, y - 7, 0]], 1.4, 40), 'steel']];
