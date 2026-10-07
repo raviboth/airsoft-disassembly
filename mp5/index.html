@@ -1077,7 +1077,9 @@ part('innerBarrel', 'Inner barrel 208mm + clip, spacer, spring', 'hop', ['07-1',
 const STOCK_PIN = [X(1023), Y(263)];
 // the housing's front is a sleeve over the back of the receiver, so its section is the receiver's own outline grown by
 // the wall: round top, the upper groove, the carrier bulge, a shallow notch over the rail groove and the lower bulge.
-// Under it a box closes the back of the lower and takes the stock pin; behind, the top slopes down to the lock.
+// Under it a box closes the back of the lower and takes the stock pin; behind, the top slopes down to the lock. The
+// proportions behind the sleeve (flat roof facets, the narrower box, the ring round the pin) are measured off slices of
+// kaewon's MP5 model (Thingiverse 6410378, from GrabCAD's airsoft MP5), scaled to this receiver.
 const HSG_R = [[18.3, -17], ...lowBulge(18.3, 3), [19.9, -3], [19.9, 5], [20.4, 6.2],
   [20.7, 7.5], [20.9, 10.5], [20.7, 14], [20.2, 16.6], [18.4, 18.2], [18.4, 20.4], [19.4, 22.3]];
 part('stockHousing', 'Stock housing + screws', 'stk', ['04-2', '04-1'], [-420, 0, 0],
@@ -1086,16 +1088,19 @@ part('stockHousing', 'Stock housing + screws', 'stk', ['04-2', '04-1'], [-420, 0
     const xs = X(1046), sleeve = cut(secX(recSec(HSG_R, RCV.tr + 1.2, 21.3), X(1088), X(985), 0.5), [
       secX(recSec(RCV_R.map(([z, y]) => [z + 0.05, y]), RCV.tr + 0.05, 21.3), xs, X(985) + 2, 0),   // open front, the receiver slides in
       slab(P([[1058, 131], [1088, 183], [1110, 183], [1110, 100], [1058, 100]]), -30, 30),           // top slopes down to the lock
-      ...[1, -1].map(s => bx(X(1095), xs + 1, -3.2, 5.2, s * 17.2, s * 19.1))]);                    // rail slots through the back
-    const box = cut(profR(P([[985, 250], [1088, 250], [1076, 262], [1068, 295], [985, 295]]), 33, 2.5), [cyl(1.6, 50, 'z', ...STOCK_PIN, 0, 12)]);
-    const bosses = cut(cyl(4.6, 36, 'z', ...STOCK_PIN, 0, 28), [cyl(1.6, 50, 'z', ...STOCK_PIN, 0, 12)]);
-    return [[sleeve, 'poly'], [box, 'poly'], [bosses, 'poly'],
-      [cyl(1.8, 1.4, 'z', X(997), 10.5, -21.3, 12), 'steel'], [cyl(1.8, 1.4, 'z', X(1050), Y(285), -16.9, 12), 'steel']];
+      ...[1, -1].map(s => bx(X(1095), xs + 1, -3.2, 5.2, s * 17.2, s * 19.1)),                       // rail slots through the back
+      ...[1, -1].map(s => { const c = Math.cos(40 * D2R), w = Math.sin(40 * D2R), b = [s * 20.2 * c, RCV.tc + 20.2 * w];   // flat roof facets
+        return secX([[-30, -30], [30, -30], [30, 30], [-30, 30]].map(([t, u]) => [b[0] - s * t * w + s * (u + 30) * c, b[1] + t * c + (u + 30) * w]), X(1095), X(1000), 0); })]);
+    // the box under the sleeve is narrower than the sleeve, as on H&K's housing, with a raised ring round the pin hole each side
+    const box = cut(profR(P([[985, 250], [1088, 250], [1076, 262], [1068, 295], [985, 295]]), 29, 2.5), [cyl(1.6, 50, 'z', ...STOCK_PIN, 0, 12)]);
+    const rings = [1, -1].map(s => cut(cyl(4.4, 1.2, 'z', ...STOCK_PIN, s * 14.6, 28), [cyl(2.9, 3, 'z', ...STOCK_PIN, s * 14.6, 20)]));
+    return [[sleeve, 'poly'], [box, 'poly'], ...rings.map(g => [g, 'poly']),
+      [cyl(1.8, 1.4, 'z', X(997), 10.5, -21.3, 12), 'steel'], [cyl(1.8, 1.4, 'z', X(1050), Y(285), -14.6, 12), 'steel']];
   })(), { shell: true });
 
 part('stockPin', 'Stock pin', 'stk', ['04-3'], [-420, -60, -100],
   'Push pin through the stock housing and the back of the receiver.',
-  [[cyl(1.5, 42, 'z', ...STOCK_PIN, 0, 12), 'steel'], [cyl(4, 1.8, 'z', ...STOCK_PIN, -20.6, 20), 'steel']]);
+  [[cyl(1.5, 32, 'z', ...STOCK_PIN, 0, 12), 'steel'], [cyl(2.7, 1.6, 'z', ...STOCK_PIN, -15.9, 20), 'steel']]);
 
 part('stockLock', 'Stock lock (housing, shells, collar, plunger, release lever)', 'stk', ['04-4', '04-5', '04-6', '04-7', '04-8', '04-9', '04-10', '04-11', '04-12', '04-13', '04-14', '04-15', '04-16'], [-430, -100, 0],
   'Lock in the back of the stock housing: a spring plunger drops into the notches in the stock rails, and the paddle under the housing pulls it out to slide the stock. VFC breaks it into thirteen pieces.',
@@ -1262,7 +1267,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
-<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss),
+<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>VFC / Umarex MP5 A5 AEG</h2>
