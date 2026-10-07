@@ -1528,8 +1528,8 @@ const turnAbout = (p, [px, py], a) => {
   p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
   p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
 };
-// piston stroke, the spring's back end and its free length (the Stoner page's frame, shifted)
-const STROKE = 44, SPRING_BACK = -336 + D, SPRING_LEN = 128;
+// piston stroke, the spring's back end and its length
+const STROKE = 44, SPRING_BACK = GB_REAR + 4.5, SPRING_LEN = 104;
 renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
