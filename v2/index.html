@@ -234,6 +234,7 @@ const MAT = {
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
   slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
   nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  endcap: { color: 0x9a5546, metalness: 0.0,  roughness: 0.6 },
   white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
   frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
   green:  { color: 0x2f6b3a, metalness: 0.1,  roughness: 0.6 },
@@ -612,7 +613,8 @@ function part(id, name, cat, spec, explode, stage, info, pieces, opts = {}) {
 //
 // The shell follows Siris Rui's 3D scan of a V2 shell (Printables 778454, public domain; 159 x 99 x 25.5mm, which G&G's
 // listed 162 x 101 x 25mm confirms): a round cylinder housing with a screw fin along its top, over a narrower flat-sided
-// body that steps down to the stem the motor drives up into, with a lug for the front pin under its nose. The inside parts
+// body that steps down to the stem the motor drives up into, with a lug for the front pin under its nose. A window is cut
+// through each side of the housing over the front half of the cylinder, as on the CYMA and Specna shells. The inside parts
 // follow the Stoner page's trace of an open V2 half (Team Black Sheep's photo, 3.5 px/mm); parts built in that page's frame
 // are shifted forward by D. VS maps the scan (y back from the front face, z up) onto the gears traced from the photo; the
 // round section is widened a little to clear that trace's cylinder and gears, and the step in front of the trigger is
@@ -635,6 +637,19 @@ const TRG_SLOT = bx(-118, -104, -62, -50, -4, 4);    // where the trigger blade 
 const STAGE = { motor: [0, 0.1], plate: [0.08, 0.18], half: [0.16, 0.3], spring: [0.3, 0.42], air: [0.4, 0.55], gears: [0.53, 0.7], trig: [0.68, 0.85], wires: [0.8, 0.95] };
 
 // ================= SHELL =================
+// Long-type motor after VSD's outline drawing of a 480-size AEG motor: 74mm overall, a round can (29.6mm) with flats 25mm
+// apart, an end cap with flats 23mm apart (26.7mm) carrying the brushes and spade terminals, an 11mm boss round the front
+// bearing, and a 16mm shaft with the pinion pressed on its tip. Built along +x from the pinion's tip; the flats face the
+// sides of the grip, the terminals its front and back.
+function motorGeo() {
+  const flat = (r, f) => Array.from({ length: 48 }, (_, i) => { const t = i / 48 * 2 * Math.PI; return [Math.max(-f, Math.min(f, r * Math.cos(t))), r * Math.sin(t)]; });
+  const vents = [-1, 1].flatMap(s => [-6, 0, 6].map(y => bx(59.5, 64, y - 1.4, y + 1.4, s * 10.5, s * 13)));
+  return [[gear(3.4, 12, 7, 3.5, 0, 0, { axis: 'x' }), 'steel'], [latheX([[1.5, 6], [1.5, 12.2], [0, 12.2]], 12), 'steel'],
+    [latheX([[0, 12.2], [5.5, 12.2], [5.5, 16.2], [0, 16.2]], 28), 'steel'],
+    [secX(flat(14.8, 12.5), 16, 57.7), 'steel'], [latheX([[0, 57.4], [14.9, 57.4], [14.9, 58.4], [0, 58.4]], 36), 'steel'],
+    [cut(secX(flat(13.35, 11.5), 58.4, 71), vents), 'endcap'], [latheX([[0, 71], [4.9, 71], [4.9, 74], [0, 74]], 20), 'endcap'],
+    [bx(63, 73.5, 12.4, 12.9, -2.4, 2.4), 'brass'], [bx(63, 73.5, -12.9, -12.4, -2.4, 2.4), 'brass']];
+}
 function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on the centre plane
   const out = VSP([[0, 76.5], [158.75, 76.5], [158.75, 56.1], [134.4, 32.3], [133.75, 13.6], [108.75, 0.5], [97.5, 25.5], [47.5, 25.8],
     [46.5, 36.6], [46.5, 55.3], [16.25, 55.6], [15.6, 61.5], [0, 61.9]]);
@@ -644,9 +659,11 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
   const holes = [bore, pocket, TRG_SLOT, cyl(6, 6, 'x', GB_FRONT, 0, 0, 24), cyl(3.2, 6, 'x', GB_REAR, 0, 0, 16),
     ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)), cyl(2.3, 40, 'z', ...GB_PIN, 0, 16),
     ...[...GB_SCREWS, ...GB_TOP_SCREWS].map(([x, y]) => cyl(1.4, 40, 'z', x, y, 0, 12))];
+  // the cylinder window: the side of the housing is open over the front half of the cylinder, corners radiused
+  const win = prof(rr(VS([92, 0])[0], VS([15, 0])[0], -9.8, 10.2, 2.5), 16, 0).translate(0, 0, s * 13);
   const half = Array.from({ length: 33 }, (_, i) => { const t = Math.PI * (i / 32 - 0.5); return [s * HOUSE_R * Math.cos(t), HOUSE_R * Math.sin(t)]; });
-  const body = cut(profR(out, BODY_Z, 0.8).translate(0, 0, s * BODY_Z / 2), holes);
-  const house = cut(secX(s > 0 ? half.reverse() : half, GB_REAR, GB_FRONT, 0.6), holes);
+  const body = cut(profR(out, BODY_Z, 0.8).translate(0, 0, s * BODY_Z / 2), [...holes, win]);
+  const house = cut(secX(s > 0 ? half.reverse() : half, GB_REAR, GB_FRONT, 0.6), [...holes, win]);
   const fin = cut(profR(VSP([[0, 86], [143.75, 86], [143.75, 95.2], [140, 98.6], [0, 98.6]]), 4.6, 0.6).translate(0, 0, s * 2.3), holes);
   const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
   const lug = cut(cyl(5, BODY_Z, 'z', ...GB_PIN, s * BODY_Z / 2, 24), holes);
@@ -655,7 +672,7 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
 }
 const bushings = s => [SECTOR, SPUR, BEVEL].map(([x, y]) => [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'brass']);
 part('gearboxL', 'Shell, left half', 'shell', 'Zinc alloy casting; CNC aluminium shells are the upgrade', [0, 0, 0], STAGE.half,
-  'Left half of the shell. It stays put while everything else comes out: the inside parts all sit in this half, so the gearbox is opened by lifting the right half off. Its shape follows a 3D scan of a real shell: the round housing on top for the cylinder, the fin along its top for four screws, the flat-sided body, the step in front of the trigger, and the raked stem at the back that drops into the pistol grip with the bevel gear in it. The lug under the nose takes the front body pin.',
+  'Left half of the shell. It stays put while everything else comes out: the inside parts all sit in this half, so the gearbox is opened by lifting the right half off. Its shape follows a 3D scan of a real shell: the round housing on top for the cylinder with a window cut in its side over the front half of the cylinder, the fin along its top for four screws, the flat-sided body, the step in front of the trigger, and the raked stem at the back that drops into the pistol grip with the bevel gear in it. The lug under the nose takes the front body pin.',
   gbHalf(-1), { shell: true });
 part('gearboxR', 'Shell, right half', 'shell', 'Same casting as the left, mirrored', [-210, 0, 40], STAGE.half,
   'Right half. Take out the selector plate and the screws first, then lift it straight off: the spring is under load, so keep a thumb on the spring guide until it comes free.',
@@ -756,15 +773,12 @@ part('wiring', 'Wiring + connector', 'trig', 'Front or rear wired', [130, -95, 2
    [bx(2, 16, -24, -16, -9, -3), 'white']]);
 
 // ================= OUTSIDE THE GEARBOX =================
-part('motor', 'Motor', 'ext', 'Long type, in the pistol grip', [-45, -110, 0], STAGE.motor,
-  'Long-type motor in the pistol grip, its pinion meshing with the bevel gear\'s crown teeth. Not part of the gearbox, but it comes out first: unplug its two spade terminals and drop it out of the grip.',
+part('motor', 'Motor', 'ext', 'Long type, 74mm; in the pistol grip', [-45, -110, 0], STAGE.motor,
+  'Long-type motor in the pistol grip, its pinion meshing with the bevel gear\'s crown teeth. A 480-size can, flattened on two sides to fit the grip, with the brushes and two spade terminals in the plastic end cap and a 16mm shaft out of the front. Not part of the gearbox, but it comes out first: unplug its two spade terminals and drop it out of the grip.',
   (() => {
-    const g = [[gear(3.5, 12, 6, 0, 0, 0, { axis: 'x' }), 'steel'], [latheX([[1.5, 3], [1.5, 16], [0, 16]], 12), 'steel'],
-      [latheX([[0, 16], [12, 16], [12, 74], [10.5, 74], [10.5, 79], [0, 79]], 28), 'steel'],
-      [latheX([[0, 74], [10.6, 74], [10.6, 79], [0, 79]], 28), 'black'],
-      [bx(76, 80, 9, 13, -1.6, 1.6), 'brass'], [bx(76, 80, -13, -9, -1.6, 1.6), 'brass']];
+    const g = motorGeo();
     const [bx0, by0] = BEVEL;
-    g.forEach(([geo]) => geo.rotateZ(-(90 + GRIP_A / D2R) * D2R).translate(bx0 - 10 * Math.sin(GRIP_A), by0 - 10 * Math.cos(GRIP_A), 0));
+    g.forEach(([geo]) => geo.translate(-3.5, 0, 0).rotateZ(-(90 + GRIP_A / D2R) * D2R).translate(bx0 - 10 * Math.sin(GRIP_A), by0 - 10 * Math.cos(GRIP_A), 0));
     return g;
   })());
 
@@ -896,6 +910,8 @@ const SOURCES = `<p class="src">Sources: <a href="https://www.printables.com/mod
 <a href="https://www.patrolbase.co.uk/gearboxes">Patrol Base, AEG gearboxes</a> (8mm bushings, M4 fit, 18:1 gear sets),
 <a href="https://brillarmory.com/products/shs-v2-m4-aluminum-o-ring-air-nozzle">Brill Armory, SHS V2 M4 nozzle</a> and <a href="https://www.wolverineairsoft.com/knowledgebase/nozzle-measurement/">Wolverine, nozzle measurement</a> (the 21.4mm M4 nozzle, how lengths differ by gun),
 <a href="https://www.youtube.com/watch?v=yAk1HI4xbGk">D-RZ Airsoft, MP5 gearbox removal</a> (a stock V2 opened up),
+<a href="https://www.patrolbase.co.uk/gearboxes">Patrol Base product photos of CYMA and Specna V2 shells</a> and <a href="https://www.retroarms.com/cnc-gearbox/cnc-gearbox-v2-8mm-bearings-qsc">RetroArms, CNC V2 shell</a> (the cylinder window),
+<a href="https://www.vsdmotor.com/airsoft-motor/high-speed-long-d-axis-airsoft-aeg-motor.html">VSD, long-type AEG motor outline drawing</a> (the motor's dimensions),
 <a href="../stoner96/">Stoner 96 page</a> (the trace of the inside parts). Inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>V2 gearbox</h2>
