@@ -906,7 +906,7 @@ function paddle() {
 part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250, -110, 0],
   'Polymer lower with the trigger guard and the pistol grip moulded in. The gearbox sits in it, held by two screws down the grip, and the motor is in the grip under a base plate. It slides back off the receiver once its pin is out.',
   (() => {
-    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(850), X(812), -70, -60, -3.8, 3.8)]);
+    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(840), X(798), -70, -60, -3.9, 3.9)]);
     // rounded boss round the front pin, its head sunk in a socket each side
     const boss = cut(cyl(5.6, 33.4, 'z', X(685), Y(332), 0, 32), [cyl(1.6, 40, 'z', X(685), Y(332), 0, 12),
       ...[1, -1].map(sg => cyl(3.3, 3, 'z', X(685), Y(332), sg * 17.2, 24))]);
@@ -1015,14 +1015,24 @@ part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', 
   [[sh(profR([[-259, -40], [-255.6, -40.6], [-256, -44], [-260, -49.4], [-262, -48.4]], 2, 0.3)).translate(0, 0, -8.4), 'steel'],
    [sh(cyl(1.2, 5, 'z', -257.4, -41.6, -8.4, 10)), 'steel']]);
 
-// trigger: the body inside the gearbox and the long MP5 blade below it, a hook with a hollow front face whose tip
-// curls forward, sitting in the back half of the guard (VFC's close-ups)
+// trigger: traced from Evike's photo of two loose MP5 triggers lying on their sides (Guarder's, P-Process), turned and
+// scaled so its pivot stud sits on the gearbox's trigger pin and the blade comes out of the back half of the guard. Thin
+// neck and head inside the gearbox (the head's flag works the switch, the tab behind it meets the cut-off lever), a
+// square shoulder where it widens, then a curved blade with a hollow front face. A torsion spring on the pin returns it.
 const TRG_PV = [X(789), Y(300)];
+const TRG_NECK = P([[786, 265], [790, 273], [792, 283], [796, 292], [803, 297], [813, 298], [820, 300], [821, 305], [814, 306], [803, 307], [794, 309],
+  [791, 333], [787, 323], [785, 312], [784, 299], [780, 290], [772, 287], [767, 284], [771, 279], [778, 276], [784, 270]]);
+const TRG_BLADE = P([[786, 306], [803, 307], [808, 310], [816, 316], [823, 321], [828, 328], [824, 332], [818, 334], [818, 342], [824, 352], [829, 365],
+  [832, 379], [832, 393], [828, 406], [822, 414], [815, 419], [811, 417], [817, 408], [820, 397], [820, 384], [816, 373], [810, 364], [803, 356],
+  [795, 348], [791, 341], [791, 333], [787, 323], [785, 312]]);
 part('trigger', 'Trigger + spring, trigger lever', 'gbx', ['08-19', '08-20', '08-18', '08-9', '08-10', '08-12', '08-13'], [-250, 20, -150],
-  'The MP5 gearbox\'s own trigger, longer than a V2\'s so it reaches down through the lower to the guard. Pulling it pushes the switch closed; the spring returns it.',
-  [[profR(P([[781, 298], [797, 292], [810, 302], [824, 325], [832, 345], [834, 357], [833, 370], [830, 382], [824, 397], [815, 410], [807, 418], [800, 421],
-    [796, 417], [802, 409], [807, 398], [811, 385], [813, 370], [815, 357], [814, 342], [804, 327], [790, 314], [778, 306]]), 6, 1.2), 'blued'],
-   [cyl(1.5, 22, 'z', ...TRG_PV, 0, 12), 'steel'], [spring(1.6, 0.3, 8, 5, 'x', TRG_PV[0] + 2, TRG_PV[1] - 8, 4), 'spring']]);
+  'The MP5 gearbox\'s own trigger, longer than a V2\'s so it reaches down through the lower to the guard. It pivots on a stud near its top: pulling the blade swings the head forward onto the switch, and the torsion spring on the pin returns it.',
+  (() => { const [px, py] = TRG_PV;
+    return [[profR(TRG_NECK, 4, 0.6), 'blued'], [profR(TRG_BLADE, 7, 1.2), 'blued'],
+      [cyl(1.5, 22, 'z', px, py, 0, 12), 'steel'], [cyl(2.2, 1.2, 'z', px, py, -2.4, 16), 'blued'],
+      [spring(2.4, 0.4, 3.4, 4, 'z', px, py, 3.6), 'spring'],
+      [tubeAlong([[px - 2.4, py, 3.8], [px - 3.5, py - 4, 3.8], [px - 3, py - 9, 3.8]], 0.4, 8), 'spring'],
+      [tubeAlong([[px + 2.4, py, 6.8], [px + 6, py + 2, 6.8], [px + 10, py + 2.5, 6.8]], 0.4, 8), 'spring']]; })());
 
 part('switch', 'Switch assembly + springs, screw', 'gbx', ['08-33', '08-31', '08-32'], [-290, 10, -70],
   'Trigger contacts. The trigger closes them, the motor runs; the cut-off lever lifts them open once per cycle on semi.',
@@ -1287,6 +1297,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
+<a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
