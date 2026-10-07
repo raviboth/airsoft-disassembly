@@ -656,8 +656,8 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
 // Layout: world units are mm. x = along the gun (muzzle +), y = up (bore axis at 0), z = right side, origin at the front
 // of the receiver under the cocking tube. The outside is traced from VFC's left-side product photo (1280px, muzzle to the
 // left, stock collapsed) at 2.206 px/mm: VFC gives 500mm with the stock in, which the photo spans in 1103px, and the 14mm
-// muzzle thread then measures 30px. The gearbox is a standard V2 (D-RZ's teardown video), traced from the Stoner page's
-// V2 shell and placed so the motor lies on the grip's axis; inside parts are approximate. Round sections, the handguard's
+// muzzle thread then measures 30px. The gearbox is a standard V2 (D-RZ's teardown video): its inside parts come from the
+// Stoner page's trace, placed so the motor lies on the grip's axis, and its shell from a 3D scan; inside parts are approximate. Round sections, the handguard's
 // groove and stippling, and the butt's checkered pad follow Airsoft GI's close-up photos of the A5; the receiver's section
 // follows H&K's end view of a cut receiver and VFC's photos of its own MP5K receiver.
 const K = 2.206, OX = 560, OY = 212.7;
@@ -919,33 +919,40 @@ part('selGears', 'Selector gears + shaft', 'low', ['02-6', '02-7', '02-8'], [-25
     [gear(5.5, 14, 2.5, SEL_PV[0] + 9, SEL_PV[1] + 5, s * 13.5, { hole: 1.6 }), 'steel']])]);
 
 // ================= GEARBOX (V2) =================
-// The shell is the Stoner page's trace of an open V2 half (Team Black Sheep's photo, 3.5 px/mm), pinned so the nozzle
-// meets the hop-up. Parts built in that page's frame are shifted forward by D.
+// Inside parts follow the Stoner page's trace of an open V2 half (Team Black Sheep's photo, 3.5 px/mm), pinned so the
+// nozzle meets the hop-up; parts built in that page's frame are shifted forward by D. The shell itself follows Siris Rui's
+// 3D scan of a V2 shell (Printables 778454, 159 x 99 x 25.5mm, which G&G's listed 162 x 101 x 25mm confirms): a round
+// cylinder housing with a screw fin along its top, over a narrower flat-sided body that steps down to the stem the motor
+// drives up into, with a lug for the front pin under its nose. The step in front of the trigger is moved 6mm forward of the scan's to clear the
+// switch. VS maps the scan (y back from the front face, z up) onto
+// the gears traced from the photo; the round section is widened a little to clear that trace's cylinder and gears.
 const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];
-const SHELL_Z = 15, GB_STEM = -56.5, STEM_Z = 11, GB_FLOOR = -48.5;
+const GB_FRONT = -33.8, VS = ([y, z]) => [GB_FRONT - 1.026 * y, 1.1 * (z - 76.5)], VSP = pts => pts.map(VS);
+const GB_REAR = VS([158.75, 0])[0], HOUSE_R = 14, BODY_Z = 11, GB_FLOOR = -48.5;
 const sh = g => g.translate(D, 0, 0);
-const faceZ = y => y < GB_STEM + 2 ? STEM_Z : SHELL_Z;
-const GB_SCREWS = [[62, 215], [100, 215], [205, 218], [240, 372], [310, 397], [600, 232], [662, 232]];
 const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], [ro, z1], [ri, z1], [ri, z0]], seg).rotateY(-Math.PI / 2).translate(cx, cy, 0);
+const GB_PIN = VS([42.5, 42.3]);
+const GB_SCREWS = VSP([[153, 57.4], [126, 19], [109.4, 8], [76.9, 31.7], [24, 66]]), GB_TOP_SCREWS = [6.25, 48.75, 91.9, 135].map(y => VS([y, 91.6]));
 function gbHalf(s) {
-  const out = GP([[40, 64], [687, 64], [687, 245], [577, 245], [577, 303], [326, 303], [326, 424], [300, 426], [228, 396], [228, 237], [40, 237]]);
-  const inner = GP([[50, 74], [678, 74], [678, 92], [700, 92], [700, 192], [678, 192], [678, 236], [568, 236], [568, 295], [455, 295], [455, 320],
-    [400, 320], [395, 295], [332, 295], [332, 325], [237, 325], [237, 228], [50, 228], [50, 180], [30, 180], [30, 98], [50, 98]]);
-  const stem = GP([[318, 320], [318, 445], [262, 445], [237, 400], [237, 320]]);
-  const body = cut(profR(out, SHELL_Z, 0.8).translate(0, 0, s * SHELL_Z / 2), [
-    prof(inner, 13.5, 0).translate(0, 0, s * 5.75), prof(stem, 9.5, 0).translate(0, 0, s * 3.75),
-    sh(bx(-300, -240, -130, GB_STEM, s > 0 ? STEM_Z : -SHELL_Z - 5, s > 0 ? SHELL_Z + 5 : -STEM_Z)),
-    ...[0, 1, 2, 3, 4, 5, 6].map(k => cyl(5.1, 40, 'z', GX(82 + 75 * k), GY(64), 0, 24)),
-    prof(rr(GX(115), GX(145), GY(160), GY(120), 4, 4), 40, 0),
-    cyl(2.2, 40, 'z', GX(86), GY(172), 0, 16),
-    ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)),
-    ...GB_SCREWS.map(([px, py]) => cyl(1.4, 40, 'z', GX(px), GY(py), 0, 12))]);
-  const pieces = [[body, 'zinc'],
-    ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => { const f = faceZ(y), b = f === SHELL_Z ? 0.8 : 0;
-      return [...(b ? [[ringZ(4, 6.2, x, y, s * f, s * (f + b)), 'zinc']] : []), [ringZ(1.6, 4, x, y, s * (f - 2.5), s * (f + 0.4 * !!b)), 'steel']]; })];
-  if (s > 0) for (const [px, py] of GB_SCREWS)
-    pieces.push([ringZ(1, 2.6, GX(px), GY(py), faceZ(GY(py)), faceZ(GY(py)) + (faceZ(GY(py)) === SHELL_Z ? 1.6 : 0), 16), 'blued']);
+  const out = VSP([[0, 76.5], [158.75, 76.5], [158.75, 56.1], [134.4, 32.3], [133.75, 13.6], [108.75, 0.5], [97.5, 25.5], [47.5, 25.8],
+    [46.5, 36.6], [46.5, 55.3], [16.25, 55.6], [15.6, 61.5], [0, 61.9]]);
+  const pocket = prof(VSP([[1.5, 76.5], [157.2, 76.5], [157.2, 56.6], [132.9, 32.9], [132.3, 14.6], [109.6, 2.3], [96.3, 27], [45.8, 27.3],
+    [45, 54], [14.8, 54.1], [14.1, 60.2], [1.5, 60.6]]), (BODY_Z - 1.3) * 2, 0);
+  const bore = cyl(12.4, GB_FRONT - GB_REAR - 4.5, 'x', (GB_FRONT + GB_REAR + 1.5) / 2, 0, 0, 40);
+  const holes = [bore, pocket, cyl(6, 6, 'x', GB_FRONT, 0, 0, 24), cyl(3.2, 6, 'x', GB_REAR, 0, 0, 16),
+    ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)), cyl(2.3, 40, 'z', ...GB_PIN, 0, 16),
+    ...[...GB_SCREWS, ...GB_TOP_SCREWS].map(([x, y]) => cyl(1.4, 40, 'z', x, y, 0, 12))];
+  const half = Array.from({ length: 33 }, (_, i) => { const t = Math.PI * (i / 32 - 0.5); return [s * HOUSE_R * Math.cos(t), HOUSE_R * Math.sin(t)]; });
+  const body = cut(profR(out, BODY_Z, 0.8).translate(0, 0, s * BODY_Z / 2), holes);
+  const house = cut(secX(s > 0 ? half.reverse() : half, GB_REAR, GB_FRONT, 0.6), holes);
+  const fin = cut(profR(VSP([[0, 86], [143.75, 86], [143.75, 95.2], [140, 98.6], [0, 98.6]]), 4.6, 0.6).translate(0, 0, s * 2.3), holes);
+  const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
+  const lug = cut(cyl(5, BODY_Z, 'z', ...GB_PIN, s * BODY_Z / 2, 24), holes);
+  const pieces = [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'],
+    ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'], [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'steel']])];
+  if (s > 0) for (const [x, y] of GB_SCREWS) pieces.push([ringZ(1, 2.6, x, y, BODY_Z, BODY_Z + 1.6, 16), 'blued']);
+  if (s > 0) for (const [x, y] of GB_TOP_SCREWS) pieces.push([ringZ(1, 2.6, x, y, 2.3, 3.9, 16), 'blued']);
   return pieces;
 }
 part('gearbox', 'Gearbox shell, left + bushings, spacers, small parts', 'gbx', ['08-1', '08-2', '08-6', '08-14', '08-23', '08-7', '08-11'], [-250, 110, -70],
@@ -972,8 +979,8 @@ part('piston', 'Piston', 'gbx', ['08-41'], [-250, 225, 0],
 
 part('mainSpring', 'Main spring + spring guide', 'gbx', ['08-36', '08-37'], [-250, 255, 0],
   'Main spring on its guide. The rear block screwed to the back of the gearbox holds the guide; take that screw out first when stripping the gearbox.',
-  [[sh(spring(7.2, 0.7, 128, 28, 'x', -336, 0, 0)), 'spring'],
-   [sh(latheX([[0, -342], [8.5, -342], [8.5, -337], [3, -337], [3, -262], [0, -262]], 20)), 'steel']]);
+  [[spring(7.2, 0.7, 104, 24, 'x', GB_REAR + 4.5, 0, 0), 'spring'],
+   [latheX([[0, GB_REAR - 1.5], [8.5, GB_REAR - 1.5], [8.5, GB_REAR + 3.5], [3, GB_REAR + 3.5], [3, -262 + D], [0, -262 + D]], 20), 'steel']]);
 
 // the three gears, separate so the trigger slider can turn them
 const GEAR_NOTE = ' VFC numbers the bevel gear (08-15) and two other gears, 08-8 and 08-25, without saying which is the sector and which the spur; the pairing here is a guess.';
@@ -981,21 +988,21 @@ part('sectorGear', 'Sector gear', 'gbx', ['08-8'], [-250, 90, -150],
   'Gear with teeth on part of its edge only: they draw the piston back by its rack and run out, letting the piston go once per turn. Its cam works the tappet plate and the cut-off lever.' + GEAR_NOTE,
   (() => { const [sx, sy] = SECTOR;
     return [[gear(16.5, 44, 3, sx, sy, -5.5, { hole: 2, lite: 4 }), 'brass'], [gear(12.4, 18, 3.6, sx, sy, 0, { hole: 2, span: [15, 175] }), 'steel'],
-      [cyl(6.5, 2, 'z', sx, sy, -2.9, 24), 'brass'], [cyl(1.9, 25, 'z', sx, sy, 0, 12), 'steel']]; })());
+      [cyl(6.5, 2, 'z', sx, sy, -2.9, 24), 'brass'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
 part('spurGear', 'Spur gear', 'gbx', ['08-25'], [-250, 60, -150],
   'Middle gear between the bevel and the sector gear.' + GEAR_NOTE,
   (() => { const [px, py] = SPUR;
-    return [[gear(14, 37, 2.5, px, py, -9.75, { hole: 2, lite: 5 }), 'brass'], [gear(6.5, 15, 3.6, px, py, -5.5, { hole: 2 }), 'steel'], [cyl(1.9, 25, 'z', px, py, 0, 12), 'steel']]; })());
+    return [[gear(14, 37, 2.5, px, py, -8.4, { hole: 2, lite: 5 }), 'brass'], [gear(6.5, 15, 3.6, px, py, -5.5, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', px, py, 0, 12), 'steel']]; })());
 part('bevelGear', 'Bevel gear', 'gbx', ['08-15'], [-250, 30, -150],
   'Gear with crown teeth on its face for the motor pinion; the anti-reversal latch rides on it. Standard V2 gears fit (D-RZ).',
   (() => { const [bx0, by0] = BEVEL;
     const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => bx(9.6, 13.2, -0.55, 0.55, -4.6, -3.4).rotateZ(i * 10 * D2R))).translate(bx0, by0, 0);
-    return [[gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(7, 17, 2.6, bx0, by0, -9.75, { hole: 2 }), 'steel'], [cyl(1.9, 25, 'z', bx0, by0, 0, 12), 'steel']]; })());
+    return [[gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(7, 17, 2.6, bx0, by0, -8.4, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
 
 part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', '08-24'], [-290, 70, -150],
   'Latch riding on the bevel gear that stops the gears running backwards under spring load.',
-  [[sh(profR([[-259, -40], [-255.6, -40.6], [-256, -44], [-260, -49.4], [-262, -48.4]], 2, 0.3)).translate(0, 0, -10), 'steel'],
-   [sh(cyl(1.2, 5, 'z', -257.4, -41.6, -10, 10)), 'steel']]);
+  [[sh(profR([[-259, -40], [-255.6, -40.6], [-256, -44], [-260, -49.4], [-262, -48.4]], 2, 0.3)).translate(0, 0, -8.4), 'steel'],
+   [sh(cyl(1.2, 5, 'z', -257.4, -41.6, -8.4, 10)), 'steel']]);
 
 // trigger: the body inside the gearbox and the long MP5 blade below it, traced from the photo
 const TRG_PV = [X(789), Y(300)];
@@ -1003,7 +1010,7 @@ part('trigger', 'Trigger + spring, trigger lever', 'gbx', ['08-19', '08-20', '08
   'The MP5 gearbox\'s own trigger, longer than a V2\'s so it reaches down through the lower to the guard. Pulling it pushes the switch closed; the spring returns it.',
   [[profR(P([[781, 298], [797, 292], [810, 302], [828, 330], [825, 354], [823, 372], [819, 390], [812, 405], [803, 418], [800, 412], [797, 400], [797, 385],
     [800, 370], [806, 354], [800, 335], [785, 316], [778, 306]]), 7, 1), 'blued'],
-   [cyl(1.5, 30, 'z', ...TRG_PV, 0, 12), 'steel'], [spring(1.6, 0.3, 8, 5, 'x', TRG_PV[0] + 2, TRG_PV[1] - 8, 4), 'spring']]);
+   [cyl(1.5, 22, 'z', ...TRG_PV, 0, 12), 'steel'], [spring(1.6, 0.3, 8, 5, 'x', TRG_PV[0] + 2, TRG_PV[1] - 8, 4), 'spring']]);
 
 part('switch', 'Switch assembly + springs, screw', 'gbx', ['08-33', '08-31', '08-32'], [-290, 10, -70],
   'Trigger contacts. The trigger closes them, the motor runs; the cut-off lever lifts them open once per cycle on semi.',
@@ -1024,12 +1031,12 @@ part('tappet', 'Tappet plate + spring', 'gbx', ['08-42', '08-43'], [-190, 70, -1
 
 part('selPlate', 'Selector plates + block, spring, nut', 'gbx', ['08-35', '08-34', '08-28', '08-27', '08-29', '08-30'], [-250, 80, 140],
   'Slotted plates along the right of the gearbox that the selector gears move, setting the switch for safe, semi or full auto. VFC numbers four plates and blocks here; their shapes are simplified.',
-  [[cut(bx(GX(160), GX(520), GY(300), GY(282), SHELL_Z, SHELL_Z + 0.9), [bx(GX(330), GX(420), GY(296), GY(287), 10, 20)]), 'steel'],
-   [bx(GX(440), GX(470), GY(300), GY(270), SHELL_Z + 0.9, SHELL_Z + 2.2), 'steel']]);
+  [[cut(bx(-170, GX(520), GY(300), GY(282), BODY_Z, BODY_Z + 0.9), [bx(GX(330), GX(420), GY(296), GY(287), 10, 20)]), 'steel'],
+   [bx(GX(440), GX(470), GY(300), GY(270), BODY_Z + 0.9, BODY_Z + 2.2), 'steel']]);
 
 part('rearBlock', 'Rear block + screws', 'gbx', ['08-46', '08-44', '08-45'], [-320, 110, 0],
   'Block behind the gearbox in the back of the lower. Its long screw holds the spring guide: D-RZ takes it out first when lifting the gearbox from the lower.',
-  [[bx(GX(40) - 10, GX(40), -14, 14, -12, 12), 'nylon'], [cyl(1.5, 28, 'x', GX(40) - 2, 0, 0, 12), 'steel']]);
+  [[bx(GB_REAR - 11.5, GB_REAR - 1.5, -14, 14, -12, 12), 'nylon'], [cyl(1.5, 28, 'x', GB_REAR - 3.5, 0, 0, 12), 'steel']]);
 
 part('wiring', 'Wiring + connector', 'gbx', ['08-47', '08-48'], [-200, 150, -70],
   'Leads from the switch along the top of the gearbox, out through the hole in the front of the receiver to the battery connector in the handguard. Feeding them through that hole is the fiddly part of reassembly.',
@@ -1263,6 +1270,8 @@ info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.
 const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/downloads/Umarex_MP5_A5_AEG_Asia_Edition_PartsList.pdf">VFC Umarex MP5 A5 AEG parts list</a> (exploded drawing, part numbers and codes),
 <a href="https://www.vegaforce.com/product/index?idno=47&cname=Umarex+HK+Licensed+AEG&lang=en">VFC Umarex HK AEG product page</a> (specs, and the side photo the outside is traced from),
 <a href="https://www.youtube.com/watch?v=yAk1HI4xbGk">D-RZ Airsoft, MP5 gearbox removal</a> (strip order, the V2 gearbox and its long trigger),
+<a href="https://www.printables.com/model/778454">Siris Rui, V2 gearbox 3D scan on Printables</a> (the shell's outline and round section),
+<a href="https://www.airsoftzone.com/en/p/v2-gearbox-shell-8mm-g2-enhanced-109097/">Airsoftzone, G&amp;G V2 shell</a> (its size),
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
