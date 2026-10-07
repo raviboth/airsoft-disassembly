@@ -665,8 +665,8 @@ const stockSide = P([[50, 327], [200, 326], [318, 325], [328, 329], [340, 338], 
   [437, 318], [446, 312], [940, 311], [946, 316], [948, 325], [945, 337], [938, 346], [900, 352], [760, 359], [600, 366], [520, 368], [511, 370],
   [442, 371], [425, 375], [405, 383], [388, 395], [376, 410], [368, 425], [360, 440], [345, 442.5], [322, 438], [303, 429], [297, 422], [291, 417],
   [200, 441], [100, 470], [50, 483]]);
-// half widths seen from above: broad butt, slim wrist, then the action and the forend
-const STOCK_HW = [[-496, 20], [-300, 20.5], [-262, 16], [-205, 16], [-180, 19.5], [150, 19.5], [222, 17], [230, 12]];
+// half widths seen from above, scaled from the H-S PSS009 Remington 700 ADL sporter stock (grip 1.61in, forend 1.94in at the action and 1.47in at the tip)
+const STOCK_HW = [[-496, 20], [-300, 20.5], [-262, 18], [-205, 18], [-180, 21.5], [-142, 23.5], [0, 23.5], [60, 22], [150, 19.5], [222, 18.5], [230, 12]];
 const stockHW = x => { const h = STOCK_HW; if (x <= h[0][0]) return h[0][1];
   for (let i = 1; i < h.length; i++) if (x <= h[i][0]) return h[i - 1][1] + (h[i][1] - h[i - 1][1]) * (x - h[i - 1][0]) / (h[i][0] - h[i - 1][0]);
   return h[h.length - 1][1]; };
