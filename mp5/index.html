@@ -669,7 +669,6 @@ const D2R = Math.PI / 180;
 // ---------- key dimensions ----------
 const MUZ = X(83);                                   // end of the 14mm thread, 216
 const TL = [X(160), X(113)];                         // tri-lug collar
-const FS = [X(199), X(158)];                         // front sight housing
 const CT = { y: Y(150.5), r: 7, x0: 1.5, x1: X(199) };   // cocking tube, welded along the top of the receiver
 const RCV = { x0: X(990), x1: X(470), xb: 1.5, top: Y(131), bot: Y(250), tc: 17.35, tr: 19.65 };   // receiver: back, nose, front below the tube; round top's centre and radius
 const HG = { x0: 1.5, x1: X(199), top: Y(168), bot: Y(275), hw: 22 };
@@ -698,23 +697,39 @@ part('outerBarrel', 'Outer barrel', 'frt', ['03-2'], [200, -50, 0],
    [cut(tube(9, 11, -6, 18, 32), [-6, 0.5, 6].flatMap(x => [0, 90].map(a => bx(x - 1, x + 1, -12, 12, -1.2, 1.2).rotateX(a * D2R)))), 'blued'],
    [latheX([[7.4, 14], [11, 14], [11, 18], [7.4, 22]], 32), 'blued']]);
 
-const fsSide = P([[199, 133], [199, 240], [196, 240], [161, 240], [158, 236], [158, 136], [161, 133]]);
-part('frontSight', 'Front sight housing', 'frt', ['05-2'], [200, 80, 0],
-  'Hooded front sight: the ring at the top shields the post, the middle ring rides on the cocking tube and the bottom ring clamps the barrel. Comes off forward with the barrel.',
-  [[cut(slab(fsSide, -10, 10), [cyl(CT.r + 0.3, 40, 'x', 170, CT.y, 0, 24), cyl(7.5, 40, 'x', 170, 0, 0, 24)]), 'blued'],
-   [latheX([[11.5, X(199)], [14.3, X(199)], [14.3, X(165)], [12.5, X(162)], [11.5, X(162)], [11.5, X(199)]], 36, Y(100)), 'blued'],
-   [latheX([[CT.r + 0.3, X(199)], [11, X(199)], [11, X(158)], [CT.r + 0.3, X(158)]], 32, CT.y), 'blued'],
-   [latheX([[7.5, X(199)], [12.7, X(199)], [12.7, X(161)], [7.5, X(161)]], 32), 'blued'],
-   [bx(X(196), X(166), Y(132), Y(122), -11.5, 11.5), 'blued']]);
+// front sight tower, from HK Parts' photos of the bare part: three rings one above another (hood, cocking tube, barrel)
+// joined by pinched webs. Ring sizes from the end-on photo, scaled so the lower two land on the tube and barrel axes; the
+// hood's height, the tower's length and the hood's raked front from VFC's left side photo.
+const FS_RINGS = [{ c: 53, r: 12.5, h: 10.3 }, { c: CT.y, r: 12.5, h: CT.r + 0.3 }, { c: 0, r: 12, h: 7.5 }];
+const FS_X = [X(200), X(162)];
+const fsOutline = (() => {
+  const R = FS_RINGS, top = R[0].c + R[0].r, bot = R[2].c - R[2].r, half = [];
+  const hw = y => Math.max(0, ...R.map(({ c, r }) => Math.abs(y - c) < r ? Math.sqrt(r * r - (y - c) ** 2) : 0),
+    ...[0, 1].map(i => { const m = (R[i].c + R[i + 1].c) / 2, h = (R[i].c - R[i + 1].c) / 2, ra = (R[i].r + R[i + 1].r) / 2, w = 0.55 * ra;
+      return Math.abs(y - m) <= h ? w + (ra - w) * ((y - m) / h) ** 2 : 0; }));
+  const n = 160;
+  for (let i = 0; i <= n; i++) { const y = top - (top - bot) * (1 - Math.cos(Math.PI * i / n)) / 2; half.push([hw(y), y]); }
+  return [...half, ...half.slice(1, -1).reverse().map(([z, y]) => [-z, y])];
+})();
+part('frontSight', 'Front sight tower', 'frt', ['05-2'], [200, 80, 0],
+  'Front sight tower: three rings one above another, joined by pinched webs. The top ring is the hood round the post, slimmer than the others and raked at the front; the middle ring takes the front of the cocking tube, closed by its cap; the bottom ring clamps the barrel. The roll pin through the upper web holds the post. Comes off forward with the barrel.',
+  (() => {
+    const t = FS_X[1] - FS_X[0], k = (180.5 - 173.7) / (64 - 37.5);
+    const body = profR(fsOutline, t, 1.2, FS_RINGS.map(({ c, h }) => circ(0, c, h, 40))).rotateY(Math.PI / 2).translate((FS_X[0] + FS_X[1]) / 2, 0, 0);
+    // the hood's raked front: push the points ahead of the slope back onto it (a CSG cut here tears the ring's bore)
+    const p = body.attributes.position;
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y > 37.5) p.setX(i, Math.min(p.getX(i), FS_X[1] - (y - 37.5) * k)); }
+    body.computeVertexNormals();
+    return [[cut(body, [cyl(0.9, 40, 'x', 170, 40.6, 0, 10), cyl(1.5, 30, 'z', X(178), 9.6, 0, 12)]), 'blued']];   // post roll pin, sling loop hole
+  })());
 
 part('fsPost', 'Front sight post drum', 'frt', ['05-1'], [200, 150, 0],
-  'Knurled drum in the bottom of the hood carrying the post. Turning it moves the post up or down to zero the sights for elevation.',
-  [[latheX([[0, X(190)], [7, X(190)], [7, X(170)], [0, X(170)]], 24, Y(122) + 2), 'steel'],
-   [bx(X(181), X(179), Y(122) + 2, Y(104), -1, 1), 'blued']]);
+  'Post standing up from the bottom of the hood ring on a small threaded drum set in the tower and locked by the roll pin. Turning it moves the post up or down to zero the sights for elevation.',
+  [[cyl(2.4, 5, 'y', 171, 40.4, 0, 16), 'steel'], [cut(bx(170, 172, 42.4, 48.5, -1, 1), [bx(169, 173, 46, 50, 0.5, 2).rotateX(-0.25), bx(169, 173, 46, 50, -2, -0.5).rotateX(0.25)]), 'blued']]);
 
 part('slingLoop', 'Sling loop (front)', 'frt', ['05-3'], [200, 40, -60],
-  'Eye screw on the left of the front sight housing for a sling.',
-  [[torus(4, 1.1, 'z', X(178), Y(205), -13.5), 'steel'], [cyl(1.6, 6, 'z', X(178), Y(205), -10.5, 12), 'steel']]);
+  'Steel loop on the left of the tower above the barrel ring, lying flat, for a sling. Its stem goes through the lower web.',
+  [[torus(4.2, 1.1, 'y', X(178), 9.6, -17.5), 'steel'], [cyl(1.4, 13, 'z', X(178), 9.6, -7.5, 12), 'steel']]);
 
 // handguard: side traced from the photo, rounded sections, hollow for the battery and the barrel
 const hgSide = P([[560, 168], [214, 168], [205, 172], [199, 182], [199, 260], [205, 270], [214, 275], [560, 275]]);   // back top, round the nose, back bottom (loftX order)
@@ -797,8 +812,9 @@ part('barrelScrews', 'Barrel set screws (x4)', 'rcv', ['01-5'], [40, -40, -80],
   [0, 1, 2, 3].map(k => { const a = (45 + 90 * k) * D2R; return [cyl(2, 4, 'y', 0, 0, 0, 12).translate(0, 13, 0).rotateX(a).translate(-3, 0, 0), 'steel']; }));
 
 part('cockTubeCap', 'Cocking tube cap', 'rcv', ['01-1'], [230, 140, 0],
-  'Cap closing the front of the cocking tube, ahead of the front sight.',
-  [[latheX([[0, X(158) - 1], [8, X(158) - 1], [8, X(158) + 2.5], [7, X(158) + 3.5], [0, X(158) + 3.5]], 28, CT.y), 'blued']]);
+  'Cap closing the front of the cocking tube, in the middle ring of the front sight tower: a flat face inside a knurled rim.',
+  [[latheX([[0, FS_X[1] - 1.5], [10.4, FS_X[1] - 1.5], [10.4, FS_X[1] + 2.2], [9.6, FS_X[1] + 2.9], [6.6, FS_X[1] + 2.9], [6.2, FS_X[1] + 2.6], [0, FS_X[1] + 2.6]], 36, CT.y), 'blued'],
+   [mergeGeometries(Array.from({ length: 48 }, (_, i) => bx(FS_X[1] - 1, FS_X[1] + 2.1, -0.5, 0.5, -0.45, 0.45).translate(0, 10.45, 0).rotateX(i * 7.5 * D2R).translate(0, CT.y, 0))), 'blued']]);
 
 part('cockHandle', 'Cocking handle', 'rcv', ['01-3'], [0, 95, -40],
   'H&K cocking handle: a round steel stem through the slot in the left of the cocking tube, pinned into the cocking piece, and a chunky black knob on its end. The knob is a rounded block, taller above the stem than below and fullest at its outer end, with a checkered patch on its front face and ribs below it. On the AEG it only works the dummy bolt: pull it back and lock it up in the notch at the back of the slot, and the ejection port opens over the hop-up.',
@@ -1386,6 +1402,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot and which way the handle's checkering faces, the finish),
 <a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
+<a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
