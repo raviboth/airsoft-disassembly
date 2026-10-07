@@ -789,6 +789,7 @@ part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0
       secX(recSec(RCV_IN, RCV.tr - 1.3, 19.9), RCV.x0 - 2, 0),                          // hollow, open at the back
       bx(RCV.xb, RCV.x1 + 2, -30, 21, -30, 30),                                       // below the tube in front: handguard and barrel
       cyl(13.5, 6, 'x', 0, 0, 0, 32),                                                 // barrel and hop-up opening in the front wall
+      cyl(CT.r - 1, RCV.x1 + 6, 'x', RCV.x1 / 2, CT.y, 0, 24),                         // the cocking tube's bore, on through the nose into the receiver
       bx(-48, -10.4, -20, -12, -12.8, 12.8),                                           // magazine well opening
       bx(X(985), X(688), -20, -12, -15.5, 15.5),                                       // lower receiver opening
       slab(rr(-50, -8, 5.5, 17.6, 5.9, 5), 8, 30),                                     // ejection port (right), round-ended
@@ -796,7 +797,7 @@ part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0
       ...[[575, 614], [732, 771]].map(([a, b]) => ring(X(b), X(a), RCV.tr - 0.7, 30, 22.6, 29.8)),   // claw mount pockets, both sides
       ...[1, -1].map(s => cyl(2.2, 1.6, 'z', X(594), Y(214), s * 19.3, 20))]);         // pressed dimple at the front of each side
     const tubeG = cut(latheX([[0, CT.x0], [CT.r, CT.x0], [CT.r, CT.x1], [0, CT.x1]], 28, CT.y),
-      [latheX([[0, CT.x0 + 5], [CT.r - 1, CT.x0 + 5], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), bx(X(505), X(310), CT.y - 1.6, CT.y + 1.6, -10, -3), bx(X(505), X(493), CT.y - 1.6, CT.y + 5, -10, -2)]);
+      [latheX([[0, CT.x0 - 1], [CT.r - 1, CT.x0 - 1], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), bx(X(505), X(310), CT.y - 1.6, CT.y + 1.6, -10, -3), bx(X(505), X(493), CT.y - 1.6, CT.y + 5, -10, -2)]);
     const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(1.6, 40, 'z', X(685), Y(332), 0, 12)]);
     // claw mount tab welded on top: a curved saddle with a lip at each end
     const tab = cut(ring(X(772), X(729), RCV.tr - 0.2, RCV.tr + 1.2, 30, 60), [bx(X(772) - 1, X(729) + 1, 0, 60, 8, 30), bx(X(772) - 1, X(729) + 1, 0, 60, -30, -8)]);
@@ -812,8 +813,9 @@ part('barrelScrews', 'Barrel set screws (x4)', 'rcv', ['01-5'], [40, -40, -80],
   [0, 1, 2, 3].map(k => { const a = (45 + 90 * k) * D2R; return [cyl(2, 4, 'y', 0, 0, 0, 12).translate(0, 13, 0).rotateX(a).translate(-3, 0, 0), 'steel']; }));
 
 part('cockTubeCap', 'Cocking tube cap', 'rcv', ['01-1'], [230, 140, 0],
-  'Cap closing the front of the cocking tube, in the middle ring of the front sight tower: a flat face inside a knurled rim.',
-  [[latheX([[0, FS_X[1] - 1.5], [10.4, FS_X[1] - 1.5], [10.4, FS_X[1] + 2.2], [9.6, FS_X[1] + 2.9], [6.6, FS_X[1] + 2.9], [6.2, FS_X[1] + 2.6], [0, FS_X[1] + 2.6]], 36, CT.y), 'blued'],
+  'Cap screwed into the front of the cocking tube, in the middle ring of the front sight tower: a recessed face with a screwdriver slot across it, inside a knurled rim.',
+  [[cut(latheX([[0, FS_X[1] - 1.5], [10.4, FS_X[1] - 1.5], [10.4, FS_X[1] + 2.2], [9.6, FS_X[1] + 2.9], [6.6, FS_X[1] + 2.9], [6.2, FS_X[1] + 2.6], [0, FS_X[1] + 2.6]], 36, CT.y),
+    [bx(FS_X[1] + 1.5, FS_X[1] + 3.5, CT.y - 6.4, CT.y + 6.4, -0.7, 0.7)]), 'blued'],
    [mergeGeometries(Array.from({ length: 48 }, (_, i) => bx(FS_X[1] - 1, FS_X[1] + 2.1, -0.5, 0.5, -0.45, 0.45).translate(0, 10.45, 0).rotateX(i * 7.5 * D2R).translate(0, CT.y, 0))), 'blued']]);
 
 part('cockHandle', 'Cocking handle', 'rcv', ['01-3'], [0, 95, -40],
@@ -837,13 +839,30 @@ part('cockHandle', 'Cocking handle', 'rcv', ['01-3'], [0, 95, -40],
       [place(cyl(3.25, u0 + 4, 'x', (u0 - 4) / 2, 0, 0, 16)), 'blued'], [place(cyl(0.8, 7.2, 'z', -1.5, 0, 0, 8)), 'steel']];
   })());
 
+// cocking piece (H&K's cocking lever support), shaped from HK Parts' photos of the part and VFC's drawing: a tube, hollow at
+// the back for the spring, stepped down twice at the front. The handle's stem goes through the big cross hole in the first step.
+const CP = { x0: 34.7, x1: 85.7, x2: 101, x3: 111 };
+const CB_X = -55.6;   // cocking tube bracket: the spring's rear seat, inside the receiver top behind the ejection port
 part('cockPiece', 'Cocking piece + spring', 'rcv', ['01-4', '01-6'], [0, 150, 0],
-  'Plunger inside the cocking tube that the handle hooks into, and the spring that returns it forward.',
-  [[latheX([[0, 70], [5.5, 70], [5.5, 120], [3, 124], [0, 124]], 20, CT.y), 'steel'], [spring(4.8, 0.5, 38, 14, 'x', 124, CT.y, 0), 'spring']]);
+  'Plunger that slides in the cocking tube, with the cocking handle\'s stem through the cross hole in its stepped front. Its back is a hollow sleeve holding the front of the spring; the spring runs back into the receiver top to the bracket and pushes the piece and handle forward again after cocking.',
+  [[cut(latheX([[4.4, CP.x0], [5.8, CP.x0], [5.8, CP.x1 - 0.6], [5.2, CP.x1], [4.4, CP.x1], [4.4, CP.x2 - 0.5], [3.9, CP.x2], [3.3, CP.x2], [3.3, CP.x3 - 0.4], [2.9, CP.x3], [0, CP.x3], [0, CP.x0 + 45], [4.4, CP.x0 + 45]], 28, CT.y), [
+     cyl(3.4, 14, 'z', X(351), CT.y, 0, 16),                  // the handle's stem
+     cyl(0.9, 14, 'y', CP.x1 + 2.6, CT.y, 0, 10),            // small cross hole behind it
+     cyl(0.8, 10, 'y', CP.x2 + 4, CT.y, 0, 10),              // catch pin hole in the nose
+     bx(CP.x3 - 2.6, CP.x3 + 1, CT.y - 4, CT.y + 4, -0.8, 0.8)]), 'blued'],   // notch across the front
+   [spring(3.7, 0.45, CP.x0 + 43 - CB_X - 0.6, 24, 'x', CB_X + 0.6, CT.y, 0), 'spring']]);
 
-part('cockBracket', 'Cocking tube bracket + screws', 'rcv', ['01-7', '01-8'], [30, 120, 50],
-  'Small bracket at the back of the cocking tube, held by two screws. Its role is read off the drawing (it sits where the tube meets the receiver top).',
-  [[bx(36, 44, Y(131) - 1, Y(131) + 2.5, -7, 7), 'steel'], ...[-4, 4].map(z => [cyl(1.4, 4, 'y', 40, Y(131) + 2, z, 10), 'steel'])]);
+part('cockBracket', 'Cocking tube bracket + screws', 'rcv', ['01-7', '01-8'], [-30, 120, 50],
+  'Small bent steel plate inside the top of the receiver that the cocking spring pushes against, held by two screws. Its outline, the tab bent over at the top and the two screws are from VFC\'s exploded drawing; where it sits is read off the same drawing, as no photo of the part turned up.',
+  (() => {
+    // outline in (z, y) from the tube's axis: plate, one corner rounded to fit under the receiver's round top, an ear on the left
+    const PL = [[4.5, -5], [4.5, 1], ...arcPts(0, 1, 4.5, 0, 90, 8).slice(1), [-4.5, 5.5], [-4.5, -1], [-6.6, -1], ...arcPts(-6.6, -3, 2, 90, 270, 8).slice(1), [-4.5, -5]];
+    const holes = [[1.4, 0], [-6.6, -3]];
+    const plate = cut(slab(PL.map(([z, y]) => [-z, y]), -0.6, 0.6).rotateY(Math.PI / 2).translate(CB_X, CT.y, 0), holes.map(([z, y]) => cyl(0.9, 4, 'x', CB_X, CT.y + y, z, 10)));
+    const tab = bx(CB_X - 4, CB_X + 0.6, CT.y + 4.3, CT.y + 5.5, -4.5, -1);
+    const screws = holes.flatMap(([z, y]) => [cyl(1.5, 1.4, 'x', CB_X - 1.3, CT.y + y, z, 12), cyl(0.8, 5, 'x', CB_X + 2, CT.y + y, z, 8)]);
+    return [[plate, 'steel'], [tab, 'steel'], ...screws.map(g => [g, 'steel'])];
+  })());
 
 part('dummyBolt', 'Dummy bolt + guide rod, spring, E-clip', 'rcv', ['01-16', '01-17', '01-18', '01-19'], [-20, 0, 110],
   'Curved plate behind the ejection port that plays the bolt. The cocking handle draws it back on its guide rod against the spring, uncovering the hop-up; the E-clip keeps the rod in.',
@@ -1404,6 +1423,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
 <a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
+<a href="https://hkparts.net/cocking-tubes-charging-handles/hk-mp5-hk94-cocking-tube-support-spring/">HK Parts, MP5 cocking tube support</a> (the cocking piece's steps and holes),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
