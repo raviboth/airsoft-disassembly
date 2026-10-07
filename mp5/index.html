@@ -874,14 +874,14 @@ part('rearSight', 'Rear sight (drum and base), detent, screws', 'rcv', ['05-4', 
 // with a crossed-out bullet for safe, under the lever, and red boxes with one bullet (semi), three (burst) and a long band
 // of bullets (full auto), with leader lines toward the lever. SM maps that photo's pixels onto VFC's side photo: turned 2
 // degrees level, mirrored, and scaled by the lever (its hub at 268,195 sits on the selector shaft, 122px to the tail tip).
-const SM = (x, y) => { const a = 2 * D2R, u = x - 268, v = y - 195, f = 0.349;
+const SM = (x, y, deg = 2) => { const a = deg * D2R, u = x - 268, v = y - 195, f = 0.349;
   return [845 - f * (u * Math.cos(a) - v * Math.sin(a)), 290 + f * (u * Math.sin(a) + v * Math.cos(a))]; };
 function pictos(x0, x1, y0, y1, z) {
   const W = 1024, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const c = cv.getContext('2d'), s = W / (x1 - x0);
   // on the left face the plane is turned to face out, which puts the canvas's left edge at the front (x1)
-  const toC = (px, py) => { const [a, b] = SM(px, py); return [(z < 0 ? x1 - X(a) : X(a) - x0) * s, (y1 - Y(b)) * s]; };
+  const toC = (px, py) => { const [a, b] = SM(px, py, 0); return [(z < 0 ? x1 - X(a) : X(a) - x0) * s, (y1 - Y(b)) * s]; };
   const path = pts => { c.beginPath(); pts.forEach((p, k) => c[k ? 'lineTo' : 'moveTo'](...toC(...p))); };
   const RED = '#e0482a', lw = 0.5 * s;
   c.lineWidth = lw; c.lineJoin = 'round';
@@ -892,11 +892,10 @@ function pictos(x0, x1, y0, y1, z) {
     const pts = [...Array.from({ length: 9 }, (_, k) => { const t = Math.PI / 2 + Math.PI * k / 8; return [b0 + r + r * Math.cos(t), cy - r * Math.sin(t)]; }),
       [n0, cy + r], [cx + len / 2, cy], [n0, cy - r], [b0 + r, cy - r]];
     c.strokeStyle = col; path(pts); c.stroke(); };
-  // full auto: a band closed at its back end, open at the front
-  line([[450, 104], [130, 114], [130, 145], [450, 130]], RED);
-  for (let k = 0; k < 7; k++) { const x = 147 + k * 44.5; bullet(x, 129.5 - (x - 130) * 12.5 / 320, RED); }
-  box(330, 162, 468, 190, RED); [353, 398, 443].forEach(x => bullet(x, 176, RED)); line([[312, 181], [330, 177]], RED);   // burst
-  box(337, 220, 388, 246, RED); bullet(362, 233, RED); line([[307, 222], [337, 237]], RED);                           // semi
+  // the photo is shot at an angle; here every box is level and square to the receiver, all the same height
+  box(130, 110, 452, 138, RED); for (let k = 0; k < 7; k++) bullet(155 + k * 45.3, 124, RED);                         // full auto
+  box(330, 162, 468, 190, RED); [353, 398, 443].forEach(x => bullet(x, 176, RED)); line([[312, 176], [330, 176]], RED);   // burst
+  box(337, 220, 388, 248, RED); bullet(362.5, 234, RED); line([[307, 222], [337, 234]], RED);                         // semi
   // safe: white box, a bullet crossed out in black, and a white leader up to the lever's pointer
   c.fillStyle = '#f2f2f2'; path([[267, 266], [322, 266], [322, 294], [267, 294]]); c.fill();
   bullet(294.5, 280, '#111', 34, 13); line([[276, 270], [313, 290]], '#111'); line([[276, 290], [313, 270]], '#111');
