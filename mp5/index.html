@@ -801,20 +801,24 @@ part('cockTubeCap', 'Cocking tube cap', 'rcv', ['01-1'], [230, 140, 0],
   [[latheX([[0, X(158) - 1], [8, X(158) - 1], [8, X(158) + 2.5], [7, X(158) + 3.5], [0, X(158) + 3.5]], 28, CT.y), 'blued']]);
 
 part('cockHandle', 'Cocking handle', 'rcv', ['01-3'], [0, 95, -40],
-  'H&K cocking handle: a round steel stem through the slot in the left of the cocking tube, pinned into the cocking piece, and a black paddle knob standing up on its end, checkered on its outer face with ribs round its rounded top. On the AEG it only works the dummy bolt: pull it back and lock it up in the notch at the back of the slot, and the ejection port opens over the hop-up.',
+  'H&K cocking handle: a round steel stem through the slot in the left of the cocking tube, pinned into the cocking piece, and a chunky black knob on its end. The knob is a rounded block, taller above the stem than below and fullest at its outer end, with a checkered patch on its front face and ribs below it. On the AEG it only works the dummy bolt: pull it back and lock it up in the notch at the back of the slot, and the ejection port opens over the hop-up.',
   (() => {
-    // the stem runs straight out of the slot to the left; the paddle stands on its end, broad faces left and right, narrow
-    // at the stem and rounded at the top. Size and shape from HK Parts' photos, position from VFC's left side photo.
-    const kx = X(351), cy = Y(138), zo = -18.5;                       // paddle centre: its face's round top is centred here
-    const fan = [[-4.5, CT.y - 4.5], [-7.5, CT.y - 1], ...arcPts(0, cy, 10, 220, -40, 26), [7.5, CT.y - 1], [4.5, CT.y - 4.5]].map(([x, y]) => [kx + x, y]);
-    const pyr = [], ribs = [];
-    for (let x = -8; x <= 8; x += 1.6) for (let y = CT.y - 3; y <= cy + 9; y += 1.6) {
-      if (Math.hypot(x, y - cy) > 8 && (y > cy || Math.abs(x) > 3.6 + (y - CT.y + 3) * 0.6)) continue;
-      pyr.push(new THREE.ConeGeometry(0.85, 0.6, 4, 1).rotateY(Math.PI / 4).rotateX(-Math.PI / 2).translate(kx + x, y, zo - 4.7));
-    }
-    for (let k = 0; k <= 16; k++) { const t = (-30 + k * 15) * D2R; ribs.push(bx(9.6, 10.5, -0.45, 0.45, -2.5, 2.5).rotateZ(t).translate(kx, cy, zo)); }
-    return [[zAt(profR(fan, 9, 1.8), zo), 'black'], [mergeGeometries([...pyr, ...ribs].map(q => q.toNonIndexed())), 'black'],
-      [cyl(3.2, 18, 'z', kx, CT.y, -7, 16), 'blued'], [cyl(0.8, 7.2, 'x', kx, CT.y, -3, 8), 'steel']];
+    // knob outline seen from the front (u out from the knob's inner face, v up from the stem's axis), traced from HK Parts'
+    // end-on photo with the 6.5mm stem as the scale; the stem leans up 8 degrees out of the slot, after VFC's left side photo
+    const KNOB = [[0, -3.6], [1.1, -3.6], [3.2, -6.1], [5.3, -7.4], [7.3, -8.1], [9.4, -8.4], [11.5, -8.4], [13.5, -7.9], [15.6, -6.9], [17.6, -5.2], [19.7, -1.8],
+      [20.6, 1.5], [19.7, 4.9], [17.6, 8.5], [15.6, 10.4], [13.5, 11], [11.5, 9.5], [9.4, 8.3], [7.3, 7.3], [5.3, 6.5], [3.2, 5.9], [1.1, 5.7], [0, 5.7]];
+    const kx = X(351), b = 8 * D2R, u0 = 11.5, T = 17;          // knob's inner face u0 out from the tube's axis; thickness along the gun
+    const d = new THREE.Vector3(0, Math.sin(b), -Math.cos(b)), up = new THREE.Vector3(0, Math.cos(b), Math.sin(b));
+    const place = g => g.applyMatrix4(new THREE.Matrix4().makeBasis(d, up, new THREE.Vector3(1, 0, 0))).translate(kx, CT.y, 0);
+    const inside = (p, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j];
+      if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) c = !c; } return c; };
+    const face = shrink(KNOB, 3.4).map(([u, v]) => [u + u0, v]), bumps = [];
+    for (let u = u0 + 2; u <= u0 + 20; u += 1.2) for (let v = -7.6; v <= 11; v += 1.2)
+      if (inside([u, v], face)) bumps.push(v > -0.8 - 0.3 * (u - u0 - 6)
+        ? new THREE.ConeGeometry(0.6, 0.45, 4, 1).rotateY(Math.PI / 4).rotateX(Math.PI / 2).translate(u, v, T / 2 + 0.25)    // checkering
+        : bx(-0.25, 0.25, -0.6, 0.6, 0, 0.5).translate(u, v, T / 2 - 0.1));                                         // ribs
+    return [[place(zAt(profR(KNOB.map(([u, v]) => [u + u0, v]), T, 4), 0)), 'black'], [place(mergeGeometries(bumps.map(q => q.toNonIndexed()))), 'black'],
+      [place(cyl(3.25, u0 + 4, 'x', (u0 - 4) / 2, 0, 0, 16)), 'blued'], [place(cyl(0.8, 7.2, 'z', -1.5, 0, 0, 8)), 'steel']];
   })());
 
 part('cockPiece', 'Cocking piece + spring', 'rcv', ['01-4', '01-6'], [0, 150, 0],
@@ -1380,9 +1384,9 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://gunmagwarehouse.com/hk-mp5-sp5-hk94-9mm-30-round-magazine.html">GunMag Warehouse, H&amp;K MP5 30-round magazine</a> (six views: the magazine's curve, side ribs, dimples, catch notch and floorplate),
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
-<a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
+<a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot and which way the handle's checkering faces, the finish),
 <a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
-<a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and checkered paddle),
+<a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
