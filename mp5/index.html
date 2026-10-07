@@ -897,11 +897,26 @@ const LOWG = smooth(P([[714, 354], [722, 386], [731, 414], [738, 432], [754, 439
 const GRIP = P([[836, 345], [941, 345], [942, 352], [950, 385], [970, 415], [1000, 455], [1030, 495], [1027, 507], [1010, 520], [985, 537], [958, 552],
   [937, 560], [924, 557], [917, 540], [905, 505], [885, 452], [866, 428], [858, 405], [850, 378]]);
 const SEL_PV = [X(845), Y(290)], SEL_TIP = [X(882), Y(257)];
-// selector paddle: a round hub and a broad rounded tip joined by their outer tangents, from VFC's close-up
-function paddle() {
-  const [x0, y0] = SEL_PV, [x1, y1] = SEL_TIP, r0 = 7.6, r1 = 6.4, L = Math.hypot(x1 - x0, y1 - y0);
-  const t = Math.atan2(y1 - y0, x1 - x0) / D2R, f = Math.asin((r0 - r1) / L) / D2R;
-  return [...arcPts(x1, y1, r1, t - 90 - f, t + 90 + f, 12), ...arcPts(x0, y0, r0, t + 90 + f, t + 270 - f, 16)];
+// selector lever: traced from HK Parts' side photo of an H&K ambi lever (608px), a big round hub on the shaft with the
+// white pointer stripe, tapering to a thumb tail with one straight edge; turned so the tail points up and back on safe as
+// in VFC's photo. 26mm long, thinner toward the tail. HK_SEL is in that photo's pixels, its pivot at (195, 315).
+const HK_SEL = [[190, 167], [240, 175], [285, 200], [320, 235], [355, 275], [390, 300], [440, 320], [500, 330], [535, 345], [560, 370], [575, 400],
+  [570, 440], [555, 465], [520, 475], [450, 476], [370, 474], [290, 470], [220, 465], [160, 450], [120, 420], [85, 385], [60, 345], [50, 305],
+  [60, 260], [85, 215], [130, 182]];
+const selPt = (() => { const k = 26 / 525, a = Math.atan2(SEL_TIP[1] - SEL_PV[1], SEL_TIP[0] - SEL_PV[0]) - Math.atan2(-85, 380);
+  return ([u, v]) => { const x = (u - 195) * k, y = (315 - v) * k;
+    return [SEL_PV[0] + x * Math.cos(a) - y * Math.sin(a), SEL_PV[1] + x * Math.sin(a) + y * Math.cos(a)]; }; })();
+function selLever(z, sg) {
+  const g = profR(HK_SEL.map(selPt), 4.4, 0.8), p = g.attributes.position;
+  const [tx, ty] = selPt([575, 400]), L = Math.hypot(tx - SEL_PV[0], ty - SEL_PV[1]);
+  // thinner toward the tail: each face one sloping plane
+  const thin = (x, y) => 1 - 0.4 * ((x - SEL_PV[0]) * (tx - SEL_PV[0]) + (y - SEL_PV[1]) * (ty - SEL_PV[1])) / (L * L);
+  for (let i = 0; i < p.count; i++) p.setZ(i, p.getZ(i) * thin(p.getX(i), p.getY(i)));
+  g.computeVertexNormals();
+  const [a, b] = selPt([105, 255]), [c, d] = selPt([180, 315]);
+  const stripe = bx(0, Math.hypot(c - a, d - b), -0.7, 0.7, -0.3, 0.3).rotateZ(Math.atan2(d - b, c - a))
+    .translate(a, b, z + sg * 2.2 * thin((a + c) / 2, (b + d) / 2));
+  return [[g.translate(0, 0, z), 'blued'], [stripe, 'white']];
 }
 part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250, -110, 0],
   'Polymer lower with the trigger guard and the pistol grip moulded in. The gearbox sits in it, held by two screws down the grip, and the motor is in the grip under a base plate. It slides back off the receiver once its pin is out.',
@@ -921,7 +936,7 @@ part('lowerPin', 'Lower receiver pin', 'low', ['02-2'], [-60, -60, -90],
 
 part('selector', 'Selector levers + detent', 'low', ['02-3', '02-10', '02-4', '02-5', '02-9'], [-250, -110, -60],
   'Ambidextrous selector: safe, semi and full auto, marked with the H&K bullet pictograms. The levers each side turn the selector gears; a ball and spring give the clicks.',
-  [[profR(paddle(), 3, 0.8).translate(0, 0, -17.3), 'blued'], [profR(paddle(), 3, 0.8).translate(0, 0, 17.3), 'blued'],
+  [...selLever(-19.6, -1), ...selLever(19.6, 1),
    [cyl(6.5, 2, 'z', ...SEL_PV, -16.6, 24), 'blued'], [cyl(6.5, 2, 'z', ...SEL_PV, 16.6, 24), 'blued']]);
 
 part('selGears', 'Selector gears + shaft', 'low', ['02-6', '02-7', '02-8'], [-250, -110, 60],
@@ -1298,6 +1313,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
 <a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
+<a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
