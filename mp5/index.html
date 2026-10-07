@@ -870,19 +870,37 @@ part('rearSight', 'Rear sight (drum and base), detent, screws', 'rcv', ['05-4', 
   })());
 
 // ================= LOWER RECEIVER AND GRIP =================
-// the red H&K selector pictograms (one bullet safe and crossed out, one bullet semi, a row of bullets in a box for full
-// auto), drawn on a canvas and laid on the left face of the lower like the decals
+// the H&K selector markings, from Airsoft GI's close-up of the A5's selector side (800px, muzzle to the right): a white box
+// with a crossed-out bullet for safe, under the lever, and red boxes with one bullet (semi), three (burst) and a long band
+// of bullets (full auto), with leader lines toward the lever. SM maps that photo's pixels onto VFC's side photo: turned 2
+// degrees level, mirrored, and scaled by the lever (its hub at 268,195 sits on the selector shaft, 122px to the tail tip).
+const SM = (x, y) => { const a = 2 * D2R, u = x - 268, v = y - 195, f = 0.349;
+  return [845 - f * (u * Math.cos(a) - v * Math.sin(a)), 290 + f * (u * Math.sin(a) + v * Math.cos(a))]; };
 function pictos(x0, x1, y0, y1, z) {
-  const W = 512, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
+  const W = 1024, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const c = cv.getContext('2d'), s = W / (x1 - x0);
-  const toC = (px, py) => [(X(px) - x0) * s, (y1 - Y(py)) * s];
-  c.strokeStyle = c.fillStyle = '#d23a2a'; c.lineWidth = 3;
-  const bullet = (px, py, w) => { const [a, b] = toC(px, py); c.beginPath(); c.ellipse(a, b, w * s / 2, w * s / 4.5, 0, 0, 7); c.stroke(); };
-  const box = (pa, pb, pc, pd) => { const [a, b] = toC(pa, pb), [e, f] = toC(pc, pd); c.strokeRect(a, b, e - a, f - b); };
-  box(762, 265, 908, 274); for (let i = 0; i < 6; i++) bullet(772 + i * 22, 269.5, 8);
-  box(755, 285, 815, 296); for (let i = 0; i < 3; i++) bullet(765 + i * 19, 290.5, 8);
-  box(783, 307, 805, 318); bullet(794, 312.5, 8);
+  // on the left face the plane is turned to face out, which puts the canvas's left edge at the front (x1)
+  const toC = (px, py) => { const [a, b] = SM(px, py); return [(z < 0 ? x1 - X(a) : X(a) - x0) * s, (y1 - Y(b)) * s]; };
+  const path = pts => { c.beginPath(); pts.forEach((p, k) => c[k ? 'lineTo' : 'moveTo'](...toC(...p))); };
+  const RED = '#e0482a', lw = 0.5 * s;
+  c.lineWidth = lw; c.lineJoin = 'round';
+  const line = (pts, col) => { c.strokeStyle = col; path(pts); c.stroke(); };
+  const box = (a, b, e, d, col) => line([[a, b], [e, b], [e, d], [a, d], [a, b]], col);
+  // bullet pointing at the muzzle: round base, straight sides, pointed nose
+  const bullet = (cx, cy, col, len = 32, h = 12) => { const r = h / 2, b0 = cx - len / 2, n0 = cx + len * 0.1;
+    const pts = [...Array.from({ length: 9 }, (_, k) => { const t = Math.PI / 2 + Math.PI * k / 8; return [b0 + r + r * Math.cos(t), cy - r * Math.sin(t)]; }),
+      [n0, cy + r], [cx + len / 2, cy], [n0, cy - r], [b0 + r, cy - r]];
+    c.strokeStyle = col; path(pts); c.stroke(); };
+  // full auto: a band closed at its back end, open at the front
+  line([[450, 104], [130, 114], [130, 145], [450, 130]], RED);
+  for (let k = 0; k < 7; k++) { const x = 147 + k * 44.5; bullet(x, 129.5 - (x - 130) * 12.5 / 320, RED); }
+  box(330, 162, 468, 190, RED); [353, 398, 443].forEach(x => bullet(x, 176, RED)); line([[312, 181], [330, 177]], RED);   // burst
+  box(337, 220, 388, 246, RED); bullet(362, 233, RED); line([[307, 222], [337, 237]], RED);                           // semi
+  // safe: white box, a bullet crossed out in black, and a white leader up to the lever's pointer
+  c.fillStyle = '#f2f2f2'; path([[267, 266], [322, 266], [322, 294], [267, 294]]); c.fill();
+  bullet(294.5, 280, '#111', 34, 13); line([[276, 270], [313, 290]], '#111'); line([[276, 290], [313, 270]], '#111');
+  line([[287, 232], [302, 266]], '#f2f2f2');
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   MAT.pictos = { color: 0xffffff, map: tex, alphaTest: 0.3, metalness: 0, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -4, transparent: false };
   const g = new THREE.PlaneGeometry(x1 - x0, y1 - y0);
@@ -896,10 +914,10 @@ const smooth = (pts, n = 2) => { for (let k = 0; k < n; k++) pts = pts.flatMap((
 const LOWG = smooth(P([[714, 354], [722, 386], [731, 414], [738, 432], [754, 439], [842, 439], [872, 431], [871, 416], [860, 410], [845, 424], [762, 424], [752, 414], [745, 390], [738, 356]]));
 const GRIP = P([[836, 345], [941, 345], [942, 352], [950, 385], [970, 415], [1000, 455], [1030, 495], [1027, 507], [1010, 520], [985, 537], [958, 552],
   [937, 560], [924, 557], [917, 540], [905, 505], [885, 452], [866, 428], [858, 405], [850, 378]]);
-const SEL_PV = [X(845), Y(290)], SEL_TIP = [X(882), Y(257)];
+const SEL_PV = [X(845), Y(290)], SEL_TIP = P([SM(185, 105)])[0];   // safe: tail up and back, as in the close-up
 // selector lever: traced from HK Parts' side photo of an H&K ambi lever (608px), a big round hub on the shaft with the
 // white pointer stripe, tapering to a thumb tail with one straight edge; turned so the tail points up and back on safe as
-// in VFC's photo. 26mm long, thinner toward the tail. HK_SEL is in that photo's pixels, its pivot at (195, 315).
+// in Airsoft GI's close-up. 26mm long, thinner toward the tail. HK_SEL is in that photo's pixels, its pivot at (195, 315).
 const HK_SEL = [[190, 167], [240, 175], [285, 200], [320, 235], [355, 275], [390, 300], [440, 320], [500, 330], [535, 345], [560, 370], [575, 400],
   [570, 440], [555, 465], [520, 475], [450, 476], [370, 474], [290, 470], [220, 465], [160, 450], [120, 420], [85, 385], [60, 345], [50, 305],
   [60, 260], [85, 215], [130, 182]];
@@ -927,7 +945,7 @@ part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250,
       ...[1, -1].map(sg => cyl(3.3, 3, 'z', X(685), Y(332), sg * 17.2, 24))]);
     const grip = cut(profR(GRIP, 31, 6), [cyl(13, 140, 'y', 0, 0, 0, 28).rotateZ(-GRIP_A).translate(X(905), Y(430), 0)]);
     return [[housing, 'poly'], [boss, 'poly'], [profR(LOWG, 13, 2.6), 'poly'], [grip, 'poly'],
-      pictos(X(905), X(760), Y(318), Y(262), -16.05)];
+      pictos(X(905), X(765), Y(330), Y(254), -16.05)];
   })(), { shell: true });
 
 part('lowerPin', 'Lower receiver pin', 'low', ['02-2'], [-60, -60, -90],
