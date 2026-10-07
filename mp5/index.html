@@ -220,7 +220,7 @@ grid.position.y = -329.5; scene.add(grid);
 const MAT = {
   alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
   steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
-  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
+  blued:  { color: 0x2c2e33, metalness: 0.3,  roughness: 0.62 },    // VFC's finish is a matte black coat, close to the polymer
   dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
   zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
   poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
@@ -657,7 +657,8 @@ function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
 // of the receiver under the cocking tube. The outside is traced from VFC's left-side product photo (1280px, muzzle to the
 // left, stock collapsed) at 2.206 px/mm: VFC gives 500mm with the stock in, which the photo spans in 1103px, and the 14mm
 // muzzle thread then measures 30px. The gearbox is a standard V2 (D-RZ's teardown video), traced from the Stoner page's
-// V2 shell and placed so the motor lies on the grip's axis; inside parts are approximate.
+// V2 shell and placed so the motor lies on the grip's axis; inside parts are approximate. Round sections, the handguard's
+// groove and stippling, and the butt's checkered pad follow Airsoft GI's close-up photos of the A5.
 const K = 2.206, OX = 560, OY = 212.7;
 const X = px => (OX - px) / K, Y = py => (OY - py) / K;
 const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
@@ -669,7 +670,7 @@ const TL = [X(160), X(113)];                         // tri-lug collar
 const FS = [X(199), X(158)];                         // front sight housing
 const CT = { y: Y(150.5), r: 7, x0: 1.5, x1: X(199) };   // cocking tube, welded along the top of the receiver
 const RCV = { x0: X(990), x1: X(470), xb: 1.5, top: Y(131), bot: Y(250), hw: 18, cy: 19 };   // receiver: back, nose, front below the tube
-const HG = { x0: 1.5, x1: X(199), top: Y(168), bot: Y(275), hw: 21 };
+const HG = { x0: 1.5, x1: X(199), top: Y(168), bot: Y(275), hw: 22 };
 const NOZ_TIP = -20.9, D = NOZ_TIP + 141;           // nozzle tip; shift from the Stoner page's gearbox frame
 const HOP = [-24, 8], IB = [-18, 190];               // hop-up chamber, 208mm inner barrel
 const GRIP_A = 21.5 * D2R;                           // grip and motor lean, from the photo
@@ -712,17 +713,31 @@ part('slingLoop', 'Sling loop (front)', 'frt', ['05-3'], [200, 40, -60],
 
 // handguard: side traced from the photo, rounded sections, hollow for the battery and the barrel
 const hgSide = P([[560, 168], [214, 168], [205, 172], [199, 182], [199, 260], [205, 270], [214, 275], [560, 275]]);   // back top, round the nose, back bottom (loftX order)
+const HG_N = 2.4;                                    // superellipse power of the section: the A5 handguard is round-sided, not boxy
+// z of the handguard's outer skin at height y, in the straight run behind the nose (top and bottom edges are level there)
+const hgZ = (y, hw = HG.hw) => { const t = Math.min(0.999, Math.abs((y - (HG.top + HG.bot) / 2) / ((HG.top - HG.bot) / 2))); return hw * (1 - t ** HG_N) ** (1 / HG_N); };
+// the grip panel: a grid of square nubs on the skin, 2.3mm pitch (about 47 by 23 on VFC's photo)
+function stippleNubs(s) {
+  const g = [], x0 = X(520), x1 = X(288), y0 = Y(253), y1 = Y(204), p = 2.3;
+  for (let x = x0 + p / 2; x < x1; x += p) for (let y = y0 + p / 2; y < y1; y += p) {
+    const z = hgZ(y), a = Math.atan2(hgZ(y + 0.5) - hgZ(y - 0.5), 1);
+    g.push(new THREE.BoxGeometry(1.35, 1.35, 1.2).rotateX(s * a).translate(x, y, s * (z + 0.25)));
+  }
+  return mergeGeometries(g);
+}
 part('handguard', 'Handguard', 'frt', ['03-3'], [140, -150, 0],
-  'Polymer handguard with the stippled grip panels and the row of vent holes under the cocking tube. It holds the battery (the A5\'s stock has no room for one) and is held by a single pin at the front: push it out and the handguard comes off forward.',
+  'Polymer handguard with the stippled grip panels, a long groove along each side above them and the row of vent holes under the cocking tube. It holds the battery (the A5\'s stock has no room for one) and is held by a single pin at the front: push it out and the handguard comes off forward.',
   (() => {
-    const shell = cut(loftX(hgSide, () => HG.hw, 3.2, 40, 4), [
-      bx(8, 158, -25, 17.5, -18, 18),                                                // battery space
-      cyl(8.4, 30, 'x', 170, 0, 0, 24), bx(-5, 8, -25, 17.5, -17, 17),             // barrel through the nose, open at the back
+    const hgIn = [[-5, HG.top - 2.6], [152, HG.top - 2.6], [152, HG.bot + 2.6], [-5, HG.bot + 2.6]];
+    const groove = s => slab(rr(X(522), X(279), Y(195), Y(185), 2.2, 3), 0, 1).scale(1, 1, 20).translate(0, 0, s * (hgZ(Y(190)) - 1.1) + (s > 0 ? 0 : -20));
+    const shell = cut(loftX(hgSide, () => HG.hw, HG_N, 48, 4), [
+      loftX(hgIn, () => HG.hw - 2.6, HG_N, 48, 6),                                  // battery space, open at the back
+      cyl(8.4, 30, 'x', 170, 0, 0, 24),                                              // barrel through the nose
+      groove(1), groove(-1),
       ...[300, 350, 400, 445, 494].flatMap(px => [cyl(2.3, 60, 'z', X(px), Y(178), 0, 16)]),   // vent holes
       ...[255, 505].map(px => cyl(3.4, 60, 'z', X(px), Y(278), 0, 16)),             // scallops in the bottom edge
       cyl(1.6, 60, 'z', X(219), Y(185), 0, 12)]);                                  // pin hole
-    const panel = s => [prof(P([[285, 202], [520, 202], [520, 262], [285, 262]]), 0.6, 0).translate(0, 0, s * (HG.hw + 0.2)), 'stipple'];
-    return [[shell, 'poly'], panel(1), panel(-1)];
+    return [[shell, 'poly'], [stippleNubs(1), 'poly'], [stippleNubs(-1), 'poly']];
   })(), { shell: true });
 
 part('hgPin', 'Handguard pin', 'frt', ['03-4'], [140, -80, -90],
@@ -748,9 +763,9 @@ part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0
       bx(-48, -10.4, -20, -12, -12.8, 12.8),                                           // magazine well opening
       bx(X(985), X(688), -20, -12, -15.5, 15.5),                                       // lower receiver opening
       bx(-50, -8, 4, 22, 10, 25),                                                     // ejection port (right)
-      ...[1, -1].map(s => bx(-196, -36, -3, 5, s * 16.6, s * 25))]);                  // stock rail tracks
+      ...[1, -1].map(s => bx(-196, -36, -3, 5, s * 17.1, s * 25))]);                  // stock rail tracks
     const tubeG = cut(latheX([[0, CT.x0], [CT.r, CT.x0], [CT.r, CT.x1], [0, CT.x1]], 28, CT.y),
-      [latheX([[0, CT.x0 + 5], [CT.r - 1, CT.x0 + 5], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), bx(X(553), X(330), CT.y - 1.6, CT.y + 1.6, -10, -3)]);
+      [latheX([[0, CT.x0 + 5], [CT.r - 1, CT.x0 + 5], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), bx(X(505), X(310), CT.y - 1.6, CT.y + 1.6, -10, -3), bx(X(505), X(493), CT.y - 1.6, CT.y + 5, -10, -2)]);
     const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(1.6, 40, 'z', X(685), Y(332), 0, 12)]);
     return [[body, 'blued'], [tubeG, 'blued'], [well, 'blued'],
       decal('calDecal', ['Cal.9mmx19'], X(668), X(610), Y(270), Y(257), -15.1, { bold: false })];
@@ -1031,9 +1046,19 @@ const BUTT = P([[1093, 175], [1150, 159], [1160, 162], [1168, 173], [1169, 253],
   [1137, 370], [1123, 317], [1115, 277], [1103, 250], [1100, 233], [1093, 187]]);
 part('stock', 'Retractable stock (rails + butt)', 'stk', ['04-17'], [-640, 0, 0],
   'The A5 stock: two steel rails that slide along the grooves in the receiver sides, joined by a yoke to the butt. Collapsed it gives VFC\'s 500mm; pulled out, 650mm.',
-  [[profR(BUTT, 40, 5), 'poly'],
-   ...Array.from({ length: 14 }, (_, i) => { const t = (i + 0.5) / 14, y = Y(175) + (Y(415) - Y(175)) * t, x = X(1168) + (X(1180) - X(1168)) * t; return [bx(x - 2.2, x, y - 3, y + 3, -18, 18), 'poly']; }),
-   ...[1, -1].map(s => [bx(X(1095), -36, -2.6, 4.6, s * 16.8, s * 19.6), 'dark']),
+  [[loftX([[1160, 420], [1177, 418], [1182, 400], [1173, 337], [1169, 253], [1168, 173], [1160, 162], [1150, 159], [1093, 175], [1093, 187], [1100, 233],
+      [1103, 250], [1115, 277], [1123, 317], [1137, 370], [1148, 410]].map(([px, py]) => [Y(py), -X(px)]),        // lofted upright: bottom, up the back, down the front
+      u => u > Y(225) ? 15 + 5 * (Y(160) - u) / (Y(160) - Y(225)) : 20, 3, 36, 3).rotateZ(Math.PI / 2), 'poly'],
+   [(() => {                                         // the rubber pad's checkering: pyramids in a grid across the back face
+     const edge = [[173, 1168], [253, 1169], [337, 1173], [400, 1182]], g = [];
+     for (let py = 180; py <= 396; py += 4.6) {
+       let i = 1; while (i < edge.length - 1 && py > edge[i][0]) i++;
+       const [[pa, xa], [pb, xb]] = [edge[i - 1], edge[i]], px = xa + (xb - xa) * (py - pa) / (pb - pa), tilt = Math.atan2((xb - xa) / K, (pb - pa) / K);
+       for (let k = -3.5; k <= 3.5; k++) g.push(new THREE.ConeGeometry(1.9, 1.6, 4, 1).rotateY(Math.PI / 4).rotateZ(Math.PI / 2 + tilt).translate(X(px) - 0.5, Y(py), k * 4.6));
+     }
+     return mergeGeometries(g.map(q => q.toNonIndexed()));
+   })(), 'black'],
+   ...[1, -1].map(s => [bx(X(1095), -36, -2.6, 4.6, s * 17.3, s * 19.8), 'dark']),
    [bx(X(1102), X(1075), Y(243), Y(208), -20, 20), 'blued']]);
 
 // ================= MAGAZINE =================
@@ -1173,6 +1198,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.youtube.com/watch?v=yAk1HI4xbGk">D-RZ Airsoft, MP5 gearbox removal</a> (strip order, the V2 gearbox and its long trigger),
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
+<a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>VFC / Umarex MP5 A5 AEG</h2>
