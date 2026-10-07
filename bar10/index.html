@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JG BAR-10 G-Spec disassembly: interactive 3D parts model</title>
+<meta name="description" content="Interactive exploded 3D model of the JG (Jing Gong) BAR-10 G-Spec spring bolt-action airsoft rifle, a copy of the Tokyo Marui VSR-10 G-Spec, with Marui part numbers, the strip order and the cocking cycle.">
+<meta property="og:title" content="JG BAR-10 G-Spec disassembly: interactive 3D parts model">
+<meta property="og:description" content="Exploded 3D model of the JG BAR-10 G-Spec (VSR-10 G-Spec copy): Marui part numbers, strip order and the bolt and trigger cycle.">
+<meta property="og:image" content="https://airsoft-disassembly.raviboth.com/bar10/preview.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --bg:#111317; --panel:#181b21ee; --line:#2a2f38; --ink:#d8dde6; --dim:#8a93a3; --acc:#4f8cff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:13px/1.4 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; }
+  .panel { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:8px; backdrop-filter:blur(6px); }
+  #side { left:12px; top:12px; bottom:12px; width:285px; display:flex; flex-direction:column; }
+  #side h1 { font-size:15px; margin:12px 14px 2px; letter-spacing:.02em; }
+  #side .sub { color:var(--dim); margin:0 14px 10px; font-size:12px; }
+  #list { overflow:auto; padding:0 6px 10px; flex:1; }
+  #find { margin:0 10px 6px; padding:6px 9px; background:#0f1115; color:var(--ink); border:1px solid var(--line); border-radius:5px; font:inherit; }
+  #find:focus { outline:none; border-color:var(--acc); }
+  .cat { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin:12px 8px 4px; display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .cat input { margin:0; }
+  .cat .car { width:10px; text-align:center; }
+  .cat .nm { flex:1; }
+  .cat:hover .nm { color:var(--ink); }
+  .item.hid, .cat.hid { display:none; }
+  #nohit { color:var(--dim); padding:8px 10px; display:none; }
+  .item { padding:4px 8px; border-radius:5px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .item:hover { background:#252a33; }
+  .item.sel { background:#24365c; }
+  .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
+  #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
+  #ctrl input[type=range] { width:100%; }
+  #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); }
+  #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
+  #infoBody { overflow:auto; padding:12px 14px; }
+  #info h2 { padding-right:18px; }
+  #info .acts { display:flex; gap:6px; margin:4px 0 6px; }
+  #info .acts button { padding:3px 8px; font-size:12px; }
+  #info .acts button.on { border-color:var(--acc); background:#24365c; }
+  .grab { display:none; }
+  #info h2 { font-size:14px; margin:0 0 4px; }
+  #info .meta { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  #info p { margin:6px 0; }
+  #info ul { margin:6px 0; padding-left:18px; }
+  #info .src { color:var(--dim); font-size:11px; }
+  #info a { color:#8fb4ff; }
+  #info table { border-collapse:collapse; width:100%; font-size:12px; }
+  #info td { padding:2px 4px; border-bottom:1px solid #22262e; }
+  #info td:first-child { color:var(--dim); width:42px; }
+  #info td:last-child { text-align:right; color:var(--dim); }
+  #info tr.mod { cursor:pointer; }
+  #info tr.mod td:nth-child(2) { color:#bcd2ff; }
+  #info tr.mod:hover { background:#252a33; }
+  #info tr.hit td { background:#24365c; }
+  #cube { position:fixed; right:12px; top:12px; width:110px; height:110px; z-index:2; cursor:grab; touch-action:none; }
+  #cube.drag { cursor:grabbing; }
+  #tip { position:fixed; pointer-events:none; background:#000c; padding:3px 7px; border-radius:4px; font-size:12px; display:none; }
+  .lbl { font-size:11px; color:#e8ecf3; background:#0b0d10cc; border:1px solid #33405a; padding:1px 5px; border-radius:3px; white-space:nowrap; pointer-events:none; }
+  .lbl.sel { border-color:var(--acc); color:#fff; }
+  .panel.hidden { display:none !important; }
+  .x { position:absolute; top:6px; right:6px; width:22px; height:22px; padding:0; line-height:20px; text-align:center; background:none; border-color:transparent; color:var(--dim); z-index:1; }
+  .x:hover { color:var(--ink); }
+  #side h1 { margin-right:30px; }
+  #bar { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:4px; padding:4px; z-index:5; max-width:calc(100vw - 24px); }
+  #bar button { padding:4px 10px; font-size:12px; }
+  #bar .home { color:var(--ink); text-decoration:none; font-size:12px; padding:4px 10px; border:1px solid var(--line); border-radius:5px; background:#232833; white-space:nowrap; }
+  #bar .home:hover { border-color:var(--acc); }
+  #bar .ttl { padding:0 12px; white-space:nowrap; line-height:1.15; }
+  #bar .ttl b { display:block; font-size:18px; letter-spacing:.01em; }
+  #bar .ttl span { display:block; font-size:11px; color:var(--dim); }
+  #bar .btns { display:flex; gap:4px; }
+  #bar button.on { border-color:#3a4f78; background:#24365c; }
+  @media (max-width:700px) {
+    #bar { left:8px; right:8px; top:8px; transform:none; flex-wrap:wrap; max-width:none; }
+    #bar .ttl { flex:1; padding:0 8px; overflow:hidden; }
+    #bar .ttl b, #bar .ttl span { overflow:hidden; text-overflow:ellipsis; }
+    #bar .btns { flex-basis:100%; }
+    #bar .btns button { flex:1; }
+    #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
+    #side .sub { display:none; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #cube { top:100px; right:8px; width:84px; height:84px; }
+    #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
+    #info.peek { max-height:96px; }
+    #info.peek #infoBody { overflow:hidden; }
+    .grab { display:block; flex:none; height:18px; cursor:pointer; position:relative; }
+    .grab::after { content:''; position:absolute; left:50%; top:7px; width:40px; height:4px; margin-left:-20px; border-radius:2px; background:#4a5263; }
+    #infoBody { padding-top:0; }
+    .item { padding:7px 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/",
+  "three-mesh-bvh": "../vendor/three-mesh-bvh/index.module.js",
+  "three-bvh-csg": "../vendor/three-bvh-csg/index.module.js"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="bar" class="panel">
+  <a class="home" href="../" title="All guns">← All guns</a>
+  <div class="ttl"><b>JG BAR-10 G-Spec</b><span>VSR-10 G-Spec spring bolt-action rifle with silencer</span></div>
+  <div class="btns">
+  <button id="tSide" title="Parts list (P)">Parts</button>
+  <button id="tCtrl" title="View controls (V)">View</button>
+  <button id="tInfo" title="Info panel (I)">Info</button>
+  <button id="tAll" title="Hide or show all panels (H)">Hide all</button>
+  </div>
+</div>
+
+<div id="side" class="panel">
+  <button class="x" data-p="side" title="Close (P)">×</button>
+  <div class="ph" style="margin:12px 14px 4px">Parts</div>
+  <div class="sub">Part numbers are Tokyo Marui's, from the VSR-10 G-Spec manual: JG copies the Marui parts. Shapes are approximate, dimensions in mm. Click a part to inspect, double-click to zoom to it. Tick a category to show or hide it, click its name to fold it.</div>
+  <input id="find" type="search" placeholder="Search parts (press /)" autocomplete="off">
+  <div id="list"></div>
+  <div id="nohit">No parts match.</div>
+</div>
+
+<div id="ctrl" class="panel">
+  <button class="x" data-p="ctrl" title="Close (V)">×</button>
+  <div class="ph">View</div>
+  <label>Explode <span id="exv">0%</span></label>
+  <input id="explode" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
+  <label><span>Labels</span><input id="labels" type="checkbox"></label>
+  <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label>Bolt <span id="bpv">closed</span></label>
+  <input id="boltpos" type="range" min="0" max="1" step="0.01" value="0">
+  <label>Trigger <span id="tpv">released</span></label>
+  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="row">
+    <button id="bReset">Reset view</button>
+    <button id="bInfo">Overview</button>
+    <button id="bList">Manual parts list</button>
+  </div>
+</div>
+
+<div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
+<canvas id="cube" title="Click a face, edge or corner to look from there; drag to turn the view"></canvas>
+<div id="tip"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Brush, Evaluator, SUBTRACTION, INTERSECTION, ADDITION } from 'three-bvh-csg';
+import { PIC, picatinny, picatinnySlots } from '../lib/picatinny.js';
+
+// ---------- scene ----------
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+app.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+app.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111317);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 20000);
+const HOME_TGT = new THREE.Vector3(60, -40, 0);
+// Pull the camera back on narrow screens so the whole gun fits the width.
+const fit = (pos, tgt) => pos.sub(tgt).multiplyScalar(Math.max(1, 1.55 / camera.aspect)).add(tgt);
+const HOME_POS = fit(new THREE.Vector3(160, 200, 1850), HOME_TGT);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+// orthographic twin of the orbit camera: follows its position and turn, and sizes its frustum so the target plane
+// matches the perspective view, so orbit, dolly and zoom-to keep working in either mode
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -20000, 20000);
+let useOrtho = false;
+const viewCam = () => useOrtho ? ortho : camera;
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xcfd8ff, 0x2a2c30, 0.9));
+const rim = new THREE.DirectionalLight(0x9fb8ff, 0.9);
+rim.position.set(-600, 300, -700);
+scene.add(rim);
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(-200, 700, -350);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -1000, right: 1000, top: 1000, bottom: -1000, near: 10, far: 4000 });
+scene.add(sun);
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.25 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -330; floor.receiveShadow = true;
+scene.add(floor);
+const grid = new THREE.GridHelper(2400, 96, 0x2a2f38, 0x1d2027);
+grid.position.y = -329.5; scene.add(grid);
+
+// ---------- materials ----------
+const MAT = {
+  alu:    { color: 0x3b3f46, metalness: 0.7,  roughness: 0.4 },
+  steel:  { color: 0x6b7079, metalness: 0.9,  roughness: 0.32 },
+  blued:  { color: 0x1b1c20, metalness: 0.6,  roughness: 0.45 },
+  dark:   { color: 0x464a52, metalness: 0.8,  roughness: 0.38 },
+  zinc:   { color: 0x4d5158, metalness: 0.7,  roughness: 0.45 },
+  poly:   { color: 0x2e3035, metalness: 0.0,  roughness: 0.72 },
+  poly2:  { color: 0x232428, metalness: 0.0,  roughness: 0.65 },
+  brass:  { color: 0xc59b52, metalness: 0.95, roughness: 0.28 },
+  rubber: { color: 0x8a2222, metalness: 0.0,  roughness: 0.6 },
+  black:  { color: 0x08090a, metalness: 0.0,  roughness: 0.9 },
+  spring: { color: 0xa9afb8, metalness: 0.95, roughness: 0.25 },
+  red:    { color: 0xc8322a, metalness: 0.1,  roughness: 0.5 },
+  orange: { color: 0xd06a1c, metalness: 0.1,  roughness: 0.55 },
+  lever:  { color: 0x74777d, metalness: 0.1,  roughness: 0.6 },
+  checker: { color: 0x44464c, metalness: 0.0, roughness: 0.9 },
+  stipple: { color: 0x1d1e21, metalness: 0.0, roughness: 0.95 },
+  fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  slide:  { color: 0x24262b, metalness: 0.55, roughness: 0.45 },
+  nylon:  { color: 0x1c1d20, metalness: 0.0,  roughness: 0.55 },
+  white:  { color: 0xe8e8e8, metalness: 0.0,  roughness: 0.5 },
+  frame:  { color: 0x1d1e21, metalness: 0.0,  roughness: 0.85 },
+  green:  { color: 0x2f6b3a, metalness: 0.1,  roughness: 0.6 },
+  glass:  { color: 0xcfe3ea, metalness: 0.2,  roughness: 0.1, transparent: true, opacity: 0.55 },
+};
+
+// ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
+function prof(pts, depth, bevel = 1.2, holes = []) {
+  const s = new THREE.Shape();
+  pts.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+  for (const h of holes) {
+    const p = new THREE.Path();
+    h.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y));
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+// lathe around the x axis: pts = [[radius, x], ...]
+function latheX(pts, seg = 36, y = 0, z = 0, phiStart = 0) {
+  // one lathe strip per profile segment, merged: keeps corners crisp instead of smoothing normals across them
+  const strips = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [r0, x0] = pts[i], [r1, x1] = pts[i + 1];
+    if (r0 === r1 && x0 === x1) continue;
+    strips.push(new THREE.LatheGeometry([new THREE.Vector2(r0, x0), new THREE.Vector2(r1, x1)], seg, phiStart));
+  }
+  const g = strips.length === 1 ? strips[0] : mergeGeometries(strips);
+  g.rotateZ(-Math.PI / 2);
+  g.translate(0, y, z);
+  return g;
+}
+const tube = (ri, ro, x0, x1, seg = 32, y = 0) => latheX([[ri, x0], [ro, x0], [ro, x1], [ri, x1], [ri, x0]], seg, y);
+function bx(x0, x1, y0, y1, z0, z1) {
+  const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g;
+}
+function cyl(r, len, axis, cx, cy, cz, seg = 24) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+class Helix extends THREE.Curve {
+  constructor(r, len, turns) { super(); this.r = r; this.len = len; this.turns = turns; }
+  getPoint(t, v = new THREE.Vector3()) {
+    const a = t * this.turns * Math.PI * 2;
+    return v.set(t * this.len, this.r * Math.cos(a), this.r * Math.sin(a));
+  }
+}
+// spring along +x from origin, then oriented: axis 'x' | 'y' | 'z'
+function spring(r, wire, len, turns, axis, cx, cy, cz) {
+  const g = new THREE.TubeGeometry(new Helix(r, len, turns), Math.max(24, Math.round(turns * 14)), wire, 6, false);
+  if (axis === 'y') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateY(-Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+function torus(r, t, axis, cx, cy, cz) {
+  const g = new THREE.TorusGeometry(r, t, 10, 32);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// loft through horizontal sections: levels = [{ y, xf, xb, w }] (front x, back x, width), top to bottom.
+// Levels are resampled with Catmull-Rom so the sides stay smooth; sections are rounded rectangles
+// (superellipse, exponent n) with the front edge narrowed by frontTaper. Caps get their own vertices so they shade flat.
+function loftResample(levels, step) {
+  const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  const L = [];
+  for (let k = 0; k < levels.length - 1; k++) {
+    const a = levels[Math.max(0, k - 1)], b = levels[k], c = levels[k + 1], d = levels[Math.min(levels.length - 1, k + 2)];
+    const steps = Math.max(1, Math.round(Math.abs(b.y - c.y) / step));
+    for (let q = 0; q < steps; q++) {
+      const t = q / steps, o = {};
+      for (const key of ['y', 'xf', 'xb', 'w', 'n', 'nb', 'ft', 's', 'xr']) if (key in b) o[key] = cr(a[key], b[key], c[key], d[key], t);
+      L.push(o);
+    }
+  }
+  L.push(levels[levels.length - 1]);
+  return L;
+}
+function loftPoint(lv, t, n, frontTaper) {
+  if (lv.n) { n = lv.n; frontTaper = lv.ft; }
+  const cx = (lv.xf + lv.xb) / 2, ax = (lv.xf - lv.xb) / 2, c = Math.cos(t), sn = Math.sin(t);
+  if (c < 0 && lv.nb) n = lv.nb;   // optional separate exponent for the back half
+  const px = Math.sign(c) * Math.pow(Math.abs(c), 2 / n), pz = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / n);
+  const x = cx + ax * px;   // a level may be tilted: y = lv.y + (x - lv.xr) * lv.s
+  return [x, lv.s ? lv.y + (x - lv.xr) * lv.s : lv.y, (lv.w / 2) * pz * (c > 0 ? 1 - (1 - frontTaper) * c * c : 1)];
+}
+// curved patch lying on a loft surface: t0..t1 around the section, y0..y1 down the body, lifted `lift` mm along z
+function loftPatch(levels, { t0, t1, y0, y1, lift = 0.5, n = 2.8, frontTaper = 0.7, step = 1.5, cols = 16, uvScale = 0.12 }) {
+  const L = loftResample(levels, step).filter(lv => lv.y <= y0 && lv.y >= y1);
+  const pos = [], uv = [], idx = [];
+  L.forEach(lv => { for (let i = 0; i <= cols; i++) {
+    const t = t0 + (t1 - t0) * i / cols, [x, y, z] = loftPoint(lv, t, n, frontTaper);
+    // lift along the section normal (ellipse approximation), so patches on the front and back stand off too
+    const ax = (lv.xf - lv.xb) / 2, az = lv.w / 2, cx = (lv.xf + lv.xb) / 2;
+    let nx = (x - cx) / (ax * ax), nz = z / (az * az); const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    pos.push(x + nx * lift, y, z + nz * lift); uv.push((x + z) * uvScale, y * uvScale);
+  } });
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < cols; i++) {
+    const a = k * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loft(levels, { n = 2.8, seg = 40, step = 1.5, frontTaper = 0.7 } = {}) {
+  const L = loftResample(levels, step);
+  const pos = [], idx = [];
+  const ring = (lv) => { const out = []; for (let i = 0; i < seg; i++) out.push(loftPoint(lv, (i / seg) * Math.PI * 2, n, frontTaper)); return out; };
+  L.forEach(lv => ring(lv).forEach(v => pos.push(...v)));
+  for (let k = 0; k < L.length - 1; k++) for (let i = 0; i < seg; i++) {
+    const a = k * seg + i, b = k * seg + (i + 1) % seg, c = a + seg, d = b + seg;
+    idx.push(a, b, c, b, d, c);
+  }
+  for (const [lv, flip] of [[L[0], false], [L[L.length - 1], true]]) {
+    const base = pos.length / 3;
+    ring(lv).forEach(v => pos.push(...v));
+    const ccx = (lv.xf + lv.xb) / 2; pos.push(ccx, lv.s ? lv.y + (ccx - lv.xr) * lv.s : lv.y, 0);
+    for (let i = 0; i < seg; i++) { const a = base + i, b = base + (i + 1) % seg; flip ? idx.push(base + seg, a, b) : idx.push(base + seg, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+// diamond checkering bump texture (canvas), for grip panels
+const CHECKER = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#000'; x.lineWidth = 6;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3);
+  return t;
+})();
+// the same diamonds as a colour map, so the checkering still reads where the bump is too fine to catch the light
+const CHECKER_MAP = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#8e9096'; x.fillRect(0, 0, 64, 64); x.strokeStyle = '#2c2d30'; x.lineWidth = 9;
+  for (let k = -64; k <= 128; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 64, 64); x.stroke(); x.beginPath(); x.moveTo(k, 64); x.lineTo(k + 64, 0); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.3, 0.3); t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+})();
+// fine random stipple bump texture, for the Gen3 grip panels (a seeded scatter so every load looks the same)
+const STIPPLE = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'); x.fillStyle = '#808080'; x.fillRect(0, 0, 128, 128);
+  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 900; k++) { const v = rnd() > 0.5 ? 255 : 0; x.fillStyle = `rgba(${v},${v},${v},0.55)`; x.beginPath(); x.arc(rnd() * 128, rnd() * 128, 1 + rnd() * 2.2, 0, 7); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+// picatinny-ish rail: base + cross teeth. face: 'up' | 'down' | 'right' | 'left'; yc shifts side rails vertically
+function railFace(face, off, halfW, a0, a1, t0, t1, yc = 0) {
+  if (face === 'up')    return bx(a0, a1, off + t0, off + t1, -halfW, halfW);
+  if (face === 'down')  return bx(a0, a1, -off - t1, -off - t0, -halfW, halfW);
+  if (face === 'right') return bx(a0, a1, yc - halfW, yc + halfW, off + t0, off + t1);
+  return bx(a0, a1, yc - halfW, yc + halfW, -off - t1, -off - t0);
+}
+function rail(x0, x1, face, off, { halfW = 10.5, base = 6, tooth = 4, yc = 0 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, 0, base, yc)];
+  for (let x = x0 + 3; x + 5.2 <= x1; x += 10) out.push(railFace(face, off, halfW - 0.5, x, x + 5.2, base, base + tooth, yc));
+  return out;
+}
+// ribbed rail guard covering a side rail
+function guard(x0, x1, face, off, { halfW = 19, yc = 0, t0 = 6 } = {}) {
+  const out = [railFace(face, off, halfW, x0, x1, t0, t0 + 1.5, yc)];
+  for (let x = x0 + 4; x + 6 <= x1; x += 10.8) out.push(railFace(face, off, halfW - 2, x, x + 6, t0 + 1.5, t0 + 3.5, yc));
+  return out;
+}
+// slanted slot row on both sides of a body at |z| = zs
+function slots(xs, y0, y1, zs, w = 3.4, lean = -0.3) {
+  const out = [];
+  for (const x of xs) for (const s of [1, -1]) {
+    const g = new THREE.BoxGeometry(w, y1 - y0, 0.8); g.rotateZ(lean); g.translate(x, (y0 + y1) / 2, s * zs);
+    out.push([g, 'black']);
+  }
+  return out;
+}
+
+// extrude a (z, y) section along x from x0 to x1
+function secX(pts, x0, x1, bevel = 0.3, holes = []) {
+  const g = prof(pts, x1 - x0, bevel, holes);
+  g.rotateY(-Math.PI / 2); g.translate((x0 + x1) / 2, 0, 0);
+  return g;
+}
+// rounded rectangle outline, corners of radius r
+function rr(a0, a1, b0, b1, r, n = 4) {
+  const pts = [];
+  for (const [ca, cb, s] of [[a1 - r, b1 - r, 0], [a0 + r, b1 - r, 90], [a0 + r, b0 + r, 180], [a1 - r, b0 + r, 270]])
+    for (let i = 0; i <= n; i++) { const t = (s + 90 * i / n) * D2R; pts.push([ca + r * Math.cos(t), cb + r * Math.sin(t)]); }
+  return pts;
+}
+// arc points around (ca, cb) from angle a0 to a1 in degrees
+const arcPts = (ca, cb, r, a0, a1, n = 6) => Array.from({ length: n + 1 }, (_, i) => { const t = (a0 + (a1 - a0) * i / n) * D2R; return [ca + r * Math.cos(t), cb + r * Math.sin(t)]; });
+const circ = (ca, cb, r, n = 20) => Array.from({ length: n }, (_, i) => [ca + r * Math.cos(-i / n * 2 * Math.PI), cb + r * Math.sin(-i / n * 2 * Math.PI)]);
+const zAt = (g, z) => g.translate(0, 0, z);
+// like prof, but the rounded edge is cut inside the outline, so the part keeps its traced size
+function profR(pts, depth, r, holes = []) {
+  const s = new THREE.Shape(pts.map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const h of holes) s.holes.push(new THREE.Path(h.map(([a, b]) => new THREE.Vector2(a, b))));
+  const g = new THREE.ExtrudeGeometry(s, { depth: depth - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelOffset: -r, bevelSegments: 4 });
+  g.translate(0, 0, -(depth - 2 * r) / 2);
+  return g;
+}
+// uvs projected flat from the side (x, y in mm), for textures on CSG output
+function sideUV(g) {
+  const p = g.attributes.position, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { uv[2 * i] = p.getX(i); uv[2 * i + 1] = p.getY(i); }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+// extrude an (x, y) outline between z0 and z1 with no bevel
+const slab = (pts, z0, z1) => prof(pts, z1 - z0, 0).translate(0, 0, (z0 + z1) / 2);
+// subtract cutter geometries from a solid (CSG), for holes and slots the frame's parts sit in. Only position and normal
+// are kept, so the inputs need no matching uv layout.
+const CSG = new Evaluator(); CSG.attributes = ['position', 'normal']; CSG.useGroups = false;
+function cut(geo, cutters, op = SUBTRACTION) {
+  const brush = g => { g = g.index ? g.toNonIndexed() : g.clone(); for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
+    if (!g.attributes.normal) g.computeVertexNormals(); const b = new Brush(g); b.updateMatrixWorld(); return b; };
+  let a = brush(geo);
+  for (const c of cutters) a = CSG.evaluate(a, brush(c), op);
+  return fixTJunctions(a.geometry);
+}
+// CSG leaves T-junctions (a vertex of one triangle lying on another's edge), which render as hairline cracks. Any
+// triangle with vertices on its edges is re-fanned around its centroid so both sides share the split points.
+function fixTJunctions(g) {
+  const P = g.attributes.position.array, N = g.attributes.normal.array, nt = P.length / 9, E = 1e-4, C = 2;
+  const vk = new Map(), vs = [], grid = new Map();
+  for (let i = 0; i < P.length; i += 3) { const k = P.slice(i, i + 3).map(v => Math.round(v / E)).join(); if (vk.has(k)) continue;
+    vk.set(k, vs.length); const v = [P[i], P[i + 1], P[i + 2]]; vs.push(v);
+    const ck = v.map(c => Math.floor(c / C)).join(); if (!grid.has(ck)) grid.set(ck, []); grid.get(ck).push(v); }
+  const onEdge = (a, b) => { const out = [], lo = [0, 1, 2].map(j => Math.floor((Math.min(a[j], b[j]) - E) / C)), hi = [0, 1, 2].map(j => Math.floor((Math.max(a[j], b[j]) + E) / C));
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+    for (let x = lo[0]; x <= hi[0]; x++) for (let y = lo[1]; y <= hi[1]; y++) for (let z = lo[2]; z <= hi[2]; z++) for (const v of grid.get(`${x},${y},${z}`) || []) {
+      const t = ((v[0] - a[0]) * d[0] + (v[1] - a[1]) * d[1] + (v[2] - a[2]) * d[2]) / dd; if (t <= 1e-5 || t >= 1 - 1e-5) continue;
+      const q = [a[0] + d[0] * t - v[0], a[1] + d[1] * t - v[1], a[2] + d[2] * t - v[2]]; if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] < E * E) out.push([t, v]); }
+    return out.sort((p, q) => p[0] - q[0]); };
+  const pos = [], nor = [];
+  for (let t = 0; t < nt; t++) {
+    const V = [0, 1, 2].map(j => [P[t * 9 + j * 3], P[t * 9 + j * 3 + 1], P[t * 9 + j * 3 + 2]]), M = [0, 1, 2].map(j => [N[t * 9 + j * 3], N[t * 9 + j * 3 + 1], N[t * 9 + j * 3 + 2]]);
+    const ring = []; let split = false;
+    for (let j = 0; j < 3; j++) { const a = V[j], b = V[(j + 1) % 3], na = M[j], nb = M[(j + 1) % 3]; ring.push([a, na]);
+      for (const [s, v] of onEdge(a, b)) { split = true; ring.push([v, na.map((c, k) => c + (nb[k] - c) * s)]); } }
+    if (!split) { pos.push(...V.flat()); nor.push(...M.flat()); continue; }
+    const c = [0, 1, 2].map(k => (V[0][k] + V[1][k] + V[2][k]) / 3), cn = [0, 1, 2].map(k => (M[0][k] + M[1][k] + M[2][k]) / 3);
+    for (let i = 0; i < ring.length; i++) { const [p0, n0] = ring[i], [p1, n1] = ring[(i + 1) % ring.length]; pos.push(...c, ...p0, ...p1); nor.push(...cn, ...n0, ...n1); }
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return o;
+}
+
+
+// span = [a0, a1] in degrees: teeth only on that arc (a sector gear); lite = number of lightening holes
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z', span = null, lite = 0 } = {}) {
+  const s = new THREE.Shape(), n = teeth * 4, root = r * (1 - Math.min(0.14, 2.4 / r));
+  for (let i = 0; i <= n; i++) {
+    const a = i / n * Math.PI * 2, d = a / D2R, on = !span || (d >= span[0] && d <= span[1]), rr = (on && i % 4 < 2) ? r : root;
+    i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+  }
+  if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+  for (let i = 0; i < lite; i++) { const h = new THREE.Path(), a = i / lite * Math.PI * 2;
+    h.absarc(0.55 * r * Math.cos(a), 0.55 * r * Math.sin(a), 0.17 * r, 0, Math.PI * 2, true); s.holes.push(h); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
+  g.translate(0, 0, -th / 2);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  g.translate(cx, cy, cz);
+  return g;
+}
+// tube along a smooth 3D path
+const pathCurve = pts => new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+const tubeAlong = (pts, r, seg = 80) => new THREE.TubeGeometry(pathCurve(pts), seg, r, 12, false);
+// white markings: text drawn on a canvas, laid flat on a side face. alphaTest (not transparency) keeps the letters crisp
+// and lets the x-ray toggle fade them with the shell they sit on.
+function decal(key, lines, x0, x1, y0, y1, z, { align = 'center', bold = true } = {}) {
+  const W = 512, H = Math.round(W * (y1 - y0) / (x1 - x0)), cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'), lh = H / lines.length;
+  c.fillStyle = '#e4e6e8'; c.textAlign = align; c.textBaseline = 'middle';
+  c.font = `${bold ? 'bold ' : ''}${Math.round(lh * 0.8)}px Arial, Helvetica, sans-serif`;
+  lines.forEach((t, i) => c.fillText(t, align === 'center' ? W / 2 : 4, lh * (i + 0.5), W - 8));
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  MAT[key] = { color: 0xffffff, map: tex, alphaTest: 0.45, metalness: 0, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -4 };
+  const g = new THREE.PlaneGeometry(x1 - x0, y1 - y0);
+  if (z < 0) g.rotateY(Math.PI);                // left-side marks face -z and still read left to right
+  return [g.translate((x0 + x1) / 2, (y0 + y1) / 2, z), key];
+}
+// scale an outline about the middle of its bounding box, for the hollow inside a shell
+function shrink(pts, d) {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const sx = 1 - 2 * d / (Math.max(...xs) - Math.min(...xs)), sy = 1 - 2 * d / (Math.max(...ys) - Math.min(...ys));
+  return pts.map(([x, y]) => [cx + (x - cx) * sx, cy + (y - cy) * sy]);
+}
+// ---------- part registry ----------
+const CATS = {
+  stk: 'Stock and furniture',
+  mag: 'Magazine',
+  sil: 'Silencer',
+  brl: 'Barrel, chamber and hop-up',
+  rcv: 'Receiver and mount base',
+  cyl: 'Bolt and cylinder',
+  trg: 'Trigger unit',
+};
+// Tokyo Marui's parts list for the VSR-10 G-Spec (manual pages 3 and 27 to 28), names translated, prices in yen without tax.
+// JG copies the Marui VSR-10 part for part, so the numbers serve for the BAR-10 G-Spec too.
+const MANUAL = [["VSR-2", "Stock, black (Pro Sniper), with butt plate", 9800], ["VSR-3", "Butt plate", 850], ["VSR-4", "Sling pin (2)", 200],
+  ["VSR-5", "Stock screw, short, M5x16", 100], ["VSR-6", "Stock screw, long, M5x31", 150], ["VSR-7", "Magazine catch release button", 50],
+  ["VSR-8", "Magazine catch", 50], ["VSR-9", "Magazine catch spring", 50], ["VSR-14", "Chamber block", 700], ["VSR-15", "Chamber block nut", 50],
+  ["VSR-16", "Pan screw M3x10", 150], ["VSR-19", "Chamber, left", 700], ["VSR-20", "Chamber, right", 700], ["VSR-21", "HOP chamber (bucking)", 450],
+  ["VSR-22", "Chamber BB stopper", 50], ["VSR-23", "Chamber BB stopper spring", 50], ["VSR-26", "HOP adjuster, left", 300], ["VSR-27", "HOP adjuster, right", 300],
+  ["VSR-28", "Tapping pan screw 2.6x6 (2)", 60], ["VSR-29", "Chamber click pin (with spring)", 100], ["VSR-30", "HOP adjust lever", 300],
+  ["VSR-31", "Tapping pan screw 2x6", 20], ["VSR-32", "Receiver (aluminium, painted)", 3200], ["VSR-33", "Receiver end (aluminium, painted)", 1600],
+  ["VSR-34", "Receiver ring, front", 200], ["VSR-35", "Receiver ring, rear", 200], ["VSR-37", "Hex set screw M3x4 (2)", 100], ["VSR-38", "Pan screw M3x4", 50],
+  ["VSR-39", "Trigger guard", 550], ["VSR-40", "Spacer collar", 50], ["VSR-41", "Round head screw M5x40", 150], ["VSR-42", "Cap screw M4x12 (thread locked)", 150],
+  ["VSR-43", "Bolt sleeve", 450], ["VSR-44", "Bolt clip pin (with spring)", 200], ["VSR-48", "Trigger housing, left", 1100], ["VSR-49", "Trigger housing, right", 1100],
+  ["VSR-51", "Safety", 400], ["VSR-52", "Safety spring", 80], ["VSR-53", "Flanged screw M3x12", 100], ["VSR-54", "Special screws M2.6x10 (3), M2.6x6 (1)", 250],
+  ["VSR-55", "Binding screw M3x8 (2)", 200], ["VSR-56", "Pin 3x12 (2)", 80], ["VSR-57", "First sear", 450], ["VSR-58", "First sear spring", 50],
+  ["VSR-59", "Second sear (with torsion spring)", 350], ["VSR-60", "Cylinder release lever", 300], ["VSR-61", "Pin 3x9.2", 50], ["VSR-62", "Trigger stop", 200],
+  ["VSR-63", "Trigger stop spring", 50], ["VSR-64", "Hex set screw M4x10, round tip (with nut)", 120], ["VSR-65", "Hex set screw M4x6, flat tip (with nut)", 120],
+  ["VSR-66", "Trigger spring", 50], ["VSR-68", "Magazine", 850], ["VG-1", "ST outer barrel", 5500], ["VG-2", "ST muzzle", 800], ["VG-3", "ST barrel collar", 250],
+  ["VG-4", "G-Spec bolt handle", 1500], ["VG-5", "Cylinder assy (G-Spec only, not sold as parts)", 8500], ["VG-6", "G-Spec trigger", 500],
+  ["VG-7", "G-Spec HOP barrel (brass)", 3800], ["VG-8", "G-Spec silencer body", 3500], ["VG-9", "Sound deadening urethane (set of 4)", 500],
+  ["VG-10", "Baffle plate (set of 3)", 500], ["VG-11", "G-Spec silencer mount", 1900], ["VG-24", "G HOP lever", 250],
+  ["VG-67", "Screws M2.6x10 (2), flanged tapping 2x4x5.4 (1)", 130], ["MB", "Mount base (series common)", 1400], ["SW", "Sling swivel (series common)", 950]];
+const parts = [];
+const meshes = [];
+const root = new THREE.Group();
+scene.add(root);
+const byNo = new Map();
+
+function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
+  const grp = new THREE.Group();
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell };
+  for (const [geo, matKey] of pieces) {
+    const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
+    if (matKey === 'stipple') { mat.bumpMap = STIPPLE; mat.bumpScale = 1.2; }
+    if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
+    grp.add(m); meshes.push(m);
+  }
+  const c = new THREE.Box3().setFromObject(grp).getCenter(new THREE.Vector3());
+  const el = document.createElement('div'); el.className = 'lbl';
+  el.textContent = (nos.length ? nos[0] + ' ' : '') + name;
+  const lbl = new CSS2DObject(el); lbl.position.copy(c); lbl.visible = false;
+  grp.add(lbl);
+  grp.userData.label = lbl;
+  root.add(grp); parts.push(grp);
+  for (const n of nos) byNo.set(n, grp);
+  return grp;
+}
+
+// Layout: world units are mm. x = along the gun (muzzle +), y = up (bore axis at 0), z = right side, origin at the front
+// face of the receiver. The outside is traced from Tokyo Marui's right-side product photo of the VSR-10 G-Spec (1456px,
+// muzzle to the right) at 1.2467 px/mm, which makes it 1135mm with the silencer on and 947mm without: Marui gives 1135 and
+// 950. Internal parts are placed from the exploded drawings in Marui's manual and the hobby-japan strip, so their sizes
+// and positions are approximate.
+const K = 1.2467, OX = 667.5, OY = 305.5;
+const X = px => (px - OX) / K, Y = py => (OY - py) / K;
+const P = pts => pts.map(([a, b]) => [X(a), Y(b)]);
+const D2R = Math.PI / 180;
+
+// ---------- key dimensions ----------
+const RCV = { x0: X(490), x1: 0, r: 16.4, ri: 13.4 };   // receiver tube, -142 to 0
+const BAR = { x1: X(1201), r: 14, ri: 10.5 };           // ST outer barrel to 428
+const SIL = { x0: BAR.x1, x1: X(1438), r: 17 };          // silencer to 618
+const CYL = { x0: -176, x1: -24, r: 12.4, ri: 11.2 };   // cylinder tube
+const CH = [-14, 36];                                   // chamber back and front
+const IB = [-6, 297];                                   // 303mm inner barrel
+const STROKE = 70;                                      // bolt throw, and the piston's travel
+const PIST = [-82, -30];                                // piston back and front at rest
+const SPR = [-172, -40];                                // main spring back (on the guide) and front (inside the piston)
+const SEAR_PV = [-172, -18], TRG_PV = [-160, -38];
+const STOCK_BOT = Y(368);                               // stock floor in front of the trigger guard, about -50
+const RAIL = { x0: X(494), x1: X(664), off: 13.6 };     // mount base, top 22.9
+
+// ================= STOCK =================
+const stockSide = P([[50, 327], [200, 326], [318, 325], [328, 329], [340, 338], [352, 341], [365, 340.5], [380, 338], [400, 330], [420, 324],
+  [437, 318], [446, 312], [940, 311], [946, 316], [948, 325], [945, 337], [938, 346], [900, 352], [760, 359], [600, 366], [520, 368], [511, 370],
+  [442, 371], [425, 375], [405, 383], [388, 395], [376, 410], [368, 425], [360, 440], [345, 442.5], [322, 438], [303, 429], [297, 422], [291, 417],
+  [200, 441], [100, 470], [50, 483]]);
+// half widths seen from above: broad butt, slim wrist, then the action and the forend
+const stockPlan = (() => {
+  const hw = [[-496, 20], [-300, 20.5], [-262, 16], [-205, 16], [-180, 19.5], [150, 19.5], [222, 17], [230, 12]];
+  return [...hw.map(([x, w]) => [x, w]), ...hw.slice().reverse().map(([x, w]) => [x, -w])];
+})();
+part('stock', 'Stock', 'stk', ['VSR-2'], [0, 0, 0],
+  'One-piece polymer stock with a rubberised matte finish, the Pro Sniper shape Marui uses on the G-Spec. The action drops into it from the top and is held by two hex bolts from underneath; the barrel floats clear of the forend. The magazine catch and its button stay in the stock when the action comes out, so do not lose them.',
+  [[sideUV(cut(cut(profR(stockSide, 42, 5), [prof(stockPlan, 400, 0).rotateX(Math.PI / 2)], INTERSECTION), [
+      cyl(RCV.r + 0.4, RCV.x1 - RCV.x0 + 12, 'x', (RCV.x0 + RCV.x1) / 2 - 6, 0, 0, 40),
+      cyl(BAR.r + 1.2, 260, 'x', 130, 0, 0, 40),
+      bx(-200, -142, -12, 12, -11.5, 11.5),                    // bolt sleeve and receiver end tang
+      bx(-188, -117, -44, -8, -10, 10),                        // trigger unit well
+      bx(-186, -120, -60, -48, -7, 7),                         // trigger guard inlet
+      bx(-110, -6, -60, -10, -9, 9),                           // magazine well
+      bx(-4, 62, -36, -8, -10, 10),                            // chamber block
+      cyl(3, 40, 'y', 10, -40, 0, 12), cyl(3, 40, 'y', 50, -40, 0, 12)])), 'stipple']],
+  { shell: true });
+
+part('buttPad', 'Butt plate', 'stk', ['VSR-3'], [-60, 0, 0],
+  'Rubber butt pad, pushed onto the back of the stock.',
+  [[cut(profR(P([[21, 333], [24, 328], [50, 327], [50, 483], [24, 484], [21, 480]]), 40, 3), [prof(stockPlan.map(([x, z]) => [x - 23, z]), 400, 0).rotateX(Math.PI / 2)], INTERSECTION), 'poly2']]);
+
+const swivel = (x, y) => [[cyl(2.6, 9, 'y', x, y - 2, 0, 12), 'steel'], [cyl(4.4, 1.6, 'y', x, y + 0.4, 0, 16), 'steel'],
+  [tubeAlong([[x - 3, y - 7, 0], [x - 9, y - 12, 0], [x - 14, y - 22, 0], [x - 6, y - 25, 0], [x + 1, y - 13, 0], [x - 3, y - 7, 0]], 1.4, 40), 'steel']];
+part('swivelF', 'Front sling pin + swivel', 'stk', ['VSR-4', 'SW'], [0, -70, 0],
+  'Sling pin screwed into the forend, with the detachable swivel (the swivels are Marui series parts, sold as a pair). A bipod with a sling-stud mount fits the same pin.',
+  swivel(X(905), -37.5));
+part('swivelR', 'Rear sling pin + swivel', 'stk', [], [0, -70, 0],
+  'Second sling pin and swivel, under the butt.',
+  swivel(X(100), Y(470)));
+
+part('stockScrews', 'Stock screws', 'stk', ['VSR-5', 'VSR-6'], [0, -130, 0],
+  'The two hex bolts under the forend that hold the action in the stock: the long M5x31 at the back, the short M5x16 at the front (hobby-japan has them the other way round in words, so check the length as they come out). They thread into the chamber block nut and the chamber block. The included 2.5mm hex key fits.',
+  [[cyl(4.2, 3, 'y', 10, STOCK_BOT + 1, 0, 6), 'blued'], [cyl(2.5, 31, 'y', 10, STOCK_BOT + 15.5, 0, 12), 'steel'],
+   [cyl(4.2, 3, 'y', 50, STOCK_BOT + 2.3, 0, 6), 'blued'], [cyl(2.5, 16, 'y', 50, STOCK_BOT + 9.5, 0, 12), 'steel']]);
+
+part('magCatch', 'Magazine catch + button + spring', 'stk', ['VSR-7', 'VSR-8', 'VSR-9'], [0, -60, 0],
+  'Catch at the front of the magazine well, sprung up behind the magazine\'s front lip; press the button under the stock to drop the magazine. All three stay in the stock when the action comes out.',
+  [[bx(-8, 2, -42, -36, -6, 6), 'steel'], [bx(-6, 0, STOCK_BOT - 1.5, -42, -4, 4), 'nylon'], [spring(1.6, 0.25, 8, 5, 'y', 4, -44, 0), 'spring']]);
+
+part('guard', 'Trigger guard', 'stk', ['VSR-39'], [0, -110, 0],
+  'Diecast trigger guard with a long floor plate set into the bottom of the stock. The round-head screw at its back holds it, through a spacer collar, to the receiver end.',
+  [[cut(profR([[X(442), -50], [X(511), -50], [X(511), -56], [X(507), -70], [X(493), -82], [X(470), -85.5], [X(452), -84], [X(445), -76], [X(444), -56], [X(442), -56]], 7, 0.8,
+      [[[X(505), -56], [X(503), -69], [X(491), -79], [X(470), -82], [X(455), -80], [X(450), -74], [X(450), -56]]]), []), 'zinc'],
+   [bx(X(442) - 2, X(511) + 1, -50, -47, -6.5, 6.5), 'zinc']]);
+
+part('guardScrew', 'Guard screw + spacer collar', 'stk', ['VSR-41', 'VSR-40'], [0, -170, 0],
+  'M5x40 round-head screw up through the back of the trigger guard and a spacer collar into the tang of the receiver end.',
+  [[cyl(4.4, 2.4, 'y', -178, -53, 0, 20), 'steel'], [cyl(2.5, 40, 'y', -178, -32, 0, 12), 'steel'], [tube(2.6, 3.8, -178 - 0.1, -178 + 0.1, 12), 'steel'],
+   [cyl(3.6, 14, 'y', -178, -26, 0, 16), 'zinc']]);
+
+// ================= MAGAZINE =================
+part('mag', 'Magazine (30 rounds)', 'mag', ['VSR-68'], [0, -200, 0],
+  '30-round box magazine, inserted flat into the bottom of the stock in front of the trigger guard. The feed tower at its front reaches up into the chamber; the closing bolt\'s nozzle pushes each BB from there into the bucking.',
+  [[profR(rr(-108, -8, STOCK_BOT, -24, 2, 3), 16, 1), 'poly2'], [profR(rr(-20, -8, -25, -11, 1, 2), 9, 0.6), 'poly2'],
+   [cyl(3.2, 2, 'y', -14, -10.5, 0, 12), 'black'], [new THREE.SphereGeometry(2.95, 12, 8).translate(-14, -13.5, 0), 'white'],
+   decal('magLbl', ['JG BAR-10'], -95, -35, -40, -32, 8.05)]);
+
+// ================= SILENCER =================
+part('silMount', 'Silencer mount', 'sil', ['VG-11'], [200, 0, 0],
+  'Back cap of the silencer, threaded inside to screw onto the muzzle\'s 14mm clockwise thread. Screw it on straight and right home or the thread strips.',
+  [[latheX([[8, SIL.x0], [SIL.r - 1, SIL.x0], [SIL.r, SIL.x0 + 2], [SIL.r, SIL.x0 + 6], [SIL.r - 1.6, SIL.x0 + 6], [SIL.r - 1.6, SIL.x0 + 18], [8, SIL.x0 + 18], [8, SIL.x0]], 40), 'alu']]);
+part('silBody', 'Silencer body', 'sil', ['VG-8'], [330, 0, 0],
+  'Aluminium tube that makes the G-Spec 1135mm long. With the silencer off, fit the protective cap over the muzzle thread.',
+  [[latheX([[SIL.r - 1.6, SIL.x0 + 6], [SIL.r, SIL.x0 + 6], [SIL.r, SIL.x1 - 4], [SIL.r - 4, SIL.x1], [4.5, SIL.x1], [4.5, SIL.x1 - 3], [SIL.r - 1.6, SIL.x1 - 3], [SIL.r - 1.6, SIL.x0 + 6]], 48), 'alu'],
+   decal('silLbl', ['G-SPEC SOUND SUPPRESSOR'], SIL.x0 + 40, SIL.x0 + 150, 4, 10, SIL.r + 0.05)]);
+const BAFFLE_X = [482, 520, 558], URE_X = [448, 486, 524, 562];
+part('silFoam', 'Sound deadening urethane (4)', 'sil', ['VG-9'], [330, 70, 0],
+  'Four foam plugs with a hole down the middle for the BB, stacked between the baffles.',
+  URE_X.map(x => [latheX([[4, x], [15.2, x], [15.2, x + 33], [4, x + 33], [4, x]], 28), 'black']));
+part('silBaffles', 'Baffle plates (3)', 'sil', ['VG-10'], [330, 110, 0],
+  'Three plates between the foam plugs.',
+  BAFFLE_X.map(x => [latheX([[4, x], [15.2, x], [15.2, x + 3], [4, x + 3], [4, x]], 28), 'steel']));
+
+// ================= BARREL, CHAMBER AND HOP-UP =================
+part('outerBarrel', 'Outer barrel', 'brl', ['VG-1'], [60, 300, 0],
+  'Straight steel outer barrel (Marui calls it the ST barrel), heavier and shorter than the tapered Pro Sniper barrel. Its back end screws into the front of the receiver and carries the chamber; a pan screw underneath stops it turning. To take it out, undo that screw and turn the barrel anticlockwise; going back in, screw it home gently, back it off to line the hole up and do not overtighten the screw.',
+  [[latheX([[BAR.ri, -12], [RCV.ri - 0.1, -12], [RCV.ri - 0.1, 0], [BAR.r, 0], [BAR.r, BAR.x1 - 1], [BAR.r - 1, BAR.x1], [BAR.ri, BAR.x1], [BAR.ri, -12]], 48), 'blued']]);
+part('muzzle', 'ST muzzle', 'brl', ['VG-2'], [140, 300, 0],
+  'Muzzle insert at the front of the outer barrel, with the 14mm clockwise (positive) thread for the silencer.',
+  [[latheX([[4.5, BAR.x1 - 10], [BAR.ri, BAR.x1 - 10], [BAR.ri, BAR.x1], [7, BAR.x1], [7, BAR.x1 + 14], [4.5, BAR.x1 + 14], [4.5, BAR.x1 - 10]], 32), 'steel'],
+   ...Array.from({ length: 6 }, (_, i) => [torus(7, 0.5, 'x', BAR.x1 + 2 + i * 2, 0, 0), 'steel'])]);
+part('barrelCollar', 'ST barrel collar', 'brl', ['VG-3'], [100, 300, 40],
+  'Collar inside the outer barrel that centres the inner barrel. Its place here is a guess from the drawing.',
+  [[latheX([[4.6, 200], [BAR.ri - 0.2, 200], [BAR.ri - 0.2, 212], [4.6, 212], [4.6, 200]], 28), 'nylon']]);
+part('innerBarrel', 'Inner barrel (303mm, brass)', 'brl', ['VG-7'], [60, 400, 0],
+  'G-Spec brass inner barrel, 303mm, with the hop window at the back. It ends well inside the outer barrel, about 130mm short of the muzzle.',
+  [[cut(tube(3.05, 4.5, IB[0], IB[1], 24), [bx(2, 8, 2.5, 6, -1.5, 1.5)]), 'brass']]);
+part('bucking', 'HOP chamber rubber (bucking)', 'brl', ['VSR-21'], [10, 440, 0],
+  'Rubber bucking on the back of the inner barrel, its nub in the hop window. No grease or oil on it; if it gets oily, wash it in mild detergent.',
+  [[tube(3.1, 5.6, IB[0] - 2, 10, 24), 'black']]);
+const chamberHalf = s => [[cut(latheX([[5.7, CH[0]], [9.5, CH[0]], [9.5, CH[1]], [5.7, CH[1]], [5.7, CH[0]]], 32), [
+    bx(CH[0] - 1, CH[1] + 1, -20, 20, s > 0 ? -20 : 0, s > 0 ? 0 : 20), bx(-2, 12, 5, 12, -2.5, 2.5), bx(-14, -6, -12, -4, -4, 4)]), 'zinc'],
+  [bx(CH[0] + 2, CH[1] - 4, -2, 2, s * 9, s * 11), 'zinc']];
+part('chamberL', 'Chamber, left', 'brl', ['VSR-19'], [-60, 400, -40],
+  'Left half of the hop-up chamber, split down the middle. It slides into the back of the outer barrel, with the chamber block under it. Four screws hold the chamber together.',
+  chamberHalf(-1), { shell: true });
+part('chamberR', 'Chamber, right', 'brl', ['VSR-20'], [-60, 400, 40],
+  'Right half of the chamber.',
+  chamberHalf(1), { shell: true });
+part('bbStopper', 'Chamber BB stopper + spring', 'brl', ['VSR-22', 'VSR-23'], [-60, 450, -40],
+  'Small sprung stopper at the bottom back of the chamber that holds the next BB until the nozzle pushes it forward.',
+  [[bx(-12, -8, -8, -5, -2.5, 2.5), 'steel'], [spring(1, 0.22, 4, 4, 'y', -10, -12, 0), 'spring']]);
+part('hopLever', 'G HOP lever', 'brl', ['VG-24'], [-60, 460, 0],
+  'Arm in the top of the chamber that presses the bucking nub down into the barrel. Marui\'s G HOP lever bears on a longer patch than the old one; hobby-japan suggests a sliver of AEG buffer rubber in its gap for heavy BBs.',
+  [[bx(-1, 13, 5.6, 8, -2.2, 2.2), 'nylon'], [bx(1, 11, 4.4, 5.6, -1.6, 1.6), 'black']]);
+part('hopAdjusters', 'HOP adjusters, left + right', 'brl', ['VSR-26', 'VSR-27'], [-60, 410, 0],
+  'Pair of slides along the sides of the chamber. Sliding them pushes the hop lever down by a ramp; they run back to the lever you set the hop with.',
+  [[bx(-36, 20, 3, 6, 9.6, 11), 'steel'], [bx(-36, 20, 3, 6, -11, -9.6), 'steel'], [bx(-36, -30, 3, 11, 9.6, 11), 'steel'], [bx(-36, -30, 3, 11, -11, -9.6), 'steel'],
+   [bx(0, 8, 6, 8.5, -11, 11), 'steel']]);
+part('hopAdjLever', 'HOP adjust lever + click pin', 'brl', ['VSR-30', 'VSR-29'], [-90, 450, 40],
+  'Bent lever you move to set the hop: pull the bolt back and it shows at the front of the ejection port, with the HOP scale sticker beside it. The sprung click pin gives it its detents.',
+  [[bx(-44, -36, 9, 12, -3, 12), 'steel'], [bx(-44, -41, 9, 15, 9, 12), 'steel'], [cyl(1, 6, 'y', -32, 10, 6, 10), 'steel'], [spring(0.9, 0.2, 3, 3, 'y', -32, 6, 6), 'spring']]);
+part('chamberScrews', 'Chamber screws', 'brl', ['VSR-28', 'VSR-31', 'VG-67'], [-60, 480, 0],
+  'Small screws: two through the chamber halves, one holding the hop lever slide, and the flanged tapping screw. A thin Phillips driver fits.',
+  [[-8, 30].map(x => [cyl(1.3, 22, 'z', x, -5, 0, 10), 'steel']), [[cyl(1, 6, 'y', -40, 14, 4, 10), 'steel']], [[cyl(2.2, 1, 'z', -8, -5, 11.2, 12), 'steel']]].flat());
+part('chamberBlock', 'Chamber block + nut + screws', 'brl', ['VSR-14', 'VSR-15', 'VSR-16'], [60, 240, 0],
+  'Block under the back of the outer barrel, around the chamber. The two stock screws go into it from below (one through the square nut), and two M3x10 screws fix it to the barrel. Undo those two and the hop lever screw, then push the chamber unit back out of the barrel with a chopstick, not a screwdriver.',
+  [[cut(bx(-2, 60, -32, -12, -9.5, 9.5), [cyl(BAR.r + 0.2, 70, 'x', 30, 0, 0, 32), cyl(2.6, 30, 'y', 50, -30, 0, 12)]), 'nylon'],
+   [bx(6, 14, -22, -18, -4, 4), 'steel'], ...[22, 40].map(x => [cyl(1.5, 12, 'y', x, -18, 0, 10), 'steel'])]);
+
+// ================= RECEIVER AND MOUNT BASE =================
+part('receiver', 'Receiver', 'rcv', ['VSR-32'], [0, 200, 0],
+  'Painted aluminium receiver tube with the ejection port on the right. The outer barrel screws into its front; the trigger unit is fixed under its back end and the cylinder slides inside.',
+  [[cut(tube(RCV.ri, RCV.r, RCV.x0, RCV.x1, 48), [
+      bx(X(537), X(614.5), -4, 15, 0, 30),                     // ejection port
+      bx(RCV.x0 - 1, -112, -20, -8, -4.5, 4.5),               // sear and release slot
+      bx(-26, -4, -20, -8, -7, 7),                            // feed opening
+      ...[-120, -40].map(x => cyl(1.5, 10, 'y', x, RCV.r, 0, 10))]), 'slide']],
+  { shell: true });
+part('receiverEnd', 'Receiver end', 'rcv', ['VSR-33'], [-70, 200, 0],
+  'Painted aluminium end piece at the back of the receiver: a ring the cylinder runs through, cut for the bolt handle root, and a tang along the top of the wrist that the guard screw pulls down.',
+  [[cut(latheX([[11, -150], [RCV.r, -150], [RCV.r, -142], [11, -142], [11, -150]], 40), [bx(-152, -140, -2, 20, 4, 20)]), 'slide'],
+   [profR([[-150, -10.5], [-150, -16], [-196, -16], [-200, -13], [-196, -10.5]], 14, 1), 'slide']]);
+part('receiverRings', 'Receiver rings, front + rear', 'rcv', ['VSR-34', 'VSR-35'], [-20, 245, 0],
+  'Front ring at the barrel joint and the rear ring that keeps the receiver end on.',
+  [[torus(RCV.r - 0.6, 0.9, 'x', -1.5, 0, 0), 'steel'], [torus(RCV.r - 0.6, 0.9, 'x', RCV.x0 + 2, 0, 0), 'steel']]);
+part('receiverScrews', 'Receiver set screws + barrel screw', 'rcv', ['VSR-37', 'VSR-38'], [0, 140, 0],
+  'Two M3x4 hex set screws in the top of the receiver, and the M3x4 pan screw under it that locks the outer barrel against turning.',
+  [[cyl(1.5, 4, 'y', -120, RCV.r - 1, 0, 10), 'steel'], [cyl(1.5, 4, 'y', -40, RCV.r - 1, 0, 10), 'steel'],
+   [cyl(2.6, 1.4, 'y', -6, -RCV.r - 0.7, 0, 14), 'steel'], [cyl(1.5, 4, 'y', -6, -RCV.r + 1.4, 0, 10), 'steel']]);
+part('mountBase', 'Mount base (rail)', 'rcv', ['MB'], [0, 290, 0],
+  'Rail on top of the receiver for a scope (the G-Spec has no iron sights). Marui calls it the series mount base and sells it separately; JG fits a 20mm rail.',
+  [[picatinny(RAIL.x0, RAIL.x1, 'up', RAIL.off, { riser: 0 }), 'blued']]);
+part('mountScrews', 'Mount base screws', 'rcv', [], [0, 345, 0],
+  'Three M3x8 cap screws and one M3x6, down through the bottom of the rail grooves into the receiver.',
+  picatinnySlots(RAIL.x0, RAIL.x1).filter((_, i, a) => [1, 4, 8, a.length - 2].includes(i)).map(x => [cyl(2.4, 2.4, 'y', x, RAIL.off + PIC.height - PIC.slotDepth + 1.2, 0, 16), 'steel']));
+
+// ================= BOLT AND CYLINDER =================
+part('cylinder', 'Cylinder', 'cyl', ['VG-5'], [-330, 200, 0],
+  'Polished aluminium cylinder (JG; Marui\'s is the sealed G-Spec cylinder assy), which is also the bolt: the handle turns it and slides it back and forth. A slot along its bottom lets the sear reach the piston. With the trigger unit off the gun, slide the cylinder release lever down and the cylinder pulls out of the back.',
+  [[cut(tube(CYL.ri, CYL.r, CYL.x0, CYL.x1, 48), [bx(-160, -78, -14, -9, -3, 3)]), 'steel'],
+   [latheX([[0, CYL.x0 - 0.1], [CYL.ri, CYL.x0 - 0.1], [CYL.ri, CYL.x0 + 3], [3.5, CYL.x0 + 3], [0, CYL.x0 + 3]], 32), 'steel']],
+  { shell: true });
+part('cylHead', 'Cylinder head + nozzle', 'cyl', ['VG-5'], [-300, 245, 0],
+  'Brass cylinder head with the nozzle on it. Marui pins the head in to stop owners changing the spring; hobby-japan drills the pin out to service the spring and piston.',
+  [[latheX([[2.2, -34], [CYL.ri, -34], [CYL.ri, CYL.x1], [CYL.r, CYL.x1], [CYL.r, CYL.x1 + 2], [4, CYL.x1 + 2], [4, -14], [2.2, -14], [2.2, -34]], 32), 'brass']]);
+part('piston', 'Piston', 'cyl', ['VG-5'], [-330, 250, 0],
+  'Hollow polymer piston with a head and O-ring at the front and the sear catch under its back end. Closing the bolt leaves it caught on the sear, so the spring is squeezed between it and the guide: the VSR cocks on the forward stroke.',
+  [[latheX([[0, PIST[1] - 6], [10.9, PIST[1] - 6], [10.9, PIST[1]], [0, PIST[1]]], 32), 'nylon'], [torus(10.6, 0.7, 'x', PIST[1] - 3, 0, 0), 'black'],
+   [latheX([[8.6, PIST[0]], [10, PIST[0]], [10, PIST[1] - 6], [8.6, PIST[1] - 6]], 32), 'white'],
+   [bx(PIST[0], PIST[0] + 5, -11.4, -8.4, -2, 2), 'steel']]);
+part('mainSpring', 'Main spring', 'cyl', ['VG-5'], [-330, 290, 0],
+  'Main spring, from the guide at the back of the cylinder into the hollow piston. JG ships it at about 400 to 450fps; check the power after any spring change.',
+  [[spring(8.2, 0.9, SPR[1] - SPR[0], 26, 'x', SPR[0], 0, 0), 'spring']]);
+part('springGuide', 'Spring guide', 'cyl', ['VG-5'], [-330, 325, 0],
+  'Guide at the back of the cylinder; the spring sits over its rod.',
+  [[latheX([[0, CYL.x0 + 3], [CYL.ri - 0.4, CYL.x0 + 3], [CYL.ri - 0.4, SPR[0]], [3.5, SPR[0]], [3.5, -140], [0, -140]], 24), 'nylon']]);
+part('boltHandle', 'Bolt handle (G-Spec)', 'cyl', ['VG-4'], [-400, 200, 0],
+  'G-Spec bolt handle: a collar on the back of the cylinder with a swept arm and a flattened knob. Lift it, pull back, push forward and lower it to cock and load.',
+  [[cut(latheX([[CYL.r - 0.2, -160], [13.2, -160], [13.2, -149], [CYL.r - 0.2, -149], [CYL.r - 0.2, -160]], 40), []), 'blued'],
+   [tubeAlong([[-153, -5, 11], [-155, -12, 17], [-158, -22, 22], [-162, -31, 25]], 3.2, 40), 'blued'],
+   [new THREE.SphereGeometry(1, 24, 16).scale(9, 9, 5.5).rotateX(-0.6).translate(-163, -36, 26.5), 'blued']]);
+part('boltSleeve', 'Bolt sleeve + cap screw', 'cyl', ['VSR-43', 'VSR-42'], [-430, 200, 0],
+  'Sleeve on the back of the cylinder, held by an M4x12 cap screw with thread lock. Marui boxes a cover for it with the G-Spec.',
+  [[latheX([[0, -181], [9, -181], [10.4, -179], [10.4, -160], [0, -160]], 32), 'blued'], [cyl(3.4, 2, 'x', -182, 0, 0, 6), 'steel']]);
+part('boltClip', 'Bolt clip pin', 'cyl', ['VSR-44'], [-400, 250, 40],
+  'Sprung pin that locks the handle collar to the cylinder.',
+  [[cyl(1.4, 9, 'z', -154, 7, 9, 10), 'steel'], [spring(1.1, 0.2, 4, 4, 'z', -154, 7, 6), 'spring']]);
+
+// ================= TRIGGER UNIT =================
+const tHouse = [[-186, -16], [-118, -16], [-118, -26], [-124, -42], [-150, -42], [-152, -46], [-168, -46], [-170, -42], [-186, -42]];
+const tHalf = s => [[cut(profR(tHouse, 8, 0.6).translate(0, 0, s * 4), [bx(-182, -122, -40, -16.5, s > 0 ? -1 : -8.5, s > 0 ? 8.5 : 1),
+    cyl(1.6, 30, 'z', ...TRG_PV, 0, 10), cyl(1.6, 30, 'z', ...SEAR_PV, 0, 10)]), 'alu']];
+part('trigHousingL', 'Trigger housing, left', 'trg', ['VSR-48'], [-20, 140, -60],
+  'Left half of the trigger unit (aluminium alloy on the JG, adjustable for pull and break). It is fixed under the back of the receiver and comes out with the action.',
+  tHalf(-1), { shell: true });
+part('trigHousingR', 'Trigger housing, right', 'trg', ['VSR-49'], [-20, 140, 60],
+  'Right half of the trigger unit.',
+  tHalf(1), { shell: true });
+part('trigger', 'Trigger (G-Spec)', 'trg', ['VG-6'], [-20, 100, 0],
+  'G-Spec trigger, on a 3x12 pin in the housing. Its top tips the first sear down off the piston.',
+  [[profR([[-155, -36], [-157, -44], [-161, -55], [-163, -66], [-162, -76], [-165, -77.5], [-168, -70], [-168, -58], [-165, -46], [-164, -36]], 5, 0.8), 'zinc'],
+   [cyl(1.5, 13, 'z', ...TRG_PV, 0, 12), 'steel'], [bx(-158, -150, -36, -32, -2, 2), 'zinc']]);
+part('firstSear', 'First sear + spring', 'trg', ['VSR-57', 'VSR-58'], [-20, 180, 0],
+  'Long sear along the top of the trigger unit. Its tooth stands up through the receiver and the cylinder slot and holds the piston back once the bolt has been pulled; the trigger tips it down to fire.',
+  [[profR([[-174, -21], [-174, -16.5], [-152, -16.5], [-152, -8], [-146, -8], [-144, -16.5], [-128, -16.5], [-128, -21]], 6, 0.4), 'steel'],
+   [cyl(1.5, 11, 'z', ...SEAR_PV, 0, 10), 'steel'], [spring(1.4, 0.25, 7, 5, 'y', -135, -30, 0), 'spring']]);
+part('secondSear', 'Second sear', 'trg', ['VSR-59', 'VSR-61'], [-20, 160, 30],
+  'Second sear with its torsion spring, between the trigger and the first sear: a two-stage hold that lets the trigger stay light under a strong spring.',
+  [[profR([[-150, -24], [-142, -22], [-138, -28], [-146, -32]], 5, 0.4), 'steel'], [cyl(1.5, 10, 'z', -144, -27, 0, 10), 'steel'],
+   [torus(2.4, 0.3, 'z', -144, -27, 2.8), 'spring']]);
+part('releaseLever', 'Cylinder release lever', 'trg', ['VSR-60'], [-20, 140, -30],
+  'Lever on the trigger unit that pulls the first sear clear so the cylinder can come out. With the unit off the stock, slide it down and draw the cylinder out of the back; going back in, hold the sear notch down with a finger.',
+  [[bx(-127, -122, -40, -18, -10.5, -9), 'steel'], [bx(-127, -122, -42, -40, -12, -7), 'steel']]);
+part('trigStop', 'Trigger stop + adjusters', 'trg', ['VSR-62', 'VSR-63', 'VSR-64', 'VSR-65'], [-20, 115, 40],
+  'Trigger stop with its spring, and the two hex set screws with lock nuts that set the pull length and the break.',
+  [[bx(-150, -138, -40, -34, -3, 3), 'steel'], [spring(1.2, 0.2, 5, 4, 'x', -138, -37, 0), 'spring'],
+   [cyl(2, 10, 'y', -132, -38, 0, 12), 'steel'], [cyl(2, 6, 'y', -148, -40, 4, 12), 'steel']]);
+part('trigSpring', 'Trigger spring', 'trg', ['VSR-66'], [-20, 120, -30],
+  'Spring that returns the trigger.',
+  [[spring(1.4, 0.25, 8, 6, 'x', -177, -30, 0), 'spring']]);
+part('trigPins', 'Trigger unit pins + screws', 'trg', ['VSR-56', 'VSR-53', 'VSR-54', 'VSR-55'], [-20, 150, -100],
+  'Pins and the screws that hold the two halves of the trigger unit together and fix it to the receiver.',
+  [[cyl(2.6, 1, 'z', -180, -20, -8.6, 12), 'steel'], [cyl(2.6, 1, 'z', -124, -20, -8.6, 12), 'steel'], [cyl(2.6, 1, 'z', -150, -38, -8.6, 12), 'steel'],
+   [cyl(1.5, 6, 'y', -180, -14, 0, 10), 'steel'], [cyl(1.5, 6, 'y', -124, -14, 0, 10), 'steel']]);
+part('safety', 'Safety + spring', 'trg', ['VSR-51', 'VSR-52'], [-20, 175, 60],
+  'Safety lever at the right rear of the receiver, behind the bolt handle. Forward is FIRE, back is SAFE, which blocks the trigger.',
+  [[profR([[-186, -18], [-183, -18], [-181, -8], [-185, -6], [-188, -8]], 3, 0.5).translate(0, 0, 10.5), 'zinc'],
+   [spring(1, 0.2, 5, 4, 'x', -186, -20, 9), 'spring']]);
+
+// ---------- UI: list ----------
+const list = document.getElementById('list');
+const byCat = {};
+for (const p of parts) (byCat[p.userData.cat] ||= []).push(p);
+const itemEls = new Map();
+const catOn = {};
+const catEls = {};
+let isolated = null;
+function updateVis() {
+  for (const p of parts) p.visible = isolated ? p === isolated : catOn[p.userData.cat];
+}
+// UI state that survives a reload: open panels (desktop only) and folded categories.
+const MOBILE = matchMedia('(max-width:700px)');
+const store = (() => { try { return JSON.parse(localStorage.getItem('adis-bar10-ui')) || {}; } catch { return {}; } })();
+const save = () => { try { localStorage.setItem('adis-bar10-ui', JSON.stringify(store)); } catch {} };
+store.folded ||= {};
+function setFold(key, folded) {
+  store.folded[key] = folded; save();
+  catEls[key].car.textContent = folded ? '▸' : '▾';
+  applyFilter();
+}
+for (const [key, label] of Object.entries(CATS)) {
+  catOn[key] = true;
+  const head = document.createElement('div'); head.className = 'cat';
+  const car = document.createElement('span'); car.className = 'car';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.title = 'Show or hide this category';
+  cb.onclick = e => e.stopPropagation();
+  cb.onchange = () => { catOn[key] = cb.checked; updateVis(); };
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = label + ` (${byCat[key].length})`;
+  head.append(car, cb, nm);
+  head.onclick = () => setFold(key, !store.folded[key]);
+  list.append(head); catEls[key] = { head, car };
+  car.textContent = store.folded[key] ? '▸' : '▾';
+  for (const p of byCat[key]) {
+    const it = document.createElement('div'); it.className = 'item';
+    it.innerHTML = `<span>${p.userData.name}</span><span class="pn">${p.userData.nos[0] || ''}</span>`;
+    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onmouseenter = () => hover(p);
+    it.onmouseleave = () => hover(null);
+    list.append(it); itemEls.set(p, it);
+  }
+}
+// Search: matches every word of the query against the part name.
+const find = document.getElementById('find');
+const nohit = document.getElementById('nohit');
+const hay = p => { const d = p.userData; return [d.name, ...d.nos].join(' ').toLowerCase(); };
+function matches(p, q) {
+  if (!q) return true;
+  if (p.userData.nos.some(x => x.toLowerCase() === q)) return true;
+  return q.split(/\s+/).every(w => hay(p).includes(w));
+}
+function applyFilter() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const [key] of Object.entries(CATS)) {
+    let n = 0;
+    for (const p of byCat[key]) {
+      const m = matches(p, q); n += m;
+      itemEls.get(p).classList.toggle('hid', !m || (!q && !!store.folded[key]));
+    }
+    catEls[key].head.classList.toggle('hid', !!q && !n);
+    any ||= n > 0;
+  }
+  nohit.style.display = any ? 'none' : 'block';
+}
+find.oninput = applyFilter;
+find.onkeydown = e => {
+  if (e.key === 'Escape') { find.value = ''; applyFilter(); find.blur(); e.stopPropagation(); }
+  if (e.key === 'Enter') { const p = parts.find(p => !itemEls.get(p).classList.contains('hid')); if (p) select(p, true); }
+};
+applyFilter();
+
+// ---------- explode ----------
+const exSlider = document.getElementById('explode');
+let exTarget = 0, exCur = 0;
+exSlider.oninput = () => exTarget = +exSlider.value;
+let camTween = null;
+document.getElementById('bReset').onclick = () => { camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; };
+const spin = document.getElementById('spin');
+spin.onchange = () => controls.autoRotate = spin.checked;
+
+document.getElementById('xray').onchange = e => {
+  for (const p of parts) if (p.userData.shell) p.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.transparent = e.target.checked;
+    o.material.opacity = e.target.checked ? 0.09 : 1;
+    o.material.depthWrite = !e.target.checked;
+    o.castShadow = !e.target.checked;   // a see-through shell must not shade the parts inside it
+    o.material.needsUpdate = true;      // transparent is compiled into the shader (OPAQUE forces alpha 1)
+  });
+};
+const labelsCb = document.getElementById('labels');
+
+// ---------- panels ----------
+const info = document.getElementById('info');
+const infoBody = document.getElementById('infoBody');
+const PANELS = { side: 'tSide', ctrl: 'tCtrl', info: 'tInfo' };
+const panelEl = id => document.getElementById(id);
+const isOpen = id => !panelEl(id).classList.contains('hidden');
+function showPanel(id, on) {
+  panelEl(id).classList.toggle('hidden', !on);
+  document.getElementById(PANELS[id]).classList.toggle('on', on);
+  // On a phone the parts drawer and the view menu share the same space: one at a time.
+  if (on && MOBILE.matches && id !== 'info') showPanel(id === 'side' ? 'ctrl' : 'side', false);
+  if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
+  if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
+  document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+}
+for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
+document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
+function toggleAll() {
+  const on = !Object.keys(PANELS).some(isOpen);
+  for (const id in PANELS) if (!(on && MOBILE.matches && id === 'ctrl')) showPanel(id, on);
+}
+document.getElementById('tAll').onclick = toggleAll;
+function initPanels() {
+  for (const id in PANELS) showPanel(id, MOBILE.matches ? id === 'info' : store.open?.[id] ?? true);
+  info.classList.toggle('peek', MOBILE.matches);
+}
+document.querySelector('.grab').onclick = () => info.classList.toggle('peek');
+info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.target.closest('button, a, .grab')) info.classList.remove('peek'); });
+
+// ---------- info panel ----------
+const SOURCES = `<p class="src">Sources: <a href="https://www.tokyo-marui.co.jp/support/manuals/aircocking/73/">Tokyo Marui VSR-10 G-Spec manual</a> (parts lists and exploded drawings),
+<a href="https://www.tokyo-marui.co.jp/products/aircocking/boltaction/73">Tokyo Marui G-Spec page</a> (specs and the side photo the outside is traced from),
+<a href="https://vsr10.hobby-japan.com/bunkai.html">VSR-10 Magazine strip guide</a> (hobby-japan),
+<a href="https://blackblitzairsoft.com/products/jg-bar-10-airsoft-bolt-action-sniper-rifle-regular-g-spec-wood">Black Blitz JG BAR-10 listing</a> (JG features),
+<a href="https://www.taiwangun.com/sniper-rifle-spring/bar-10-j-g-works">Taiwangun BAR-10 photos</a>. Internal shapes and positions are approximate.</p>`;
+function showOverview() {
+  infoBody.innerHTML = `<h2>JG BAR-10 G-Spec (VSR-10 G-Spec)</h2>
+  <div class="meta">Spring bolt action, Remington 700 pattern. Polymer stock, aluminium receiver, steel outer barrel, screw-on silencer.</div>
+  <p>Tokyo Marui figures for the G-Spec that JG copies: 950mm long, 1135mm with the silencer, 303mm inner barrel, 2090g, 30-round magazine. JG lists its copy at 1145mm with a 302mm barrel and an aluminium trigger unit adjustable for pull and break, an aluminium cylinder with a brass head, and a metal hop-up; US retailers quote 400 to 475fps out of the box. VSR-10 upgrade parts from Marui and most aftermarket makers fit.</p>
+  <ul>
+    <li>Hop-up: pull the bolt back and set the lever at the front of the ejection port against the scale sticker. Do it before fitting the silencer: a BB dropped out of the chamber, or two fed by working the bolt twice, can break the silencer's insides.</li>
+    <li>Silencer: take the protective cap off the muzzle and screw the silencer on clockwise (it is a positive thread), straight and right home.</li>
+    <li>Field strip (hobby-japan, on the Marui): take out the magazine and the two hex bolts under the forend, lift the barrel and pull it toward the muzzle; the barrel, receiver and trigger unit come out of the stock together. The magazine catch and its button stay in the stock.</li>
+    <li>Barrel and chamber: undo the screw that locks the outer barrel, unscrew the barrel anticlockwise and pull it off forward. Undo the chamber block's two screws and the hop lever screw, then push the chamber unit and inner barrel out of the back of the outer barrel with a chopstick. The chamber splits in two once its four screws are out.</li>
+    <li>Cylinder: slide the cylinder release lever on the trigger unit down and draw the cylinder (the bolt) out of the back. Going back in, press the sear notch down so the cylinder can pass. Marui pins the cylinder head in place; changing the spring means drilling that pin out, which voids the warranty.</li>
+    <li>The Bolt slider works the action: lift the handle, pull it back (the piston comes with it until the sear catches it), push it forward (the cylinder closes on the piston and squeezes the spring), lower it. The Trigger slider then trips the sears and the piston flies forward. Pulled with the bolt not worked, the trigger does nothing.</li>
+    <li>The Explode slider strips it in order: the magazine drops (to 8%), the silencer unscrews (to 14%), the stock bolts come out (to 19%), the action lifts out of the stock (to 29%), the barrel unscrews forward and lifts off (to 46%), the chamber unit comes out of it (to 53%) and the cylinder slides out of the back (to 62%); each group spreads into its parts (to 82%), then the trigger unit and the stock fittings come apart.</li>
+  </ul>
+  <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} part numbers in Marui's G-Spec parts list. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+}
+function showList(hitNos = []) {
+  const rows = MANUAL.map(([no, name, price]) => {
+    const mod = byNo.has(no);
+    return `<tr class="${mod ? 'mod' : ''} ${hitNos.includes(no) ? 'hit' : ''}" data-no="${no}"><td>${no}</td><td>${name}</td><td>${price.toLocaleString('en')}</td></tr>`;
+  }).join('');
+  infoBody.innerHTML = `<h2>Manual parts list (${MANUAL.length})</h2><div class="meta">Tokyo Marui's VSR-10 G-Spec list, names translated, prices in yen without tax. VSR numbers are shared with the VSR-10, VG numbers are G-Spec only; MB and SW are unnumbered series parts. Blue rows are modeled, click to find them.</div><table>${rows}</table>`;
+  infoBody.querySelectorAll('tr.mod').forEach(tr => tr.onclick = () => select(byNo.get(tr.dataset.no), true));
+}
+document.getElementById('bList').onclick = () => showList(selected ? selected.userData.nos : []);
+document.getElementById('bInfo').onclick = () => select(null);
+
+// ---------- selection ----------
+let selected = null;
+function setGlow(p, on, col = 0x2f6bff) {
+  p.traverse(o => { if (o.isMesh) {
+    o.material.emissive.setHex(on ? col : o.userData.baseEmissive);
+    o.material.emissiveIntensity = on ? 0.55 : 1;
+  } });
+}
+// Hover glow, shared by the canvas and the parts list.
+let hovered = null;
+function hover(p) {
+  if (hovered && hovered !== selected) setGlow(hovered, false);
+  hovered = p;
+  if (p && p !== selected) setGlow(p, true, 0x3a3f4a);
+}
+// Frame a part: aim at its bounding box centre and back off until the box fits the narrower field of view.
+function focusOn(p) {
+  const box = new THREE.Box3().setFromObject(p);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const half = Math.min(camera.fov / 2 * Math.PI / 180, Math.atan(Math.tan(camera.fov / 2 * Math.PI / 180) * camera.aspect));
+  const dist = THREE.MathUtils.clamp(r / Math.sin(half) * 1.15, 25, 1500);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  camTween = { tgt: c, pos: c.clone().add(dir.multiplyScalar(dist)) };
+}
+function isolate(p) {
+  isolated = p; updateVis();
+  const b = infoBody.querySelector('#bIso');
+  if (b) { b.classList.toggle('on', !!p); b.textContent = p ? 'Show all (Esc)' : 'Show only this'; }
+}
+function select(p, focus = false) {
+  if (selected) { setGlow(selected, false); itemEls.get(selected).classList.remove('sel'); selected.userData.label.element.classList.remove('sel'); }
+  selected = p;
+  if (!p) { if (isolated) isolate(null); showOverview(); return; }
+  if (isolated) isolate(p);
+  setGlow(p, true);
+  const it = itemEls.get(p);
+  if (it.classList.contains('hid')) {
+    if (find.value) { find.value = ''; }
+    store.folded[p.userData.cat] = false; save();
+    catEls[p.userData.cat].car.textContent = '▾';
+    applyFilter();
+  }
+  it.classList.add('sel');
+  it.scrollIntoView({ block: 'nearest' });
+  p.userData.label.element.classList.add('sel');
+  const d = p.userData;
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}</div>
+    <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>${SOURCES}`;
+  infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
+  infoBody.querySelector('#bIso').onclick = () => { isolate(isolated ? null : p); if (isolated) focusOn(p); };
+  infoBody.scrollTop = 0;
+  if (focus) focusOn(p);
+}
+showOverview();
+initPanels();
+
+// ---------- picking ----------
+const ray = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let downAt = null;
+function pick(e) {
+  mouse.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1);
+  ray.setFromCamera(mouse, viewCam());
+  const hit = ray.intersectObjects(meshes.filter(m => m.parent.visible), false)
+    .find(h => !(h.object.material.transparent && h.object.material.opacity < 0.5));
+  return hit ? hit.object.userData.part : null;
+}
+renderer.domElement.addEventListener('pointermove', e => {
+  const p = pick(e);
+  hover(p);
+  tip.style.display = p ? 'block' : 'none';
+  if (p) { tip.textContent = p.userData.name; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 10 + 'px'; }
+  renderer.domElement.style.cursor = p ? 'pointer' : 'default';
+});
+renderer.domElement.addEventListener('pointerdown', e => downAt = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  select(pick(e));
+});
+renderer.domElement.addEventListener('dblclick', e => { const p = pick(e); if (p) select(p, true); });
+
+// ---------- preset views ----------
+// unit directions from the target to the camera: +x is the muzzle end, +z the gun's right; top and bottom lean a hair
+// toward the right side so the orbit controls keep the muzzle pointing right
+const VIEWS = { front: [1, 0, 0], back: [-1, 0, 0], top: [0, 1, 1e-3], left: [0, 0, -1], right: [0, 0, 1], bottom: [0, -1, 1e-3] };
+const VIEW_KEYS = { 1: 'front', 2: 'back', 3: 'top', 4: 'left', 5: 'right', 6: 'bottom' };
+const viewDir = dir => {
+  const d = camera.position.distanceTo(controls.target);
+  camTween = { tgt: controls.target.clone(), pos: dir.clone().normalize().multiplyScalar(d).add(controls.target) };
+};
+const viewFrom = v => viewDir(new THREE.Vector3(...VIEWS[v]));
+
+// ---------- view cube ----------
+// A labelled cube in the corner that turns with the camera. Each face is split 3 x 3: a click on the middle looks
+// straight at that face, on an edge strip from between the two faces, on a corner from between three. Dragging it
+// orbits the main camera.
+const cubeEl = document.getElementById('cube');
+const cubeR = new THREE.WebGLRenderer({ canvas: cubeEl, antialias: true, alpha: true });
+cubeR.setPixelRatio(Math.min(devicePixelRatio, 2));
+const cubeScene = new THREE.Scene(), cubeCam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+const faceTex = (txt) => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2a3140'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = '#4a5468'; g.lineWidth = 6; g.strokeRect(3, 3, 250, 250);
+  g.fillStyle = '#dfe6f3'; g.font = `600 ${txt.length > 5 ? 44 : 50}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(txt, 128, 132);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+};
+// BoxGeometry face order: +x, -x, +y, -y, +z, -z (muzzle, butt, top, bottom, right, left)
+const cubeBox = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2),
+  ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'].map(t => new THREE.MeshBasicMaterial({ map: faceTex(t) })));
+const cubeHi = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x4d8dff, transparent: true, opacity: 0.55, depthTest: false }));
+cubeHi.visible = false; cubeHi.renderOrder = 1;
+cubeScene.add(cubeBox, cubeHi);
+const cubeRay = new THREE.Raycaster(), cubeNdc = new THREE.Vector2();
+// zone under the pointer as a direction with components -1, 0 or 1, or null off the cube
+const cubeZone = e => {
+  const r = cubeEl.getBoundingClientRect();
+  cubeNdc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  cubeRay.setFromCamera(cubeNdc, cubeCam);
+  const h = cubeRay.intersectObject(cubeBox)[0];
+  if (!h) return null;
+  return new THREE.Vector3(...h.point.toArray().map(v => Math.abs(v) > 0.6 ? Math.sign(v) : 0));
+};
+const showZone = z => {
+  cubeHi.visible = !!z;
+  if (!z) return;
+  const c = z.toArray().map(v => v ? v * 0.8 : 0), sz = z.toArray().map(v => v ? 0.42 : 1.2);
+  cubeHi.position.set(...c); cubeHi.scale.set(...sz);
+};
+let cubeDrag = null;
+cubeEl.addEventListener('pointerdown', e => { cubeDrag = { x: e.clientX, y: e.clientY, moved: false }; cubeEl.setPointerCapture(e.pointerId); });
+cubeEl.addEventListener('pointermove', e => {
+  if (!cubeDrag) { showZone(cubeZone(e)); return; }
+  const dx = e.clientX - cubeDrag.x, dy = e.clientY - cubeDrag.y;
+  if (!cubeDrag.moved && Math.hypot(dx, dy) < 4) return;
+  cubeDrag.moved = true; cubeEl.classList.add('drag'); showZone(null); camTween = null;
+  const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
+  sph.theta -= dx * 0.012; sph.phi = THREE.MathUtils.clamp(sph.phi - dy * 0.012, 0.01, Math.PI - 0.01);
+  camera.position.copy(controls.target).add(off.setFromSpherical(sph));
+  cubeDrag.x = e.clientX; cubeDrag.y = e.clientY;
+});
+cubeEl.addEventListener('pointerup', e => {
+  if (cubeDrag && !cubeDrag.moved) {
+    const z = cubeZone(e);
+    if (z) { if (!z.x && !z.z) z.z = 1e-3; viewDir(z); }   // straight up or down: lean a hair to the right so the muzzle points right
+  }
+  cubeDrag = null; cubeEl.classList.remove('drag');
+});
+cubeEl.addEventListener('pointerleave', () => { if (!cubeDrag) showZone(null); });
+const cubeSize = () => { const r = cubeEl.getBoundingClientRect(); cubeR.setSize(r.width, r.height, false); };
+cubeSize(); addEventListener('resize', cubeSize); MOBILE.addEventListener('change', cubeSize);
+const orthoCb = document.getElementById('ortho');
+orthoCb.onchange = () => { useOrtho = orthoCb.checked; };
+
+// ---------- keys ----------
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' && document.activeElement.type !== 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if (isolated) isolate(null); else if (selected) select(null); }
+  else if (k === '/') { e.preventDefault(); showPanel('side', true); find.focus(); find.select(); }
+  else if (k === 'f') { if (selected) focusOn(selected); else camTween = { pos: HOME_POS.clone(), tgt: HOME_TGT.clone() }; }
+  else if (k === 'h') toggleAll();
+  else if (k === 'p') showPanel('side', !isOpen('side'));
+  else if (k === 'v') showPanel('ctrl', !isOpen('ctrl'));
+  else if (k === 'i') showPanel('info', !isOpen('info'));
+  else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
+  else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+});
+MOBILE.addEventListener('change', initPanels);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- loop ----------
+const exv = document.getElementById('exv');
+const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
+const boltCtl = document.getElementById('boltpos'), bpv = document.getElementById('bpv');
+const TRIG = { pos: 0, bolt: 0 };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+const showBolt = () => { TRIG.bolt = +boltCtl.value; const b = TRIG.bolt;
+  bpv.textContent = b === 0 ? 'closed' : b === 1 ? 'cocked' : b < 0.2 ? 'lifting' : b < 0.5 ? 'pulling back' : b < 0.8 ? 'pushing forward' : 'lowering'; };
+trigCtl.oninput = showTrig; showTrig(); boltCtl.oninput = showBolt; showBolt();
+let trigCur = 0, boltCur = 0;
+// Staged explode, in strip order (hobby-japan on the Marui VSR-10): the magazine drops, the silencer unscrews, the stock
+// bolts come out and the action lifts out of the stock; the barrel unscrews forward and lifts off, the chamber unit comes
+// out of it, and the cylinder slides out of the back of the receiver. Each group then spreads into its parts, and last
+// the trigger unit and the stock fittings come apart. Each part's moves add up to its explode vector, so at 100% every
+// part sits where it always did.
+const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const LIFT = [V(0, 200, 0), 0.19, 0.29], SPREAD = [0.62, 0.82], LAST = [0.82, 1];
+const BARREL = ['outerBarrel', 'muzzle', 'barrelCollar'], CHAMBER = ['innerBarrel', 'bucking', 'chamberL', 'chamberR', 'bbStopper', 'hopLever',
+  'hopAdjusters', 'hopAdjLever', 'chamberScrews', 'chamberBlock'];
+for (const p of parts) {
+  const ex = p.userData.explode, cat = p.userData.cat, id = p.userData.id;
+  const seq = (moves, last = SPREAD) => [...moves, [moves.reduce((a, [v]) => a.sub(v), ex.clone()), ...last]];
+  p.userData.stages = cat === 'mag' ? seq([[V(0, -90, 0), 0, 0.08]])
+    : cat === 'sil' ? seq([[V(200, 0, 0), 0.06, 0.14]])
+    : id === 'stockScrews' ? seq([[V(0, -60, 0), 0.13, 0.19]])
+    : cat === 'stk' ? [[ex.clone(), ...LAST]]
+    : id === 'receiverScrews' ? seq([LIFT, [V(0, -40, 0), 0.29, 0.33]])
+    : BARREL.includes(id) ? seq([LIFT, [V(60, 0, 0), 0.32, 0.4], [V(0, 100, 0), 0.4, 0.46]])
+    : CHAMBER.includes(id) ? seq([LIFT, [V(60, 0, 0), 0.32, 0.4], [V(0, 200, 0), 0.47, 0.53]])
+    : cat === 'cyl' ? seq([LIFT, [V(-330, 0, 0), 0.52, 0.62]])
+    : cat === 'trg' ? seq([LIFT], LAST)
+    : seq([LIFT]);
+}
+// turn a part about a pivot (x, y) in the side plane
+const turnAbout = (p, [px, py], a) => {
+  p.rotation.z = a;
+  p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
+const ramp = (t, a, b) => THREE.MathUtils.clamp((t - a) / (b - a), 0, 1);
+// parts that turn and slide with the bolt handle; the piston slides with them until the sear holds it
+const BOLT = ['cylinder', 'cylHead', 'springGuide', 'boltHandle', 'boltSleeve', 'boltClip'];
+renderer.setAnimationLoop(() => {
+  // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
+  exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
+  exv.textContent = Math.round(exCur * 100) + '%';
+  trigCur += (TRIG.pos - trigCur) * 0.2; boltCur += (TRIG.bolt - boltCur) * 0.2;
+  // bolt: lift 60 degrees, pull back, push forward, lower. The piston is dragged back on the opening stroke and caught by
+  // the sear, so it stays back as the cylinder closes; the trigger then drops the sear and lets it fly.
+  const lift = -60 * D2R * (ramp(boltCur, 0, 0.2) - ramp(boltCur, 0.8, 1));
+  const cylBack = STROKE * (ramp(boltCur, 0.2, 0.5) - ramp(boltCur, 0.5, 0.8));
+  const cocked = ramp(boltCur, 0.2, 0.5), fired = ramp(trigCur, 0.45, 0.55);
+  const pisBack = Math.max(cylBack, STROKE * cocked * (1 - fired));
+  const tA = 12 * D2R * ramp(trigCur, 0, 0.45), sA = -7 * D2R * ramp(trigCur, 0.3, 0.45);
+  for (const p of parts) {
+    p.position.set(0, 0, 0); p.rotation.set(0, 0, 0); p.scale.set(1, 1, 1);
+    for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
+    const id = p.userData.id;
+    if (BOLT.includes(id)) { p.position.x -= cylBack; p.rotation.x = lift; }
+    if (id === 'piston') p.position.x -= pisBack;
+    if (id === 'mainSpring') {   // back end on the guide, front end in the piston
+      const r1 = SPR[0] - cylBack, f1 = SPR[1] - pisBack, s = (f1 - r1) / (SPR[1] - SPR[0]);
+      p.scale.x = s; p.position.x += r1 - SPR[0] * s;
+    }
+    if (id === 'trigger') turnAbout(p, TRG_PV, tA);
+    if (id === 'firstSear') turnAbout(p, SEAR_PV, sA);
+    p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
+  }
+  if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
+    // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
+    const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const s1 = new THREE.Spherical().setFromVector3(camTween.pos.clone().sub(camTween.tgt));
+    const dth = Math.atan2(Math.sin(s1.theta - s0.theta), Math.cos(s1.theta - s0.theta));
+    s0.theta += dth * 0.25; s0.phi += (s1.phi - s0.phi) * 0.1; s0.radius += (s1.radius - s0.radius) * 0.1;   // turn settles first
+    controls.target.lerp(camTween.tgt, 0.1);
+    camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s0));
+    if (camera.position.distanceTo(camTween.pos) < 2 && controls.target.distanceTo(camTween.tgt) < 1) camTween = null;
+  }
+  controls.update();
+  if (useOrtho) {
+    const h = camera.position.distanceTo(controls.target) * Math.tan(camera.fov * Math.PI / 360);
+    Object.assign(ortho, { left: -h * camera.aspect, right: h * camera.aspect, top: h, bottom: -h });
+    ortho.position.copy(camera.position); ortho.quaternion.copy(camera.quaternion); ortho.updateProjectionMatrix();
+  }
+  renderer.render(scene, viewCam());
+  labelRenderer.render(scene, viewCam());
+  cubeCam.position.copy(camera.position).sub(controls.target).setLength(6.6); cubeCam.quaternion.copy(camera.quaternion);
+  cubeR.render(cubeScene, cubeCam);
+});
+
+const EX_TGT = new THREE.Vector3(60, 80, 0), EX_POS = fit(new THREE.Vector3(160, 260, 2300), EX_TGT);
+const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
+fromHash(); addEventListener('hashchange', fromHash);
+window.__bar10 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG };
+</script>
+</body>
+</html>
