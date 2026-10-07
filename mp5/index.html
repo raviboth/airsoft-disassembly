@@ -811,12 +811,46 @@ part('lever', 'Lever (01-15)', 'rcv', ['01-15'], [0, 40, 110],
   'Small lever with a boxed end from VFC\'s upper receiver group, drawn beside the magazine catch. VFC gives it no name; what it does is not clear from the drawing.',
   [[bx(-52, -38, -16, -10, 11, 14), 'steel'], [bx(-40, -36, -16, -6, 11, 14), 'steel']]);
 
-part('rearSight', 'Rear sight drum + base, detent', 'rcv', ['05-4', '05-5', '05-6', '05-7', '05-8', '05-9'], [0, 170, 0],
-  'H&K rotary diopter: the drum turns to one of four apertures, clicking on a ball detent and spring; a screw underneath sets windage. Sits on the receiver top behind the cocking tube.',
-  [[profR(P([[888, 143], [970, 143], [970, 128], [888, 128]]), 22, 1.5), 'blued'],
-   [profR(P([[932, 128], [932, 96], [945, 92], [958, 95], [966, 105], [970, 118], [970, 128]]), 24, 3), 'blued'],
-   [cut(cyl(11.5, 22, 'z', 0, 0, 0, 28).rotateZ(-25 * D2R).translate(X(912), Y(108), 0), [cyl(1.6, 40, 'x', X(912), Y(104), 0, 12)]), 'blued'],
-   [bx(X(925), X(915), Y(140), Y(128), -11.5, -9), 'black']]);
+// H&K diopter rear sight, traced from VFC's side photo and shaped from close-ups of VFC's part 05-4 and H&K's own drum and
+// base: a hollow knurled drum on an axis tipped about 23 degrees forward, sitting in a cradle at the front of the base, with
+// two side wings and a windowed rear wall behind it. The four holes round the drum's wall are the apertures.
+const RS_DRUM = { x: X(912), y: Y(106), tilt: -22.6 * D2R, r: 9.7, h: 11.8 };
+const rsDrumG = g => g.rotateZ(RS_DRUM.tilt).translate(RS_DRUM.x, RS_DRUM.y, 0);
+// diamond knurl round a y axis: a band of small pyramids, N round the circumference, as an open surface of radius r
+function knurlBand(r, depth, y0, y1, N) {
+  const pitch = 2 * Math.PI * r / N, rows = Math.max(2, Math.round((y1 - y0) / pitch * 4)), cols = N * 4, pos = [], idx = [];
+  const tri = t => 1 - 2 * Math.abs(t - Math.floor(t) - 0.5);
+  for (let i = 0; i <= rows; i++) for (let j = 0; j <= cols; j++) {
+    const y = y0 + (y1 - y0) * i / rows, a = j / cols * 2 * Math.PI, u = j / 4 + (y - y0) / pitch, v = j / 4 - (y - y0) / pitch;
+    const rr = r - depth * (1 - Math.min(tri(u), tri(v)));
+    pos.push(rr * Math.cos(a), y, -rr * Math.sin(a));
+  }
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) { const a = i * (cols + 1) + j, b = a + 1, c = a + cols + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const RS_SIDE = P([[888, 131], [888, 127.5], [898, 127.5], [935, 112.5], [934, 97], [938, 94.7], [950, 95], [960, 100], [966.7, 108.3], [970, 118.3], [970, 141], [888, 141]]);   // the skirt wraps the receiver top
+part('rearSight', 'Rear sight (drum and base), detent, screws', 'rcv', ['05-4', '05-5', '05-6', '05-7', '05-8', '05-9'], [0, 170, 0],
+  'H&K rotary diopter. The drum is a short knurled ring with four apertures of different sizes in its wall; turn it and it clicks round to the next on a ball detent and spring under it. It sits tipped forward in a cradle on the base, with two wings and a rear wall with a window behind it. Screws and a washer on the right of the base hold it to the receiver top and set windage. VFC sells drum and base as one part, 05-4.',
+  (() => {
+    const { r, h } = RS_DRUM, up = g => g.rotateZ(Math.PI / 2);
+    const apertures = [[0, 1.0], [90, 1.4], [180, 1.8], [270, 2.2]].map(([a, ar]) => cyl(ar, 6, 'x', r - 0.5, -1.4, 0, 16).rotateY(a * D2R));
+    const plain = cut(up(tube(r - 1.4, r - 0.4, -h / 2, h / 2, 40)), apertures);
+    const knurl = knurlBand(r, 0.5, 0.9, h / 2 - 0.2, 64), lip = up(tube(r - 1.4, r - 0.2, h / 2 - 0.4, h / 2, 40));
+    const floor = up(tube(1.3, r - 0.4, -h / 2, -h / 2 + 1.2, 40));
+    const base = cut(profR(RS_SIDE, 26, 1), [
+      cyl(18.05, 200, 'x', X(930), RCV.cy, 0, 64),                                      // seat on the receiver's round top
+      rsDrumG(cyl(r + 0.3, h + 30, 'y', 0, 15 - h / 2 + 0.4, 0, 40)),                       // cradle the drum sits in
+      bx(X(966), X(931), Y(117), Y(90), -8.5, 8.5),                                     // between the wings
+      bx(X(975), X(960), Y(113), Y(104), -5, 5),                                        // window in the rear wall
+      ...[1, -1].map(sg => slab(rr(X(947), X(903), Y(136), Y(129.5), 1.6, 3), 0, 1).scale(1, 1, 3).translate(0, 0, sg * 12.6 - 1.5)),   // groove along each side
+      ...[1, -1].map(sg => bx(X(962.5), X(950), Y(129), Y(117.5), sg * 12.4, sg * 15))]);   // step in each wing
+    return [[base, 'blued'], [rsDrumG(plain), 'blued'], [rsDrumG(knurl), 'blued'], [rsDrumG(lip), 'blued'], [rsDrumG(floor), 'blued'],
+      [rsDrumG(new THREE.SphereGeometry(1.5, 12, 8).translate(0, -h / 2 - 2.6, 5)), 'steel'],                        // detent ball
+      [rsDrumG(spring(1.2, 0.25, 4, 4, 'y', 0, -h / 2 - 7.6, 5)), 'spring'],
+      [cyl(2.6, 1.4, 'z', X(925), Y(136), 13.7, 16), 'steel'], [cyl(2.4, 1.2, 'z', X(952), Y(136), 13.6, 16), 'steel'],   // screws, right side
+      [prof(rr(X(930), X(920), Y(139), Y(133), 3, 3), 0.6, 0).translate(0, 0, 13.2), 'steel']];                       // washer
+  })());
 
 // ================= LOWER RECEIVER AND GRIP =================
 // the red H&K selector pictograms (one bullet safe and crossed out, one bullet semi, a row of bullets in a box for full
@@ -1199,6 +1233,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
 <a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot, the finish),
+<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>VFC / Umarex MP5 A5 AEG</h2>
