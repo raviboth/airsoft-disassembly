@@ -890,27 +890,38 @@ function pictos(x0, x1, y0, y1, z) {
   return [g.translate((x0 + x1) / 2, (y0 + y1) / 2, z), 'pictos'];
 }
 const LOWH = P([[688, 250], [985, 250], [985, 300], [962, 303], [948, 312], [941, 330], [941, 357], [716, 358], [700, 356], [688, 352]]);
-const LOWG = P([[716, 356], [724, 385], [732, 410], [740, 430], [752, 437], [845, 437], [870, 430], [862, 418], [845, 423], [760, 423], [748, 412], [740, 388], [734, 357]]);
+// corners rounded by corner cutting (Chaikin), for the moulded guard
+const smooth = (pts, n = 2) => { for (let k = 0; k < n; k++) pts = pts.flatMap((a, i) => { const b = pts[(i + 1) % pts.length];
+  return [[0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]], [0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]]; }); return pts; };
+const LOWG = smooth(P([[714, 354], [722, 386], [731, 414], [738, 432], [754, 439], [842, 439], [872, 431], [871, 416], [860, 410], [845, 424], [762, 424], [752, 414], [745, 390], [738, 356]]));
 const GRIP = P([[836, 345], [941, 345], [942, 352], [950, 385], [970, 415], [1000, 455], [1030, 495], [1027, 507], [1010, 520], [985, 537], [958, 552],
   [937, 560], [924, 557], [917, 540], [905, 505], [885, 452], [866, 428], [858, 405], [850, 378]]);
-const SEL_PV = [X(845), Y(290)];
+const SEL_PV = [X(845), Y(290)], SEL_TIP = [X(882), Y(257)];
+// selector paddle: a round hub and a broad rounded tip joined by their outer tangents, from VFC's close-up
+function paddle() {
+  const [x0, y0] = SEL_PV, [x1, y1] = SEL_TIP, r0 = 7.6, r1 = 6.4, L = Math.hypot(x1 - x0, y1 - y0);
+  const t = Math.atan2(y1 - y0, x1 - x0) / D2R, f = Math.asin((r0 - r1) / L) / D2R;
+  return [...arcPts(x1, y1, r1, t - 90 - f, t + 90 + f, 12), ...arcPts(x0, y0, r0, t + 90 + f, t + 270 - f, 16)];
+}
 part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250, -110, 0],
   'Polymer lower with the trigger guard and the pistol grip moulded in. The gearbox sits in it, held by two screws down the grip, and the motor is in the grip under a base plate. It slides back off the receiver once its pin is out.',
   (() => {
-    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(-123, -104, -70, -60, -4.5, 4.5)]);
+    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(850), X(812), -70, -60, -3.8, 3.8)]);
+    // rounded boss round the front pin, its head sunk in a socket each side
+    const boss = cut(cyl(5.6, 33.4, 'z', X(685), Y(332), 0, 32), [cyl(1.6, 40, 'z', X(685), Y(332), 0, 12),
+      ...[1, -1].map(sg => cyl(3.3, 3, 'z', X(685), Y(332), sg * 17.2, 24))]);
     const grip = cut(profR(GRIP, 31, 6), [cyl(13, 140, 'y', 0, 0, 0, 28).rotateZ(-GRIP_A).translate(X(905), Y(430), 0)]);
-    return [[housing, 'poly'], [profR(LOWG, 12, 2), 'poly'], [grip, 'poly'], [cyl(1.6, 33, 'z', X(685), Y(332), 0, 12), 'black'],
+    return [[housing, 'poly'], [boss, 'poly'], [profR(LOWG, 13, 2.6), 'poly'], [grip, 'poly'],
       pictos(X(905), X(760), Y(318), Y(262), -16.05)];
   })(), { shell: true });
 
 part('lowerPin', 'Lower receiver pin', 'low', ['02-2'], [-60, -60, -90],
   'Push pin through the front of the lower and the magazine well. Out, and the lower slides back off the receiver, taking the gearbox with it.',
-  [[cyl(1.5, 36, 'z', X(685), Y(332), 0, 12), 'steel'], [cyl(2.6, 2, 'z', X(685), Y(332), -17.5, 16), 'steel']]);
+  [[cyl(1.5, 34, 'z', X(685), Y(332), 0, 12), 'steel'], [cyl(2.8, 1.8, 'z', X(685), Y(332), -16.5, 20), 'steel'], [cyl(2.2, 1, 'z', X(685), Y(332), 16.2, 20), 'steel']]);
 
 part('selector', 'Selector levers + detent', 'low', ['02-3', '02-10', '02-4', '02-5', '02-9'], [-250, -110, -60],
   'Ambidextrous selector: safe, semi and full auto, marked with the H&K bullet pictograms. The levers each side turn the selector gears; a ball and spring give the clicks.',
-  [[profR(P([[835, 283], [853, 279], [876, 257], [884, 263], [866, 300], [846, 306], [833, 297]]), 3, 0.6).translate(0, 0, -17.2), 'blued'],
-   [profR(P([[835, 283], [853, 279], [876, 257], [884, 263], [866, 300], [846, 306], [833, 297]]), 3, 0.6).translate(0, 0, 17.2), 'blued'],
+  [[profR(paddle(), 3, 0.8).translate(0, 0, -17.3), 'blued'], [profR(paddle(), 3, 0.8).translate(0, 0, 17.3), 'blued'],
    [cyl(6.5, 2, 'z', ...SEL_PV, -16.6, 24), 'blued'], [cyl(6.5, 2, 'z', ...SEL_PV, 16.6, 24), 'blued']]);
 
 part('selGears', 'Selector gears + shaft', 'low', ['02-6', '02-7', '02-8'], [-250, -110, 60],
@@ -1004,12 +1015,13 @@ part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', 
   [[sh(profR([[-259, -40], [-255.6, -40.6], [-256, -44], [-260, -49.4], [-262, -48.4]], 2, 0.3)).translate(0, 0, -8.4), 'steel'],
    [sh(cyl(1.2, 5, 'z', -257.4, -41.6, -8.4, 10)), 'steel']]);
 
-// trigger: the body inside the gearbox and the long MP5 blade below it, traced from the photo
+// trigger: the body inside the gearbox and the long MP5 blade below it, a hook with a hollow front face whose tip
+// curls forward, sitting in the back half of the guard (VFC's close-ups)
 const TRG_PV = [X(789), Y(300)];
 part('trigger', 'Trigger + spring, trigger lever', 'gbx', ['08-19', '08-20', '08-18', '08-9', '08-10', '08-12', '08-13'], [-250, 20, -150],
   'The MP5 gearbox\'s own trigger, longer than a V2\'s so it reaches down through the lower to the guard. Pulling it pushes the switch closed; the spring returns it.',
-  [[profR(P([[781, 298], [797, 292], [810, 302], [828, 330], [825, 354], [823, 372], [819, 390], [812, 405], [803, 418], [800, 412], [797, 400], [797, 385],
-    [800, 370], [806, 354], [800, 335], [785, 316], [778, 306]]), 7, 1), 'blued'],
+  [[profR(P([[781, 298], [797, 292], [810, 302], [824, 325], [832, 345], [834, 357], [833, 370], [830, 382], [824, 397], [815, 410], [807, 418], [800, 421],
+    [796, 417], [802, 409], [807, 398], [811, 385], [813, 370], [815, 357], [814, 342], [804, 327], [790, 314], [778, 306]]), 6, 1.2), 'blued'],
    [cyl(1.5, 22, 'z', ...TRG_PV, 0, 12), 'steel'], [spring(1.6, 0.3, 8, 5, 'x', TRG_PV[0] + 2, TRG_PV[1] - 8, 4), 'spring']]);
 
 part('switch', 'Switch assembly + springs, screw', 'gbx', ['08-33', '08-31', '08-32'], [-290, 10, -70],
@@ -1547,7 +1559,7 @@ renderer.setAnimationLoop(() => {
     for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     const id = p.userData.id;
     if (id === 'stock') p.position.x -= 150 * stockCur;
-    if (id === 'trigger') turnAbout(p, TRG_PV, tA);
+    if (id === 'trigger') turnAbout(p, TRG_PV, -tA);
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * 16.5 / 6.5);
     if (id === 'bevelGear') turnAbout(p, BEVEL, aS * 16.5 / 6.5 * 14 / 7);
