@@ -1209,10 +1209,28 @@ part('bevelGear', 'Bevel gear', 'gbx', ['08-15'], [-250, 30, -150],
     const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => bx(9.6, 13.2, -0.55, 0.55, -4.6, -3.4).rotateZ(i * 10 * D2R))).translate(bx0, by0, 0);
     return [[gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(BEV_PIN, 17, 2.6, bx0, by0, -8.4, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
 
+// The latch, after SHS's and CYMA's spare-part photos: a flat steel pawl on its own axle pin, a brass sleeve on the pin
+// on the left of the pawl and a torsion spring on the right. It pivots by the back wall of the stem with its chisel tip
+// on the bevel gear's rim. The spring's coil sits on the pin, one straight leg bears on the back wall and the other ends
+// in a triangle that hooks behind the pawl and presses its tip into the teeth.
+const ARL_PV = [-167.8, -44.4];
+function arlSpring() {   // one wire: back leg, coil round the pin, front leg ending in the triangle hook
+  const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = -4.0, z1 = -2.3, n = 60;
+  const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
+  const xr = -168.95;
+  const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, -7.4], [xr, -51.6, -7.4], [xr, -50.9, -2.6]];
+  const path = new THREE.CurvePath();
+  for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
+  return new THREE.TubeGeometry(path, 160, 0.3, 6, false);
+}
+function arlLatch() {
+  const [px, py] = ARL_PV, boss = Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI; return [px + 2 * Math.cos(a), py + 2 * Math.sin(a)]; });
+  return [[profR([...boss, [-167.4, -55.8], [-165.7, -56], [-166.2, -53.6]], 2.4, 0.3).translate(0, 0, -5.6), 'steel'],
+    [cyl(1, 9.5, 'z', ...ARL_PV, -6.25, 12), 'steel'], [cyl(1.75, 2.9, 'z', ...ARL_PV, -8.25, 16), 'brass'], [arlSpring(), 'spring']];
+}
 part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', '08-24'], [-290, 70, -150],
-  'Latch riding on the bevel gear\'s rim that stops the gears running backwards under spring load. It pivots on a post against the back wall of the stem.',
-  [[profR([[-170, -42.6], [-166.8, -42.6], [-166, -56.4], [-168, -57.6], [-170, -50]], 2, 0.3).translate(0, 0, -5.6), 'steel'],
-   [cyl(1.2, 6, 'z', -168.5, -44.2, -5.6, 10), 'steel'], [spring(0.9, 0.25, 6, 5, 'y', -168.4, -50, -3.6), 'spring']]);
+  'Latch riding on the bevel gear\'s rim that stops the gears running backwards under spring load. It turns on its own pin by the back wall of the stem, and a torsion spring on the pin (one leg on the shell, a triangle hook behind the pawl) keeps its tip in the teeth. VFC\'s sheet lists two springs and a spacer for it.',
+  arlLatch());
 
 // trigger: traced from Evike's photo of two loose MP5 triggers lying on their sides (Guarder's, P-Process), turned and
 // scaled so its pivot stud sits on the gearbox's trigger pin and the blade comes out of the back half of the guard. Thin

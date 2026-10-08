@@ -746,12 +746,28 @@ part('bevelGear', 'Bevel gear', 'gear', 'Crown teeth for the motor pinion', [260
   (() => { const [bx0, by0] = BEVEL;
     const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => bx(9.6, 13.2, -0.55, 0.55, -4.6, -3.4).rotateZ(i * 10 * D2R))).translate(bx0, by0, 0);
     return [[gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(BEV_PIN, 17, 2.6, bx0, by0, -8.4, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
-// the latch pivots on a post against the back wall of the stem, its tip on the bevel gear's rim; its tail reaches the
-// side of the shell, where a pick through the hole releases it
+// The latch, after SHS's and CYMA's spare-part photos: a flat steel pawl on its own axle pin, a brass sleeve on the pin
+// on the left of the pawl and a torsion spring on the right. It pivots by the back wall of the stem with its chisel tip
+// on the bevel gear's rim. The spring's coil sits on the pin, one straight leg bears on the back wall and the other ends
+// in a triangle that hooks behind the pawl and presses its tip into the teeth.
+const ARL_PV = [-167.8, -44.4];
+function arlSpring() {   // one wire: back leg, coil round the pin, front leg ending in the triangle hook
+  const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = -4.0, z1 = -2.3, n = 60;
+  const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
+  const xr = -168.95;
+  const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, -7.4], [xr, -51.6, -7.4], [xr, -50.9, -2.6]];
+  const path = new THREE.CurvePath();
+  for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
+  return new THREE.TubeGeometry(path, 160, 0.3, 6, false);
+}
+function arlLatch() {
+  const [px, py] = ARL_PV, boss = Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI; return [px + 2 * Math.cos(a), py + 2 * Math.sin(a)]; });
+  return [[profR([...boss, [-167.4, -55.8], [-165.7, -56], [-166.2, -53.6]], 2.4, 0.3).translate(0, 0, -5.6), 'steel'],
+    [cyl(1, 9.5, 'z', ...ARL_PV, -6.25, 12), 'steel'], [cyl(1.75, 2.9, 'z', ...ARL_PV, -8.25, 16), 'brass'], [arlSpring(), 'spring']];
+}
 part('antiReversal', 'Anti-reversal latch + spring', 'gear', 'Ratchet pawl on the bevel gear', [215, -40, 30], STAGE.gears,
-  'Pawl riding on the bevel gear that stops the gears running backwards under spring load when the motor stops. Release it (a tool through the shell, or by hand once open) before taking the gears out, or the spring unloads through your fingers.',
-  [[profR([[-170, -42.6], [-166.8, -42.6], [-166, -56.4], [-168, -57.6], [-170, -50]], 2, 0.3).translate(0, 0, -5.6), 'steel'],
-   [cyl(1.2, 6, 'z', -168.5, -44.2, -5.6, 10), 'steel'], [spring(0.9, 0.25, 6, 5, 'y', -168.4, -50, -3.6), 'spring']]);
+  'Pawl riding on the bevel gear that stops the gears running backwards under spring load when the motor stops. It turns on its own pin; a torsion spring on the pin, one leg on the shell and a triangle hook behind the pawl, keeps the tip in the teeth. Release it (a tool through the shell, or by hand once open) before taking the gears out, or the spring unloads through your fingers.',
+  arlLatch());
 
 // ================= TRIGGER, SWITCH AND SELECTOR =================
 part('trigger', 'Trigger + spring', 'trig', 'M4 type; other guns use their own', [70, -70, 30], STAGE.trig,
@@ -920,7 +936,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://www.printables.com/mod
 <a href="https://www.youtube.com/watch?v=yAk1HI4xbGk">D-RZ Airsoft, MP5 gearbox removal</a> (a stock V2 opened up),
 <a href="https://www.patrolbase.co.uk/gearboxes">Patrol Base product photos of CYMA and Specna V2 shells</a> and <a href="https://www.retroarms.com/cnc-gearbox/cnc-gearbox-v2-8mm-bearings-qsc">RetroArms, CNC V2 shell</a> (the cylinder window),
 <a href="https://www.vsdmotor.com/airsoft-motor/high-speed-long-d-axis-airsoft-aeg-motor.html">VSD, long-type AEG motor outline drawing</a> (the motor's dimensions),
-<a href="https://www.ifixit.com/Guide/Airsoft+V2+Gearbox++Piston+Replacement/130410">iFixit, Airsoft V2 gearbox piston replacement</a> (photos of an open A&amp;K V2: where the gears, cylinder, tappet plate, switch, trigger, cut-off lever and anti-reversal latch sit),
+<a href="https://ampedairsoft.com/shs-anti-reversal-latch-with-spring/">Amped Airsoft, SHS anti-reversal latch with spring</a> (the latch's pin, sleeve and torsion spring), <a href="https://www.ifixit.com/Guide/Airsoft+V2+Gearbox++Piston+Replacement/130410">iFixit, Airsoft V2 gearbox piston replacement</a> (photos of an open A&amp;K V2: where the gears, cylinder, tappet plate, switch, trigger, cut-off lever and anti-reversal latch sit),
 <a href="https://www.sixmm.com/products/cymaitem-no-ma001-complete-gearbox-full-set-version-2for-aeg-m16">Sixmm, CYMA complete V2 gearbox</a> (both sides closed: the bushings, the selector plate, the 80mm cylinder),
 <a href="https://gunfire.com/en/products/complete-gearbox-v2-specna-arms-aether-tm-hal-tm-etu-1152240884.html">Gunfire, Specna Arms Aether V2 gearbox</a> (the gear layout marked on its shell). Inside shapes and positions are approximate.</p>`;
 function showOverview() {
