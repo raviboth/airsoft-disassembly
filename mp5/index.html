@@ -461,8 +461,9 @@ function sideUV(g) {
 }
 // loft a closed side outline (x, y) into a solid with rounded cross-sections: at each x the section is a superellipse
 // (power n) between the outline's top and bottom, half width hwAt(x). Gives a stock its rounded edges, which a side
-// profile cut by a plan view cannot.
-function loftX(pts, hwAt, n = 4, seg = 40, step = 3) {
+// profile cut by a plan view cannot. eg makes the sections egg-shaped: the width is scaled by 1 + eg toward the top
+// edge and 1 - eg toward the bottom.
+function loftX(pts, hwAt, n = 4, seg = 40, step = 3, eg = 0) {
   const xs = pts.map(p => p[0]), xMax = Math.max(...xs), xMin = Math.min(...xs);
   const iT = xs.indexOf(xMax), iB = xs.lastIndexOf(xMax);
   const top = pts.slice(0, iT + 1), bot = pts.slice(iB).reverse();
@@ -475,7 +476,7 @@ function loftX(pts, hwAt, n = 4, seg = 40, step = 3) {
   for (const x of sx) {
     let yT = at(top, x), yB = at(bot, x); if (yT - yB < 1) { const m = (yT + yB) / 2; yT = m + 0.5; yB = m - 0.5; }
     const yc = (yT + yB) / 2, hh = (yT - yB) / 2, hw = hwAt(x);
-    for (let j = 0; j < seg; j++) { const t = j / seg * 2 * Math.PI; pos.push(x, yc + hh * sg(Math.sin(t), 2 / n), hw * sg(Math.cos(t), 2 / n)); }
+    for (let j = 0; j < seg; j++) { const t = j / seg * 2 * Math.PI; pos.push(x, yc + hh * sg(Math.sin(t), 2 / n), hw * (1 + eg * Math.sin(t)) * sg(Math.cos(t), 2 / n)); }
   }
   const R = sx.length;
   for (let i = 0; i < R - 1; i++) for (let j = 0; j < seg; j++) {
@@ -682,6 +683,9 @@ const MAG_R = magSpine([[664, 244], [663, 300], [656, 360], [643, 420], [625, 48
 const MAGP = [...MAG_F, ...MAG_R.slice().reverse(), ...P([[600, 244], [598, 236], [590, 236]])];
 const MAG_HW = 11.5;
 const MAG_FEED = [X(594), Y(236)];                   // top of the feed lip, under the hop-up's feed port
+// the Stoner page's gearbox trace (3.5 px/mm) and its gear centres; the motor and grip hang off the bevel gear
+const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
+const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];
 
 // ================= BARREL, SIGHTS AND HANDGUARD =================
 part('triLug', 'Tri-lug adapter (14mm CCW thread)', 'frt', ['03-1'], [380, 0, 0],
@@ -887,8 +891,9 @@ part('magRelease', 'Magazine release paddle + pin, screw', 'rcv', ['01-9', '01-1
   [[profR(P([[676, 338], [690, 338], [697, 386], [692, 388], [681, 352]]), 8, 1), 'blued'], [cyl(2, 32, 'z', X(684), Y(340), 0, 12), 'steel']]);
 
 part('magCatch', 'Magazine catch + button, spring', 'rcv', ['01-12', '01-13', '01-14'], [0, -60, 90],
-  'Catch that holds the magazine by the notch in its back, with the push button on the side and the spring that keeps it engaged.',
-  [[bx(X(670), X(650), Y(310), Y(286), -16.5, -12), 'blued'], [bx(X(668), X(662), Y(300), Y(292), -12, 10), 'steel'], [spring(2, 0.35, 8, 5, 'z', X(660), Y(296), 10), 'spring']]);
+  'Catch across the back of the magazine well that holds the magazine by the notch in its back, with the push button on the right of the well and the spring that keeps it engaged.',
+  [[bx(X(673), X(665), Y(310), Y(286), -12, 11), 'blued'], [bx(X(667), X(661), Y(301), Y(293), -6, 6), 'steel'],
+   [cyl(2.6, 6, 'z', X(669), Y(298), 13.2, 20), 'blued'], [spring(2, 0.35, 5, 5, 'z', X(669), Y(298), 6), 'spring']]);
 
 part('lever', 'Lever (01-15)', 'rcv', ['01-15'], [0, 40, 110],
   'Small lever with a boxed end from VFC\'s upper receiver group, drawn beside the magazine catch. VFC gives it no name; what it does is not clear from the drawing.',
@@ -972,13 +977,34 @@ function pictos(x0, x1, y0, y1, z) {
   if (z < 0) g.rotateY(Math.PI);
   return [g.translate((x0 + x1) / 2, (y0 + y1) / 2, z), 'pictos'];
 }
-const LOWH = P([[688, 250], [985, 250], [985, 300], [962, 303], [948, 312], [941, 330], [941, 357], [716, 358], [700, 356], [688, 352]]);
+const LOWH = P([[688, 250], [985, 250], [985, 306], [982, 317], [974, 328], [963, 338], [951, 348], [943, 357], [716, 358], [700, 356], [688, 352]]);
 // corners rounded by corner cutting (Chaikin), for the moulded guard
 const smooth = (pts, n = 2) => { for (let k = 0; k < n; k++) pts = pts.flatMap((a, i) => { const b = pts[(i + 1) % pts.length];
   return [[0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]], [0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]]; }); return pts; };
 const LOWG = smooth(P([[714, 354], [722, 386], [731, 414], [738, 432], [754, 439], [842, 439], [872, 431], [871, 416], [860, 410], [845, 424], [762, 424], [752, 414], [745, 390], [738, 356]]));
-const GRIP = P([[836, 345], [941, 345], [942, 352], [950, 385], [970, 415], [1000, 455], [1030, 495], [1027, 507], [1010, 520], [985, 537], [958, 552],
-  [937, 560], [924, 557], [917, 540], [905, 505], [885, 452], [866, 428], [858, 405], [850, 378]]);
+// the motor's place: built along +x from its pinion tip, laid down the grip's lean under the bevel gear
+const motorAt = g => g.translate(-3.5, 0, 0).rotateZ(-(90 + GRIP_A / D2R) * D2R).translate(BEVEL[0] - 10 * Math.sin(GRIP_A), BEVEL[1] - 10 * Math.cos(GRIP_A), 0);
+// a round section with two flats 2f apart, as the motor can's
+const flatSec = (r, f, n = 48) => Array.from({ length: n }, (_, i) => { const t = i / n * 2 * Math.PI; return [Math.max(-f, Math.min(f, r * Math.cos(t))), r * Math.sin(t)]; });
+// pistol grip: the side outline from VFC's photo, lofted down the grip's lean into rounded sections, fuller at the back
+// than at the front strap and flaring a little toward the butt, after HK Parts' photos of H&K's SEF (Navy) polymer
+// housing from the back and front. The outline runs on past the butt and up into the housing; both ends are cut flat
+// afterwards, the butt along the motor plate. GRIP_BUTT is the plate's top edge.
+const GRIP_O = P([[826, 300], [836, 345], [850, 378], [858, 405], [866, 428], [885, 452], [905, 505], [917, 540], [926, 566], [935, 594],
+  [1066, 536], [1030, 495], [1000, 455], [970, 415], [950, 385], [943, 360], [941, 300]]);
+const GRIP_BUTT = P([[920, 555], [1030, 497]]);
+const gripG = (() => {
+  const phi = Math.atan2(-Math.cos(GRIP_A), -Math.sin(GRIP_A)), c = Math.cos(-phi), sn = Math.sin(-phi);
+  const rot = GRIP_O.map(([x, y]) => [x * c - y * sn, x * sn + y * c]);
+  const [bx0, by0] = GRIP_BUTT[0], [bx1, by1] = GRIP_BUTT[1], sB = ((bx0 + bx1) / 2) * c - ((by0 + by1) / 2) * sn;
+  const ss = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+  // the front strap is the outline's top edge in this frame, so eg < 0 narrows it
+  return loftX(rot, x => 15.6 + 1.1 * ss((x - sB + 22) / 18), 2.6, 48, 2, -0.16).rotateZ(phi);
+})();
+// half-planes under the butt line: below it (cut off the grip) and the plate's own thickness
+const buttPoly = d => { const [[ax, ay], [bx1, by1]] = GRIP_BUTT, L = Math.hypot(bx1 - ax, by1 - ay), u = [(bx1 - ax) / L, (by1 - ay) / L], n = [-u[1], u[0]];
+  return [[ax - 40 * u[0], ay - 40 * u[1]], [bx1 + 40 * u[0], by1 + 40 * u[1]], [bx1 + 40 * u[0] + d * n[0], by1 + 40 * u[1] + d * n[1]], [ax - 40 * u[0] + d * n[0], ay - 40 * u[1] + d * n[1]]]; };
+const motorBore = () => motorAt(secX(flatSec(15.4, 13, 32), 10, 80, 0));
 const SEL_PV = [X(845), Y(290)], SEL_TIP = P([SM(185, 105)])[0];   // safe: tail up and back, as in the close-up
 // selector lever: traced from HK Parts' side photo of an H&K ambi lever (608px), a big round hub on the shaft with the
 // white pointer stripe, tapering to a thumb tail with one straight edge; turned so the tail points up and back on safe as
@@ -1004,11 +1030,12 @@ function selLever(z, sg) {
 part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250, -110, 0],
   'Polymer lower with the trigger guard and the pistol grip moulded in. The gearbox sits in it, held by two screws down the grip, and the motor is in the grip under a base plate. It slides back off the receiver once its pin is out.',
   (() => {
-    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(840), X(798), -70, -60, -3.9, 3.9)]);
+    const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(840), X(798), -70, -60, -3.9, 3.9), motorBore(),
+      ...[1, -1].map(sg => bx(X(727), X(680), Y(365), Y(245), sg * 15, sg * 18))]);   // the front is a step narrower, to go up inside the magazine well
     // rounded boss round the front pin, its head sunk in a socket each side
     const boss = cut(cyl(5.6, 33.4, 'z', X(685), Y(332), 0, 32), [cyl(1.6, 40, 'z', X(685), Y(332), 0, 12),
       ...[1, -1].map(sg => cyl(3.3, 3, 'z', X(685), Y(332), sg * 17.2, 24))]);
-    const grip = cut(profR(GRIP, 31, 6), [cyl(13, 140, 'y', 0, 0, 0, 28).rotateZ(-GRIP_A).translate(X(905), Y(430), 0)]);
+    const grip = cut(gripG.clone(), [slab(buttPoly(80), -30, 30), bx(X(1040), X(780), Y(356) + 2, 0, -30, 30), motorBore()]);
     return [[housing, 'poly'], [boss, 'poly'], [profR(LOWG, 13, 2.6), 'poly'], [grip, 'poly'],
       pictos(X(905), X(765), Y(330), Y(254), -16.05)];
   })(), { shell: true });
@@ -1035,8 +1062,6 @@ part('selGears', 'Selector gears + shaft', 'low', ['02-6', '02-7', '02-8'], [-25
 // drives up into, with a lug for the front pin under its nose. The step in front of the trigger is moved 6mm forward of the scan's to clear the
 // switch. VS maps the scan (y back from the front face, z up) onto
 // the gears traced from the photo; the round section is widened a little to clear that trace's cylinder and gears.
-const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
-const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];
 const GB_FRONT = -33.8, VS = ([y, z]) => [GB_FRONT - 1.026 * y, 1.1 * (z - 76.5)], VSP = pts => pts.map(VS);
 const GB_REAR = VS([158.75, 0])[0], HOUSE_R = 14, BODY_Z = 11, GB_FLOOR = -48.5;
 const sh = g => g.translate(D, 0, 0);
@@ -1048,11 +1073,11 @@ const GB_SCREWS = VSP([[153, 57.4], [126, 19], [109.4, 8], [76.9, 31.7], [24, 66
 // bearing, and a 16mm shaft with the pinion pressed on its tip. Built along +x from the pinion's tip; the flats face the
 // sides of the grip, the terminals its front and back.
 function motorGeo() {
-  const flat = (r, f) => Array.from({ length: 48 }, (_, i) => { const t = i / 48 * 2 * Math.PI; return [Math.max(-f, Math.min(f, r * Math.cos(t))), r * Math.sin(t)]; });
+  const flat = flatSec;
   const vents = [-1, 1].flatMap(s => [-6, 0, 6].map(y => bx(59.5, 64, y - 1.4, y + 1.4, s * 10.5, s * 13)));
   return [[gear(3.4, 12, 7, 3.5, 0, 0, { axis: 'x' }), 'steel'], [latheX([[1.5, 6], [1.5, 12.2], [0, 12.2]], 12), 'steel'],
     [latheX([[0, 12.2], [5.5, 12.2], [5.5, 16.2], [0, 16.2]], 28), 'steel'],
-    [secX(flat(14.8, 12.5), 16, 57.7), 'steel'], [latheX([[0, 57.4], [14.9, 57.4], [14.9, 58.4], [0, 58.4]], 36), 'steel'],
+    [secX(flat(14.8, 12.5), 16, 57.7), 'steel'], [secX(flat(14.9, 12.6), 57.4, 58.4, 0.2), 'steel'],
     [cut(secX(flat(13.35, 11.5), 58.4, 71), vents), 'endcap'], [latheX([[0, 71], [4.9, 71], [4.9, 74], [0, 74]], 20), 'endcap'],
     [bx(63, 73.5, 12.4, 12.9, -2.4, 2.4), 'brass'], [bx(63, 73.5, -12.9, -12.4, -2.4, 2.4), 'brass']];
 }
@@ -1182,14 +1207,13 @@ part('motor', 'Motor', 'low', ['02-12'], [-330, -130, -80],
   'Long-type motor in the pistol grip, its pinion meshing with the bevel gear: a 480-size can flattened on two sides, 74mm with the shaft, the brushes and spade terminals in the plastic end cap. The height screw in the motor plate bears on its end cap. D-RZ disconnects its two spade terminals with tweezers and levers it out from under.',
   (() => {
     const g = motorGeo();
-    const [bx0, by0] = BEVEL;
-    g.forEach(([geo]) => geo.translate(-3.5, 0, 0).rotateZ(-(90 + GRIP_A / D2R) * D2R).translate(bx0 - 10 * Math.sin(GRIP_A), by0 - 10 * Math.cos(GRIP_A), 0));
+    g.forEach(([geo]) => motorAt(geo));
     return g;
   })());
 
 part('motorPlate', 'Motor plate + height screw, screws', 'low', ['02-13', '02-14', '02-15'], [-250, -150, -90],
   'Base plate closing the bottom of the grip, two screws, and the height screw that sets the motor\'s mesh with the bevel gear.',
-  [[profR(P([[920, 555], [1030, 497], [1033, 503], [924, 562]]), 28, 1.5), 'poly'], [cyl(1.6, 16, 'y', 0, 5, 0, 12).rotateZ(-GRIP_A).translate(X(975), Y(527), 0), 'steel']]);
+  [[cut(gripG.clone(), [slab(buttPoly(3.6), -30, 30)], INTERSECTION), 'poly'], [cyl(1.6, 16, 'y', 0, 5, 0, 12).rotateZ(-GRIP_A).translate(X(975), Y(527), 0), 'steel']]);
 
 part('gripScrews', 'Gearbox screws (in the grip)', 'low', ['02-11'], [-250, -130, 70],
   'Two long screws down inside the grip that hold the gearbox to the lower; a long Phillips driver reaches them once the motor is out.',
@@ -1437,7 +1461,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
 <a href="https://hkparts.net/cocking-tubes-charging-handles/hk-mp5-hk94-cocking-tube-support-spring/">HK Parts, MP5 cocking tube support</a> (the cocking piece's steps and holes),
-<a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
+<a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk33-hk53-hk93-trigger-housing-sef-navy-polymer-push-pin-9mm-5-56-223/">HK Parts, MP5 SEF Navy polymer trigger housing</a> (the grip's rounded section and flare, the housing's narrower front and the fillet into the grip), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
