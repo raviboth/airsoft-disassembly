@@ -1274,27 +1274,36 @@ part('innerBarrel', 'Inner barrel 208mm + clip, spacer, spring', 'hop', ['07-1',
 
 // ================= RETRACTABLE STOCK =================
 const STOCK_PIN = [X(1023.8), Y(266.6)];
+// the rails, from VFC's side photo: a flat bar 17mm tall lying along the receiver's side from the stock groove down over
+// the lower bulge, with a lip along its top that runs in the groove. Its inside follows the receiver; the outside is flat.
+const recZ = y => { const h = RCV_R.filter(([, b]) => b <= 4.2 && b >= -16.4); for (let i = 1; i < h.length; i++) if (y <= h[i][1])
+  return h[i - 1][0] + (h[i][0] - h[i - 1][0]) * (y - h[i - 1][1]) / (h[i][1] - h[i - 1][1]); return h[h.length - 1][0]; };
+const RAIL_R = [[21.3, -13.8], [21.8, -13.3], [21.8, 2.4], [21.3, 2.9], [17.6, 2.9], [17.6, -2.6], [recZ(-3.2) + 0.15, -2.6],
+  ...Array.from({ length: 11 }, (_, i) => -3.2 - 10.6 * i / 10).map(y => [recZ(y) + 0.15, y])];
+const railSec = s => s > 0 ? RAIL_R : RAIL_R.map(([z, y]) => [-z, y]).reverse();
 // the housing's front is a sleeve over the back of the receiver, so its section is the receiver's own outline grown by
 // the wall: round top, the upper groove, the carrier bulge, a shallow notch over the rail groove and the lower bulge.
 // Under it a box closes the back of the lower and takes the stock pin; behind, the top slopes down to the lock. The
 // proportions behind the sleeve (flat roof facets, the narrower box, the ring round the pin) are measured off slices of
 // kaewon's MP5 model (Thingiverse 6410378, from GrabCAD's airsoft MP5), scaled to this receiver.
-const HSG_R = [[18.3, -17], ...lowBulge(18.3, 3), [19.9, -3], [19.9, 5], [20.4, 6.2],
+const HSG_R = [[18.3, -17], [22.4, -16.6], [23.3, -15.6], [23.3, 4.4], [22.2, 5.4], [20.4, 6.2],
   [20.7, 7.5], [20.9, 10.5], [20.7, 14], [20.2, 16.6], [18.4, 18.2], [18.4, 20.4], [19.4, 22.3]];
 part('stockHousing', 'Stock housing + screws', 'stk', ['04-2', '04-1'], [-420, 0, 0],
-  'Cap on the back of the receiver that carries the stock rails and the lock, and covers the back of the lower. Its front is a sleeve pressed to the receiver\'s outline, grooves and bulges and all. It comes off rearward once the stock pin is out.',
+  'Cap on the back of the receiver that carries the stock rails and the lock, and covers the back of the lower. Its front is a sleeve pressed to the receiver\'s outline, grooves and bulges and all, with a flat band down each side that covers the stock rails and lets them out the back. A wire sling loop is set in its left side. It comes off rearward once the stock pin is out.',
   (() => {
     const xs = X(1046), sleeve = cut(secX(recSec(HSG_R, RCV.tr + 1.2, 21.3), X(1088), X(985), 0.5), [
       secX(recSec(RCV_R.map(([z, y]) => [z + 0.05, y]), RCV.tr + 0.05, 21.3), xs, X(985) + 2, 0),   // open front, the receiver slides in
       slab(P([[1058, 131], [1088, 183], [1110, 183], [1110, 100], [1058, 100]]), -30, 30),           // top slopes down to the lock
-      ...[1, -1].map(s => bx(X(1095), xs + 1, -3.2, 5.2, s * 17.2, s * 19.1)),                       // rail slots through the back
+      ...[1, -1].map(s => secX(railSec(s).map(([z, y]) => [z * 1.004, y]), X(1095), X(985) + 2, 0)),   // channels for the rails, out through the back
       ...[1, -1].map(s => { const c = Math.cos(40 * D2R), w = Math.sin(40 * D2R), b = [s * 20.2 * c, RCV.tc + 20.2 * w];   // flat roof facets
         return secX([[-30, -30], [30, -30], [30, 30], [-30, 30]].map(([t, u]) => [b[0] - s * t * w + s * (u + 30) * c, b[1] + t * c + (u + 30) * w]), X(1095), X(1000), 0); })]);
     // the box under the sleeve is narrower than the sleeve, as on H&K's housing, with a stepped dish sunk round the pin
     // each side (16mm and 11mm across in the side photo)
     const box = cut(profR(P([[985, 250], [1088, 250], [1076, 262], [1068, 295], [985, 295]]), 29, 2.5), [cyl(3, 50, 'z', ...STOCK_PIN, 0, 16),
       ...[1, -1].flatMap(s => [cyl(7.2, 2, 'z', ...STOCK_PIN, s * 14.9, 36), cyl(5.4, 4, 'z', ...STOCK_PIN, s * 15.3, 32)])]);
-    return [[sleeve, 'poly'], [box, 'poly'],
+    // the sling loop on the left: a steel wire bent into a D, its top end in the roof and its foot on the rail cover
+    const loop = tubeAlong([[X(1020), Y(139), -13.5], [X(1021.5), Y(146), -19.5], [X(1024), Y(170), -25.2], [X(1027), Y(194), -25.6], [X(1029), Y(203.5), -21.5]], 1.25, 40);
+    return [[sleeve, 'poly'], [box, 'poly'], [loop, 'blued'],
       [cyl(1.8, 1.4, 'z', X(997), 10.5, -21.3, 12), 'steel'], [cyl(1.8, 1.4, 'z', X(1050), Y(285), -14.6, 12), 'steel']];
   })(), { shell: true });
 
@@ -1303,19 +1312,26 @@ part('stockPin', 'Stock pin', 'stk', ['04-3'], [-420, -60, -100],
   pushPin(...STOCK_PIN, -13.6, 27.2));
 
 part('stockLock', 'Stock lock (housing, shells, collar, plunger, release lever)', 'stk', ['04-4', '04-5', '04-6', '04-7', '04-8', '04-9', '04-10', '04-11', '04-12', '04-13', '04-14', '04-15', '04-16'], [-430, -100, 0],
-  'Lock in the back of the stock housing: a spring plunger drops into the notches in the stock rails, and the paddle under the housing pulls it out to slide the stock. VFC breaks it into thirteen pieces.',
-  [[profR(P([[1074, 262], [1098, 258], [1108, 280], [1110, 300], [1100, 307], [1072, 305], [1068, 295]]), 18, 2), 'poly'],
+  'Lock in the back of the stock housing: a spring plunger drops into the notches in the stock rails, and the release lever pulls it out to slide the stock. The lever hangs from a pin behind the housing, with a triangular paddle on each side to squeeze. VFC breaks the lock into thirteen pieces.',
+  [...[1, -1].map(s => [zAt(profR(P([[1093, 245], [1099, 245.5], [1102, 250], [1109.5, 291], [1109, 299], [1104, 303], [1074, 302], [1067.5, 298], [1068, 291], [1090, 253]]), 1.8, 0.5,
+      [P([[1093.5, 272], [1080.5, 293], [1101, 293.5]]).reverse()]), s * 15.6), 'poly']),                        // paddles, a triangle window in each
+   [bx(X(1101), X(1092), Y(254), Y(246), -15.6, 15.6), 'poly'],                                                  // bridge between them behind the housing
+   [cyl(1.4, 33.6, 'z', X(1096), Y(249), 0, 12), 'steel'],                                                       // pivot pin
    [latheX([[0, -236], [7, -236], [7, -218], [0, -218]], 24, -12), 'zinc'],
    [gear(6.5, 30, 3, -238, -12, 0, { axis: 'x', hole: 2 }), 'zinc'],
    [spring(3.2, 0.5, 14, 7, 'x', -232, -12, 0), 'spring']]);
 
+// piecewise linear through [[u, v], ...] (u descending or ascending), held flat past the ends
+const lerpT = (t, u) => { const a = t[0][0] < t[t.length - 1][0] ? t : t.slice().reverse(); if (u <= a[0][0]) return a[0][1];
+  for (let i = 1; i < a.length; i++) if (u <= a[i][0]) return a[i - 1][1] + (a[i][1] - a[i - 1][1]) * (u - a[i - 1][0]) / (a[i][0] - a[i - 1][0]); return a[a.length - 1][1]; };
 const BUTT = P([[1093, 175], [1150, 159], [1160, 162], [1168, 173], [1169, 253], [1173, 337], [1182, 400], [1177, 418], [1160, 420], [1148, 410],
   [1137, 370], [1123, 317], [1115, 277], [1103, 250], [1100, 233], [1093, 187]]);
 part('stock', 'Retractable stock (rails + butt)', 'stk', ['04-17'], [-640, 0, 0],
-  'The A5 stock: two steel rails that slide along the grooves in the receiver sides, joined by a yoke to the butt. Collapsed it gives VFC\'s 500mm; pulled out, 650mm.',
-  [[loftX([[1160, 420], [1177, 418], [1182, 400], [1173, 337], [1169, 253], [1168, 173], [1160, 162], [1150, 159], [1093, 175], [1093, 187], [1100, 233],
+  'The A5 stock: two steel rails and a polymer butt. Each rail is a flat bar 17mm tall that lies along the receiver\'s side, with a lip along its top that runs in the lower groove; two notches in the lip take the lock\'s plunger, one collapsed and one extended. The rails end in the butt either side of a socket in its front, and the butt\'s back is checkered. Collapsed it gives VFC\'s 500mm; pulled out, 650mm.',
+  [[cut(loftX([[1160, 420], [1177, 418], [1182, 400], [1173, 337], [1169, 253], [1168, 173], [1160, 162], [1150, 159], [1093, 175], [1093, 187], [1100, 233],
       [1103, 250], [1115, 277], [1123, 317], [1137, 370], [1148, 410]].map(([px, py]) => [Y(py), -X(px)]),        // lofted upright: bottom, up the back, down the front
-      u => u > Y(225) ? 15 + 5 * (Y(160) - u) / (Y(160) - Y(225)) : 20, 3, 36, 3).rotateZ(Math.PI / 2), 'poly'],
+      u => lerpT([[Y(420), 20], [Y(290), 20], [Y(250), 23.4], [Y(200), 23.4], [Y(160), 17]], u), 3, 36, 3).rotateZ(Math.PI / 2),
+      [secX(rr(-14, 14, Y(232), Y(184), 6), X(1093) - 12, X(1093) + 1, 0)]), 'poly'],          // the socket in the front of the butt, between the rails
    [(() => {                                         // the rubber pad's checkering: pyramids in a grid across the back face
      const edge = [[173, 1168], [253, 1169], [337, 1173], [400, 1182]], g = [];
      for (let py = 180; py <= 396; py += 4.6) {
@@ -1325,8 +1341,10 @@ part('stock', 'Retractable stock (rails + butt)', 'stk', ['04-17'], [-640, 0, 0]
      }
      return mergeGeometries(g.map(q => q.toNonIndexed()));
    })(), 'black'],
-   ...[1, -1].map(s => [bx(X(1095), -36, -2.6, 4.6, s * 17.4, s * 18.8), 'poly2']),
-   [bx(X(1102), X(1075), Y(243), Y(208), -20, 20), 'blued']]);
+   ...[1, -1].map(s => [cut(secX(railSec(s), X(1112), -36, 0.2), [
+      bx(-46, -30, -16, -2.4, -30, 30), cut(bx(-54, -46, -16, -5.8, -30, 30), [cyl(8, 70, 'z', -54, -5.8, 0, 24)]),   // the face ends round below the lip
+      ...[X(1075), X(1075) + 150].map(x => bx(x - 2, x + 2, 1.2, 4, -30, 30)),                              // lock notches, collapsed and extended
+      bx(X(1112) - 1, -38, -1.1, -0.2, s * 21.3, s * 23)]), 'blued'])]);                                       // the line pressed along the face
 
 // ================= MAGAZINE =================
 // The H&K shape, from GunMag Warehouse's six views of an H&K 30-round magazine: a pressed rib down each side close to
@@ -1502,7 +1520,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-small-push-pin-parts-01-17.html">Redwolf, VFC small push pin</a> and <a href="https://hkparts.net/small-parts/h-k-push-pin-set-mp5-g3-91-33-53-93/">HK Parts, H&amp;K push pin set</a> (the push pins: hollow head with its flare, the slotted tip and its spring wire),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk33-hk53-hk93-trigger-housing-sef-navy-polymer-push-pin-9mm-5-56-223/">HK Parts, MP5 SEF Navy polymer trigger housing</a> (the grip's rounded section and flare, the housing's narrower front and the fillet into the grip), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
-<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
+<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss, the rails' top lip and lock notches, the socket and checkering on the butt, the release lever's paddles on both sides, the sling loop), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>VFC / Umarex MP5 A5 AEG</h2>
