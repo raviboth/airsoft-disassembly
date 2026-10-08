@@ -1308,6 +1308,7 @@ const turnAbout = (p, [px, py], a) => {
 };
 // piston stroke, the spring's back end and its length
 const STROKE = 44, SPRING_BACK = GB_REAR + 4.5, SPRING_LEN = PST_FLOOR - SPRING_BACK;
+const PIN_AX = new THREE.Vector3(-Math.sin(GRIP_A), -Math.cos(GRIP_A), 0), PIN_P = new THREE.Vector3(BEVEL[0], BEVEL[1], 0), PIN_Q = new THREE.Quaternion();   // the motor's axis runs through the bevel axle
 renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
@@ -1347,6 +1348,10 @@ renderer.setAnimationLoop(() => {
     }
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
     if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
+    // the pinion, its hub, grub screw and the motor's shaft turn on the motor's axis, 36:12 against the bevel gear and the
+    // other way, so the teeth stay in mesh
+    if (id === 'motor') { PIN_Q.setFromAxisAngle(PIN_AX, -BEV_N / 12 * aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
+      for (const c of p.children.slice(0, 4)) { c.quaternion.copy(PIN_Q); c.position.copy(PIN_P).sub(PIN_P.clone().applyQuaternion(PIN_Q)); } }
     // each tooth lifts the pawl's tip as it passes and lets it snap back into the next gap
     if (id === 'antiReversal') { const t = aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN / (2 * Math.PI / BEV_N); turnAbout(p, ARL_PV, -ARL_LIFT * (t - Math.floor(t))); }
     if (id === 'piston' || id === 'pistonHead') p.position.x -= pull;
