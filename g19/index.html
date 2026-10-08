@@ -1164,7 +1164,7 @@ function showOverview() {
     <li>Hop is set with the wheel on the side of the chamber, slide off.</li>
     <li>Gen3 and Gen4 share the internals; Gen4 changes the frame texture, adds backstraps and a bigger mag catch. Gen5 has its own frame, slide, front chassis, slide stop, recoil guide set and base plate.</li>
     <li>Known weak points: the polymer loading nozzle cracks (reinforced Guarder or CowCow nozzles fix it), pot-metal hammer and sear wear, and the blowback housing can crack around the piston bore (Ebog).</li>
-    <li>The Gun section of the View panel works the pistol. Hold to fire (Space) pulls the trigger: the hammer drops, and with the mag in the slide blows back, recocks the hammer and comes home, one shot per pull. After the last BB the slide locks back; Slide release (L) sends it home. Drop mag (M) presses the catch and the mag drops out; Load (R) fills it to 23. With no mag there is no gas, so the hammer falls on nothing and the slide has to be racked to cock it again. Slow motion slows the cycle down.</li>
+    <li>The Gun section of the View panel works the pistol. Hold to fire (Space) pulls the trigger: the hammer drops, and with the mag in a BB leaves the muzzle and the slide blows back, recocks the hammer and comes home, one shot per pull. After the last BB the slide locks back; Slide release (L) sends it home. Drop mag (M) presses the catch and the mag drops out; Load (R) fills it to 23. With no mag there is no gas, so the hammer falls on nothing and the slide has to be racked to cock it again. Slow motion slows the cycle down.</li>
     <li>The Slide slider racks the slide by hand: the slide, sights and blowback unit move, the barrel rides back a few mm and tips down to unlock.</li>
     <li>The Explode slider strips it in order: the mag drops out (to 15%), the slide comes off with the barrel in it (to 35%), the barrel and recoil guide come out of the slide (to 55%), each group spreads into its parts (to 80%), then the frame internals come out.</li>
   </ul>
@@ -1400,6 +1400,11 @@ let slideOff = 0, slideBase = 0, fireT = 0, pullFired = false, cyc = -1, cock = 
 const HAMMER_PV = [-75, -18], HAMMER_A = 0.45;   // hammer pin (geometry shifted 3mm back), and how far it turns back when cocked
 const TRIG_PV = [X(955), Y(305)], TRIG_A = 0.2;   // the trigger turns about the trigger pin
 const TBAR_PIN = [X(985), Y(395)];
+// BBs: one waits in the bucking while the slide is home and the mag has any (the nozzle feeds it on the way home), and
+// each shot sends a loose one out of the muzzle
+const BB_GEO = new THREE.SphereGeometry(2.97, 14, 10), BB_X = BREECH + 7, flying = [];
+const bbIn = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial(MAT.white));
+bbIn.position.set(BB_X, BY, 0); root.add(bbIn);
 // Staged explode, in field-strip order (WE manual): the mag drops out first, then the slide group runs off forward and up
 // with the barrel still in it, then the barrel and recoil guide come out of the slide, then each group spreads into its
 // parts, and last the frame internals come out. Each part's moves add up to its explode vector, so at 100% every part
@@ -1437,11 +1442,19 @@ renderer.setAnimationLoop(() => {
     pullFired = true;
     if (cock > 0.99 && slideOff < 0.5 && cyc < 0) {
       falling = true;
-      if (magIn && GUN.bbs > 0) { cyc = 0; GUN.bbs--; showMag(); }
+      if (magIn && GUN.bbs > 0) {
+        cyc = 0; GUN.bbs--; showMag();
+        const b = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial(MAT.white));
+        b.position.set(BB_X, BY, 0); b.userData.v = slowCb.checked ? 250 : 2500; root.add(b); flying.push(b);
+      }
     }
   }
   if (falling) { cock -= dt / (slowCb.checked ? 0.15 : 0.01); if (cock <= 0) { cock = 0; falling = false; } }
   // blowback: the slide runs back over the first half of the cycle and home over the second, about 0.08s in all
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const b = flying[i]; b.position.x += b.userData.v * dt; b.visible = !isolated && catOn.mag;
+    if (b.position.x > MUZ + 800) { root.remove(b); b.material.dispose(); flying.splice(i, 1); }
+  }
   let blow = 0;
   if (cyc >= 0) {
     cyc += dt / (slowCb.checked ? 1.2 : 0.08);
@@ -1461,6 +1474,7 @@ renderer.setAnimationLoop(() => {
   const lockA = GUN.locked || magIn && !GUN.bbs ? -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1) : 0;
   const tA = -TRIG_A * fireT, hA = HAMMER_A * cock;
   const tbX = TRIG_PV[0] + (TBAR_PIN[0] - TRIG_PV[0]) * Math.cos(tA) - (TBAR_PIN[1] - TRIG_PV[1]) * Math.sin(tA) - TBAR_PIN[0];
+  bbIn.visible = built && magIn && GUN.bbs > 0 && slideOff < 1 && cyc < 0 && !isolated && catOn.mag;
   const magV = G_MAG.clone().setLength(110 * magOut * (1 - stageT(exCur, 0, 0.15)));
   // barrel unlock: after riding back with the slide, the barrel group pivots about the nose and the breech drops about
   // 2.6mm, so the hood comes down out of the ejection port and passes under the slide top (Glock tilt-barrel action)
@@ -1509,7 +1523,7 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(-5, -60, 0), EX_POS = fit(new THREE.Vector3(-160, 10, -800), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__g19 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, SLIDE, GUN };
+window.__g19 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, SLIDE, GUN, flying };
 </script>
 </body>
 </html>
