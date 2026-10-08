@@ -1265,7 +1265,7 @@ const ARL_PV = [-167.8, -44.4];
 function arlSpring() {   // one wire: back leg, coil round the pin, front leg ending in the triangle hook
   const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = 2.2, z1 = 0.4, n = 60;
   const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
-  const xr = -168.05;
+  const xr = -167.5;
   const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, 5], [xr, -51.6, 5], [xr, -50.9, 0.7]];
   const path = new THREE.CurvePath();
   for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
@@ -1273,7 +1273,7 @@ function arlSpring() {   // one wire: back leg, coil round the pin, front leg en
 }
 function arlLatch() {
   const [px, py] = ARL_PV, boss = Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI; return [px + 2 * Math.cos(a), py + 2 * Math.sin(a)]; });
-  return [[profR([...boss, [-165.8, -55.4], [-164, -55.9], [-164.4, -53.2]], 2.2, 0.3).translate(0, 0, 3.5), 'steel'],
+  return [[profR([...boss, [-165, -55], [-163.1, -55.4], [-163.6, -52.6]], 2.2, 0.3).translate(0, 0, 3.5), 'steel'],
     [cyl(1, 11, 'z', ...ARL_PV, 5, 12), 'steel'], [cyl(1.75, 5.1, 'z', ...ARL_PV, 7.15, 16), 'brass'], [arlSpring(), 'spring']];
 }
 part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', '08-24'], [-290, 70, -150],
