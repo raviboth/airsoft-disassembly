@@ -971,38 +971,55 @@ part('popupSear', 'Valve knocker pop-up sear + spring', 'trg', ['G-27', 'G-28'],
   [[bx(-59, -57, -19, FT + 1.2, -1, 1), 'steel'], [spring(0.8, 0.2, 4, 4, 'y', -56, -23, 0), 'spring']], { dx: -5 });
 
 // ================= MAGAZINE =================
+// Mag parts follow the magazine panel of WE's G-series exploded view (parts G-59 to G-73). The drawing has no
+// dimensions, so positions inside the shell are estimated: BB channel along the front, reservoir behind it.
+const MAG_CX = 9;   // BB channel centre line (mag x)
 part('magBody', 'Magazine shell', 'mag', ['G-59'], [0, -108, 0],
-  'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel. Catch notches on both front corners, as on the Glock mag, so the catch can be reversed. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Witness holes on the back, like the firearm mag.',
+  'Metal gas magazine body: the shell is the gas reservoir and carries the BB channel, walled off along the front. The top is open between two side cheeks that take the feed lips block and its cross pin. Catch notches on both front corners, as on the Glock mag, so the catch can be reversed. 23 BBs per WE (the shared G17/G19 manual says 25, the G17 figure). Two staggered rows of witness holes with an oblong one in the middle, on the back, as drawn by WE. Teardown order, read from the WE drawing: press the stopper and slide the base plate off (the stopper, follower spring and follower then come out of the channel from below), undo the long screw and pull the base out, then drift the cross pin and lift the feed lips block and gas route out of the top.',
   [[magT(magExt(MD, MW, 5, -97, -5)), 'dark'],
-   ...[-20, -30, -40, -50, -60, -70, -80].flatMap(y => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, y, -2.5, 10)), 'black']]),
+   ...[1, -1].map(sd => [magT(bx(-MD + 0.4, MD - 5, -5.1, 1, sd > 0 ? MW - 1.5 : -MW, sd > 0 ? MW : -MW + 1.5)), 'dark']),
+   ...[1, -1].map(sd => [magT(cyl(0.9, 0.4, 'z', 8, -1, sd * MW, 12)), 'black']),
+   [magT(bx(MAG_CX - 3.9, MAG_CX - 3.3, -96, -5, -MW + 1, MW - 1)), 'dark'],
+   ...[0, 1, 2, 4, 5, 6].flatMap(i => [[magT(cyl(1.1, 1, 'x', -MD - 0.2, -18 - 10 * i, -2.6, 10)), 'black'], [magT(cyl(1.1, 1, 'x', -MD - 0.2, -22 - 10 * i, 2.6, 10)), 'black']]),
+   [magT(bx(-MD - 0.7, -MD + 0.3, -51.8, -48.2, -3.6, 3.6)), 'black'],
    ...[1, -1].map(sd => [magT(bx(MD - 2, MD + 0.4, -31, -23.5, sd * (MW - 2.6) - 3.2, sd * (MW - 2.6) + 3.2)), 'black'])], { shell: true });
 
 part('magLips', 'Feed lips + pin, gas route', 'mag', ['G-62', 'G-61', 'G-63'], [0, -90, 0],
-  'Feed lips block G-62: the whole top cap of the mag, with the BB lips at the front and a window at the rear for the rubber gas route G-63, which seals against the bottom of the loading nozzle. Held by cross pin G-61.',
-  [[magT(bx(1, MD - 2, -5, 7, -MW + 1.5, MW - 1.5)), 'dark'], [magT(bx(-MD, 1, -5, 4.5, -MW + 1, MW - 1)), 'dark'],
-   [magT(bx(-12, -3, 4.5, 7.6, -4, 4)), 'black'], [magT(bx(4, MD - 1, 6.2, 7.1, -1.6, 1.6)), 'black'],
-   [magT(cyl(0.8, 2 * MW - 1.6, 'z', 9, -2, 0, 8)), 'steel']]);
+  'Feed lips block G-62 drops into the open top of the shell between the side cheeks and is held by cross pin G-61. The front is the lips: two prongs with a slot between them, narrower than a BB, that hold the top BB until the loading nozzle pushes it forward into the chamber. The rear has a window for the rubber gas route G-63, which seals against the bottom of the nozzle; its port is the only path from the outlet valve into the slide.',
+  [[magT(bx(-MD + 1.5, MD - 1.5, -5, 2, -MW + 1.6, MW - 1.6)), 'dark'],
+   ...[1, -1].map(sd => [magT(prof([[1, 2], [MD - 3.5, 2], [MD - 1.5, 3.8], [MD - 1.5, 5.4], [MD - 3.2, 7], [1, 7]], 3.6, 0.3).translate(0, 0, sd * 3.4)), 'dark']),
+   [magT(bx(-MD + 1.5, -13, 2, 4.5, -MW + 1.6, MW - 1.6)), 'dark'], [magT(bx(-2, 1, 2, 4.5, -MW + 1.6, MW - 1.6)), 'dark'],
+   ...[1, -1].map(sd => [magT(bx(-13, -2, 2, 4.5, sd > 0 ? 4.6 : -MW + 1.6, sd > 0 ? MW - 1.6 : -4.6)), 'dark']),
+   [magT(bx(-12.6, -2.4, 0.5, 5, -4.4, 4.4)), 'black'], [magT(bx(-11.2, -3.8, 5, 7.4, -3.4, 3.4)), 'black'],
+   [magT(cyl(1.6, 0.3, 'y', -7.5, 7.45, 0, 16)), 'steel'],
+   [magT(cyl(0.8, 2 * MW, 'z', 8, -1, 0, 8)), 'steel']]);
 
 part('outletValve', 'Outlet valve', 'mag', ['G-60'], [-28, -100, 0],
-  'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key. It sits on the witness-hole face, the rear, as in the WE drawing and the owner-review photos, behind which the knocker waits.',
-  [[magT(cyl(3.2, 3, 'x', -MD - 1.4, -7, 0, 20)), 'brass'], [magT(cyl(1, 2, 'x', -MD - 3.8, -7, 0, 10)), 'steel']]);
+  'Outlet (release) valve screwed into the back of the mag near the top; the valve knocker strikes its stem. Comes out with a valve key, which grips the slotted flange. It sits on the witness-hole face, the rear, as in the WE drawing and the owner-review photos, behind which the knocker waits.',
+  [[magT(cyl(3.2, 2.6, 'x', -MD - 1.2, -7, 0, 20)), 'brass'], [magT(cyl(3.7, 0.9, 'x', -MD - 2.9, -7, 0, 8)), 'brass'],
+   [magT(cyl(1, 2, 'x', -MD - 4.3, -7, 0, 10)), 'steel']]);
 
 part('follower', 'Follower + spring', 'mag', ['G-64', 'G-65'], [32, -108, 0],
-  'Follower and spring in the BB channel at the front of the mag.',
-  [[magT(bx(4, 12, -11, -6, -3, 3)), 'orange'], [magT(spring(1.6, 0.25, 58, 22, 'y', 8, -70, 0)), 'spring']]);
+  'Follower G-64 rides in the BB channel along the front of the mag: a head that lifts the BB column, a tab on the left that pushes the slide stop up once the mag is empty, and a stem below that keeps the spring straight. Spring G-65 runs the full channel and rests on the base plate stopper G-66, which is why the stopper springs back after you press it.',
+  [[magT(bx(MAG_CX - 3, MAG_CX + 3, -11, -6, -2.9, 2.9)), 'orange'], [magT(cyl(3, 5.8, 'z', MAG_CX, -6, 0, 20)), 'orange'],
+   [magT(bx(MAG_CX - 1.5, MAG_CX + 1.5, -10, -7.2, -MW + 1.2, -2.9)), 'orange'],
+   [magT(cyl(1.4, 8, 'y', MAG_CX, -15, 0, 10)), 'orange'],
+   [magT(spring(2.6, 0.3, 88, 34, 'y', MAG_CX, -100, 0)), 'spring']]);
 
-part('magBase', 'Base cap + O-ring', 'mag', ['G-70', 'G-69'], [-60, -108, 0],
-  'Base cap that closes the reservoir from below, sealed by O-ring G-69; the tube on it guides the follower spring.',
-  [[magT(magExt(MD - 0.6, MW - 0.6, 4.4, -97, -92)), 'dark'], [magT(cyl(1.6, 25, 'y', 8, -80, 0, 12)), 'dark'],
-   [magT(torus(9, 0.6, 'y', 0, -92, 0)), 'black']]);
+part('magBase', 'Base + O-ring', 'mag', ['G-70', 'G-69'], [-60, -108, 0],
+  'Gas tank base G-70: the plug that closes the reservoir from below, sealed by O-ring G-69 in a groove around it. It stops short of the BB channel, so the follower spring passes it to reach the base plate. A boss takes the fill valve, and a long tube rises through the gas reservoir as a sleeve for the mag screw, so the screw never crosses the gas.',
+  [[magT(cut(magExt(MD - 0.6, MW - 0.6, 4.4, -97, -89), [bx(MAG_CX - 3.6, MD + 1, -100, -86, -MW, MW)])), 'dark'],
+   [magT(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rr(-MD + 1, MAG_CX - 4.2, -MW + 1, MW - 1, 3).map(([a, b]) => new THREE.Vector3(a, -92, b)), true), 64, 0.6, 8, true)), 'black'],
+   [magT(cyl(2.2, 49, 'y', 0.5, -64.5, 0, 16)), 'dark'], [magT(cyl(2.8, 5, 'y', -6, -86.5, 0, 16)), 'dark']]);
 
 part('fillValve', 'Fill valve', 'mag', ['G-68'], [-45, -140, 0],
-  'Gas fill valve, screwed into the base cap from below.',
-  [[magT(cyl(2.4, 6, 'y', -6, -97, 0, 16)), 'brass']]);
+  'Gas fill valve: a long valve body that screws up into the boss on the base, threaded at the bottom, filled through the hole in the base plate.',
+  [[magT(cyl(1.7, 12, 'y', -6, -91, 0, 16)), 'brass'], [magT(cyl(2.3, 3, 'y', -6, -95.6, 0, 16)), 'brass'], [magT(cyl(0.6, 0.6, 'y', -6, -97.2, 0, 8)), 'steel']]);
 
 part('magScrew', 'Mag screw + seals', 'mag', ['G-71', 'G-72', 'G-73'], [-85, -118, 0],
-  'Long screw up from the bottom through the base cap, with seals G-72 and G-73 (washer and O-ring, read from the drawing).',
-  [[magT(cyl(1.2, 66, 'y', 3, -62, 0, 10)), 'steel'], [magT(torus(1.6, 0.35, 'y', 3, -95, 0)), 'black']]);
+  'Long screw G-71 up from the bottom through the tube on the base into a boss in the shell; it is what holds the base in. Seals G-72 and G-73 (washer and O-ring, read from the drawing) stop gas creeping along it. Under the base plate, so the plate comes off first.',
+  [[magT(cyl(1.2, 60, 'y', 0.5, -66.5, 0, 10)), 'steel'], [magT(cyl(2.3, 1.2, 'y', 0.5, -97.4, 0, 16)), 'steel'],
+   [magT(torus(1.7, 0.35, 'y', 0.5, -96.4, 0)), 'black'], [magT(torus(1.7, 0.35, 'y', 0.5, -39.6, 0)), 'black']]);
 
 part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0],
   'Slide-off base plate with the bumper stopper G-66 that locks it: press the stopper up through the slot in the plate and slide the plate off forward. It follows the bottom of the grip, which rises about 5 degrees toward the back, rather than sitting square to the mag (traced from the photo), so it is a shallow wedge. From below it is rounded at the front and square at the back, with a hole over the fill valve, as on the TM-pattern GBB plates. Gen5 has its own plate.',
@@ -1016,7 +1033,7 @@ part('basePlate', 'Base plate + stopper', 'mag', ['G-67', 'G-66'], [-60, -122, 0
     // round-ended slot along the mag axis, as a (x, z) outline in the mag's own frame
     const axial = (pts, y0, y1) => magT(prof(pts, y1 - y0, 0).rotateX(Math.PI / 2).translate(0, (y0 + y1) / 2, 0));
     // the plate is about 6mm thick along the mag axis (mag y -97 to about -103)
-    const SLOT = [4.2, -100.6];   // stopper button: slot centre (mag x) and top (mag y)
+    const SLOT = [MAG_CX, -100.6];   // stopper button: slot centre (mag x) and top (mag y)
     const plate = cut(cut(side, [plan], INTERSECTION), [
       axial(circ(-6, 0, 2.6, 24), -116, -99.6),          // fill valve hole up to the valve
       axial(rr(SLOT[0] - 1.9, SLOT[0] + 1.9, -4.6, 4.6, 1.8), -116, SLOT[1])]);
@@ -1154,7 +1171,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://weairsoft.com/download
 <a href="https://lantredudingo.canalblog.com/pages/review-we-g19-3e-generation-gbb-/26670286.html">lantredudingo Gen3 review</a>,
 <a href="https://bravo1.blog.jp/archives/16279822.html">bravo1 G19X review</a>,
 <a href="https://www.ebog-designs.co.uk/">Ebog Designs OEM parts</a>, <a href="https://www.socomtactical.net/">Socom Tactical</a>,
-Non Existent's WE G19 teardown videos on YouTube. Outside shapes are traced from WE's Gen3 side photo; internal shapes and positions are approximate.</p>`;
+Non Existent's WE G19 teardown videos on YouTube, <a href="https://www.ifixit.com/Guide/Gas+Blowback+Airsoft+Magazine+Disassembly/11232">iFixit GBB magazine disassembly</a>. Outside shapes are traced from WE's Gen3 side photo; internal shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>WE-Tech G19 Gen3 (Glock 19)</h2>
   <div class="meta">Gas blowback pistol, semi-auto. Metal slide, polymer frame with metal front and rear chassis.</div>
@@ -1424,6 +1441,7 @@ const turnAbout = (p, [px, py], a) => {
   p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
   p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
 };
+const buckingPart = parts.find(p => p.userData.id === 'bucking');
 const TILT = new Set(['outerBarrel', 'innerBarrel', 'hopChamber', 'bucking', 'hopArm', 'hopWheel']);
 renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
@@ -1474,7 +1492,7 @@ renderer.setAnimationLoop(() => {
   const lockA = GUN.locked || magIn && !GUN.bbs ? -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1) : 0;
   const tA = -TRIG_A * fireT, hA = HAMMER_A * cock;
   const tbX = TRIG_PV[0] + (TBAR_PIN[0] - TRIG_PV[0]) * Math.cos(tA) - (TBAR_PIN[1] - TRIG_PV[1]) * Math.sin(tA) - TBAR_PIN[0];
-  bbIn.visible = built && magIn && GUN.bbs > 0 && slideOff < 1 && cyc < 0 && !isolated && catOn.mag;
+  bbIn.visible = built && magIn && GUN.bbs > 0 && slideOff < 1 && cyc < 0 && buckingPart.visible;
   const magV = G_MAG.clone().setLength(110 * magOut * (1 - stageT(exCur, 0, 0.15)));
   // barrel unlock: after riding back with the slide, the barrel group pivots about the nose and the breech drops about
   // 2.6mm, so the hood comes down out of the ejection port and passes under the slide top (Glock tilt-barrel action)
