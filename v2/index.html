@@ -733,6 +733,7 @@ function motorGeo() {
     [cut(secX(flat(13.35, 11.5), 58.4, 71), vents), 'endcap'], [latheX([[0, 71], [4.9, 71], [4.9, 74], [0, 74]], 20), 'endcap'],
     [bx(63, 73.5, 12.4, 12.9, -2.4, 2.4), 'brass'], [bx(63, 73.5, -12.9, -12.4, -2.4, 2.4), 'brass']];
 }
+const TAP_PIN = PH(912, 332), TAP_POLE = PH(1080, 332), TAP_Z = 1.6;   // the tappet spring's pin on the tappet, its pole in the shell, its plane
 function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on the centre plane
   const out = VSP([[0, 76.5], [158.75, 76.5], [158.75, 56.1], [134.4, 32.3], [133.75, 13.6], [108.75, 0.5], [97.5, 25.5], [47.5, 25.8],
     [46.5, 36.6], [46.5, 55.3], [16.25, 55.6], [15.6, 61.5], [0, 61.9]]);
@@ -751,9 +752,9 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
   const fin = cut(profR(VSP([[0, 86], [143.75, 86], [143.75, 95.2], [140, 98.6], [0, 98.6]]), 4.6, 0.6).translate(0, 0, s * 2.3), holes);
   const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
   const lug = cut(cyl(5, BODY_Z, 'z', ...GB_PIN, s * BODY_Z / 2, 24), holes);
-  // the cut-off lever's post and its spring's pocket, cast into the left half
+  // the cut-off lever's post and its spring's pocket, the tappet spring's pole, cast into the left half
   // and the boss in the corner by the trigger that takes the trigger spring's bent end
-  const co = s < 0 ? [[cut(cyl(1.9, 10, 'z', ...TRG_HOOK, -5, 16), [cyl(0.45, 4, 'z', ...TRG_HOOK, 0, 8)]), 'zinc'],
+  const co = s < 0 ? [[cyl(1, 12.4, 'z', ...TAP_POLE, -3.6, 12), 'zinc'], [cut(cyl(1.9, 10, 'z', ...TRG_HOOK, -5, 16), [cyl(0.45, 4, 'z', ...TRG_HOOK, 0, 8)]), 'zinc'],
     [cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
     [cut(bx(CO_SEAT - 1, CO_WIN[0], CO_PEG[1] - 1.9, CO_PEG[1] + 1.9, -9.8, -8), [cyl(1.5, 9, 'x', CO_WIN[0] - 3, CO_PEG[1], CO_SZ, 16)]), 'zinc']] : [];
   return [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'], ...co,
@@ -807,12 +808,20 @@ part('nozzle', 'Air nozzle', 'air', 'M4: 21.4mm; length varies by gun', [90, 75,
   [[tube(2.2, 3.4, NOZ_TIP - 21.4, NOZ_TIP, 20), 'nylon'], [tube(2.2, 4.4, NOZ_TIP - 21.4, NOZ_TIP - 20, 20), 'nylon']]);
 // tappet plate, from the photo: a strip along the bottom of the cylinder, a riser at the front with the fork round the
 // nozzle, a hook for the return spring, and a tab hanging down behind the sector gear's axle for its cam pin
+// its return spring: an extension spring, close-wound, with a loop at each end. The back loop hooks over a pin on the
+// tappet's hook, the front one over a pole cast into the left half; drawing the tappet back stretches it. It lies just
+// left of the plate, under the cylinder. Back loop, body and front loop are separate meshes so the body can stretch and
+// the front loop stay on its pole.
+function tappetSpring() {
+  const [ax, y] = TAP_PIN, bx0 = ax + 1.5, bx1 = TAP_POLE[0] - 1.5;
+  return [[torus(1.5, 0.3, 'z', ax, y, TAP_Z), 'spring'], [spring(1.6, 0.3, bx1 - bx0, (bx1 - bx0) / 0.62, 'x', bx0, y, TAP_Z), 'spring'],
+    [torus(1.5, 0.3, 'z', ...TAP_POLE, TAP_Z), 'spring']];
+}
 part('tappet', 'Tappet plate + spring', 'air', 'Polymer; M4 and MP5 types differ', [70, 40, 40], STAGE.air,
-  'Plate along the bottom of the cylinder, its fork at the front holding the nozzle. A pin on the sector gear pushes its tab back once per turn, drawing the nozzle back to let a BB up, and the return spring in front snaps it forward to chamber the BB.',
+  'Plate along the bottom of the cylinder, its fork at the front holding the nozzle. A pin on the sector gear pushes its tab back once per turn, drawing the nozzle back to let a BB up, and the return spring in front snaps it forward to chamber the BB. The spring is a small extension spring with a loop at each end: the back loop hooks over a pin on the tappet\'s hook, the front one over a pole in the left half.',
   [[profR(PHP([[420, 268], [1188, 268], [1188, 255], [1212, 255], [1212, 318], [1188, 318], [1188, 300], [930, 300], [930, 345], [912, 352], [895, 345], [895, 300], [530, 300], [520, 330], [480, 408], [440, 408], [425, 330]]), 3, 0.4).translate(0, 0, 4.5), 'nylon'],
    [cut(bx(-37.6, -34.6, -4.6, 1, 0.5, 6), [cyl(3.5, 8, 'x', -36, 0, 0, 20)]), 'nylon'], [bx(-37.6, -34.6, -12.5, -4.6, 3, 6), 'nylon'],
-   [spring(1.8, 0.35, 15, 10, 'x', PH(930, 0)[0], PH(0, 336)[1], 4.5), 'spring'],
-   [cyl(1.2, 5, 'z', ...PH(1080, 332), 4.5, 12), 'steel']]);
+   [cyl(0.8, 2.8, 'z', ...TAP_PIN, TAP_Z + 0.3, 12), 'nylon'], ...tappetSpring()]);
 
 // ================= GEARS =================
 part('sectorGear', 'Sector gear', 'gear', '32 teeth; 16 for the piston', [165, 0, 30], STAGE.gears,
@@ -1327,7 +1336,7 @@ renderer.setAnimationLoop(() => {
     p.position.set(0, 0, 0); p.rotation.set(0, 0, 0); p.scale.set(1, 1, 1);
     for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     const id = p.userData.id;
-    if (id === 'trigger') { turnAbout(p, TRG_PV, tA); const coil = p.children[p.children.length - 2]; coil.position.set(0, 0, 0); turnAbout(coil, TRG_PV, -tA); }
+    if (id === 'trigger') { turnAbout(p, TRG_PV, tA); const coil = p.children[p.children.length - 3]; coil.position.set(0, 0, 0); turnAbout(coil, TRG_PV, -tA); }
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
       const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));
@@ -1343,6 +1352,9 @@ renderer.setAnimationLoop(() => {
     if (id === 'piston' || id === 'pistonHead') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     if (id === 'nozzle' || id === 'tappet') p.position.x -= nozBack;
+    if (id === 'tappet') {   // the spring's front loop stays on its pole and the body stretches back to the tappet
+      const [, body, front] = p.children.slice(-4, -1), x0 = TAP_PIN[0] + 1.5, L = TAP_POLE[0] - 1.5 - x0, sc = (L + nozBack) / L;
+      front.position.x = nozBack; body.scale.x = sc; body.position.x = x0 * (1 - sc); }
     if (id === 'selPlate') p.position.x -= 3 * selCur;
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.5));
   }
