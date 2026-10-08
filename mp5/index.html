@@ -683,6 +683,8 @@ const MAG_R = magSpine([[664, 244], [663, 300], [656, 360], [643, 420], [625, 48
 const MAGP = [...MAG_F, ...MAG_R.slice().reverse(), ...P([[600, 244], [598, 236], [590, 236]])];
 const MAG_HW = 11.5;
 const MAG_FEED = [X(594), Y(236)];                   // top of the feed lip, under the hop-up's feed port
+const HG_PIN = [X(221), Y(183.75)];                    // handguard pin (the bore of its head in the side photo)
+const LOW_PIN = [X(687), Y(333.3)];                  // lower receiver pin, through the magazine well (the bore of its head in the side photo)
 // the Stoner page's gearbox trace (3.5 px/mm) and its gear centres; the motor and grip hang off the bevel gear
 const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];
@@ -764,15 +766,26 @@ part('handguard', 'Handguard', 'frt', ['03-3'], [140, -150, 0],
       groove(1), groove(-1),
       ...[300, 350, 400, 445, 494].flatMap(px => [cyl(2.3, 60, 'z', X(px), Y(178), 0, 16)]),   // vent holes
       ...[255, 505].map(px => cyl(3.4, 60, 'z', X(px), Y(278), 0, 16)),             // scallops in the bottom edge
-      cyl(1.6, 60, 'z', X(219), Y(185), 0, 12),                                     // pin hole
+      cyl(3, 60, 'z', ...HG_PIN, 0, 16),                                             // pin hole
       pocket]);
-    const collar = mergeGeometries([1, -1].map(s => cut(cyl(4.3, 1.6, 'z', X(221), Y(183.75), s * (hgZ(Y(183.75), HG.hw - 3.2) + 0.6), 24), [cyl(2.6, 4, 'z', X(221), Y(183.75), s * 20, 16)])));
+    const collar = mergeGeometries([1, -1].map(s => cut(cyl(4.9, 1.6, 'z', ...HG_PIN, s * (hgZ(HG_PIN[1], HG.hw - 3.2) + 0.6), 28), [cyl(3, 4, 'z', ...HG_PIN, s * 20, 20)])));
     return [[shell, 'poly'], [collar, 'poly'], [stippleNubs(1), 'poly'], [stippleNubs(-1), 'poly']];
   })(), { shell: true });
 
+// VFC's push pin (U578PIN020), after Redwolf's and HK Parts' photos and the heads in the side photo: a 5.8mm pin,
+// hollow at the head end, with a flared head, a chamfered tip and a slot across the tip holding a bent spring wire that
+// bows out to hold it in. Built along +x from the head's face, then turned so it runs along +z from z0.
+function pushPin(cx, cy, z0, len, r = 2.9, R = 3.7) {
+  const body = cut(latheX([[2, 0], [R - 0.4, 0], [R, 0.4], [R, 0.9], [r, 2.4], [r, len - 0.6], [r - 0.6, len], [0, len], [0, 5], [2, 4], [2, 0]], 28),
+    [bx(len - 7, len + 1, -0.45, 0.45, -5, 5)]);
+  const wire = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[len - 7.5, 0, 1.2], [len - 6.2, 0, -1.4], [len - 3.5, 0, -r - 0.25], [len - 0.8, 0, -r + 0.4]]
+    .map(p => new THREE.Vector3(...p))), 16, 0.35, 6, false);
+  return [[body, 'blued'], [wire, 'steel']].map(([g, m]) => [g.rotateY(-Math.PI / 2).translate(cx, cy, z0), m]);
+}
+
 part('hgPin', 'Handguard pin', 'frt', ['03-4'], [140, -80, -90],
-  'Push pin across the front of the handguard, the same part (U578PIN020) as the lower receiver pin and the stock pin.',
-  [[cyl(1.5, 45, 'z', X(219), Y(185), 0, 12), 'steel'], [cyl(2.6, 2, 'z', X(219), Y(185), -22.5, 16), 'steel']]);
+  'Push pin across the front of the handguard, the same part (U578PIN020) as the lower receiver pin and the stock pin. Hollow, with a flared head on the left; the bent spring wire in the slot across its tip bows out to hold it in.',
+  pushPin(...HG_PIN, -16.4, 32.6));
 
 part('battery', 'Battery (in the handguard, not included)', 'frt', [], [140, -240, 0],
   'Nunchuck battery in the handguard, a stick either side of the barrel, with its lead running back to the gearbox through a small hole in the front of the receiver. VFC sells the gun without one.',
@@ -814,7 +827,7 @@ part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0
     const slotCuts = [bx(X(505), X(310), CT.y - 3.5, CT.y + 3.5, -12, -2), slab(POCKET, -12, -2)];
     const tubeG = cut(latheX([[0, CT.x0], [CT.r, CT.x0], [CT.r, RCV.x1], [CT.r + 1, RCV.x1], [CT.r + 1, X(459)], [CT.r, X(458)], [CT.r, CT.x1], [0, CT.x1]], 28, CT.y),
       [latheX([[0, CT.x0 - 1], [CT.r - 1, CT.x0 - 1], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), ...slotCuts]);
-    const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(1.6, 40, 'z', X(685), Y(332), 0, 12)]);
+    const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(3, 40, 'z', ...LOW_PIN, 0, 16)]);
     // claw mount tab welded on top: a curved saddle with a lip at each end
     const tab = cut(ring(X(772), X(729), RCV.tr - 0.2, RCV.tr + 1.2, 30, 60), [bx(X(772) - 1, X(729) + 1, 0, 60, 8, 30), bx(X(772) - 1, X(729) + 1, 0, 60, -30, -8)]);
     const dents = [[575, 614], [732, 771]].map(([a, b]) => ring(X(b) + 0.2, X(a) - 0.2, RCV.tr - 3.3, RCV.tr - 1.9, 22.4, 30));   // the pockets' pressed-in floors
@@ -1032,9 +1045,9 @@ part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250,
   (() => {
     const housing = cut(profR(LOWH, 32, 2), [bx(X(980), X(700), Y(356) + 2, Y(250) + 1, -14, 14), bx(X(840), X(798), -70, -60, -3.9, 3.9), motorBore(),
       ...[1, -1].map(sg => bx(X(727), X(680), Y(365), Y(245), sg * 15, sg * 18))]);   // the front is a step narrower, to go up inside the magazine well
-    // rounded boss round the front pin, its head sunk in a socket each side
-    const boss = cut(cyl(5.6, 33.4, 'z', X(685), Y(332), 0, 32), [cyl(1.6, 40, 'z', X(685), Y(332), 0, 12),
-      ...[1, -1].map(sg => cyl(3.3, 3, 'z', X(685), Y(332), sg * 17.2, 24))]);
+    // rounded boss round the front pin, a socket in each side round the pin's head and its tip (9.5mm across in the side photo)
+    const boss = cut(cyl(6, 33.4, 'z', ...LOW_PIN, 0, 32), [cyl(3, 40, 'z', ...LOW_PIN, 0, 16),
+      ...[1, -1].map(sg => cyl(4.8, 3, 'z', ...LOW_PIN, sg * 17.2, 28))]);
     const grip = cut(gripG.clone(), [slab(buttPoly(80), -30, 30), bx(X(1040), X(780), Y(356) + 2, 0, -30, 30), motorBore()]);
     return [[housing, 'poly'], [boss, 'poly'], [profR(LOWG, 13, 2.6), 'poly'], [grip, 'poly'],
       pictos(X(905), X(765), Y(330), Y(254), -16.05)];
@@ -1042,7 +1055,7 @@ part('lower', 'Lower receiver (trigger group and grip)', 'low', ['02-1'], [-250,
 
 part('lowerPin', 'Lower receiver pin', 'low', ['02-2'], [-60, -60, -90],
   'Push pin through the front of the lower and the magazine well. Out, and the lower slides back off the receiver, taking the gearbox with it.',
-  [[cyl(1.5, 34, 'z', X(685), Y(332), 0, 12), 'steel'], [cyl(2.8, 1.8, 'z', X(685), Y(332), -16.5, 20), 'steel'], [cyl(2.2, 1, 'z', X(685), Y(332), 16.2, 20), 'steel']]);
+  pushPin(...LOW_PIN, -16.6, 33.2));
 
 part('selector', 'Selector levers + detent', 'low', ['02-3', '02-10', '02-4', '02-5', '02-9'], [-250, -110, -60],
   'Ambidextrous selector: safe, semi and full auto, marked with the H&K bullet pictograms. The levers each side turn the selector gears; a ball and spring give the clicks.',
@@ -1237,7 +1250,7 @@ part('innerBarrel', 'Inner barrel 208mm + clip, spacer, spring', 'hop', ['07-1',
    [spring(6, 0.55, 8, 4, 'x', 10, 0, 0), 'spring']]);
 
 // ================= RETRACTABLE STOCK =================
-const STOCK_PIN = [X(1023), Y(263)];
+const STOCK_PIN = [X(1023.8), Y(266.6)];
 // the housing's front is a sleeve over the back of the receiver, so its section is the receiver's own outline grown by
 // the wall: round top, the upper groove, the carrier bulge, a shallow notch over the rail groove and the lower bulge.
 // Under it a box closes the back of the lower and takes the stock pin; behind, the top slopes down to the lock. The
@@ -1254,16 +1267,17 @@ part('stockHousing', 'Stock housing + screws', 'stk', ['04-2', '04-1'], [-420, 0
       ...[1, -1].map(s => bx(X(1095), xs + 1, -3.2, 5.2, s * 17.2, s * 19.1)),                       // rail slots through the back
       ...[1, -1].map(s => { const c = Math.cos(40 * D2R), w = Math.sin(40 * D2R), b = [s * 20.2 * c, RCV.tc + 20.2 * w];   // flat roof facets
         return secX([[-30, -30], [30, -30], [30, 30], [-30, 30]].map(([t, u]) => [b[0] - s * t * w + s * (u + 30) * c, b[1] + t * c + (u + 30) * w]), X(1095), X(1000), 0); })]);
-    // the box under the sleeve is narrower than the sleeve, as on H&K's housing, with a raised ring round the pin hole each side
-    const box = cut(profR(P([[985, 250], [1088, 250], [1076, 262], [1068, 295], [985, 295]]), 29, 2.5), [cyl(1.6, 50, 'z', ...STOCK_PIN, 0, 12)]);
-    const rings = [1, -1].map(s => cut(cyl(4.4, 1.2, 'z', ...STOCK_PIN, s * 14.6, 28), [cyl(2.9, 3, 'z', ...STOCK_PIN, s * 14.6, 20)]));
-    return [[sleeve, 'poly'], [box, 'poly'], ...rings.map(g => [g, 'poly']),
+    // the box under the sleeve is narrower than the sleeve, as on H&K's housing, with a stepped dish sunk round the pin
+    // each side (16mm and 11mm across in the side photo)
+    const box = cut(profR(P([[985, 250], [1088, 250], [1076, 262], [1068, 295], [985, 295]]), 29, 2.5), [cyl(3, 50, 'z', ...STOCK_PIN, 0, 16),
+      ...[1, -1].flatMap(s => [cyl(7.2, 2, 'z', ...STOCK_PIN, s * 14.9, 36), cyl(5.4, 4, 'z', ...STOCK_PIN, s * 15.3, 32)])]);
+    return [[sleeve, 'poly'], [box, 'poly'],
       [cyl(1.8, 1.4, 'z', X(997), 10.5, -21.3, 12), 'steel'], [cyl(1.8, 1.4, 'z', X(1050), Y(285), -14.6, 12), 'steel']];
   })(), { shell: true });
 
 part('stockPin', 'Stock pin', 'stk', ['04-3'], [-420, -60, -100],
   'Push pin through the stock housing and the back of the receiver.',
-  [[cyl(1.5, 32, 'z', ...STOCK_PIN, 0, 12), 'steel'], [cyl(2.7, 1.6, 'z', ...STOCK_PIN, -15.9, 20), 'steel']]);
+  pushPin(...STOCK_PIN, -13.6, 27.2));
 
 part('stockLock', 'Stock lock (housing, shells, collar, plunger, release lever)', 'stk', ['04-4', '04-5', '04-6', '04-7', '04-8', '04-9', '04-10', '04-11', '04-12', '04-13', '04-14', '04-15', '04-16'], [-430, -100, 0],
   'Lock in the back of the stock housing: a spring plunger drops into the notches in the stock rails, and the paddle under the housing pulls it out to slide the stock. VFC breaks it into thirteen pieces.',
@@ -1461,6 +1475,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
 <a href="https://hkparts.net/cocking-tubes-charging-handles/hk-mp5-hk94-cocking-tube-support-spring/">HK Parts, MP5 cocking tube support</a> (the cocking piece's steps and holes),
+<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-small-push-pin-parts-01-17.html">Redwolf, VFC small push pin</a> and <a href="https://hkparts.net/small-parts/h-k-push-pin-set-mp5-g3-91-33-53-93/">HK Parts, H&amp;K push pin set</a> (the push pins: hollow head with its flare, the slotted tip and its spring wire),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk33-hk53-hk93-trigger-housing-sef-navy-polymer-push-pin-9mm-5-56-223/">HK Parts, MP5 SEF Navy polymer trigger housing</a> (the grip's rounded section and flare, the housing's narrower front and the fillet into the grip), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
