@@ -795,22 +795,31 @@ part('bevelGear', 'Bevel gear', 'gear', '36 bevel teeth, 10-tooth pinion', [260,
     return [[ringZ(2, BEV_R, bx0, by0, 4.6, 6.6, 48), 'brass'], [crown, 'brass'], [ringZ(2, 5.3, bx0, by0, 0.6, 4.6, 32), 'brass'], [ringZ(2, 3.2, bx0, by0, -7.1, 0.6, 24), 'steel'],
       [gear(q.r, BEV_PN, 2.6, bx0, by0, -8.4, { hole: 2, root: q.root }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
 // The latch, after SHS's and CYMA's spare-part photos: a flat steel pawl on its own axle pin, a brass sleeve on the pin
-// on the right of the pawl and a torsion spring on the left. It pivots by the back wall of the stem with its chisel tip
-// on the outer ends of the bevel gear's teeth. The spring's coil sits on the pin, one straight leg bears on the back wall and the other ends
-// in a triangle that hooks behind the pawl and presses its tip into the teeth.
-const ARL_PV = [-167.8, -44.4];
+// on the right of the pawl and a torsion spring on the left. iFixit's photo of an open A&K V2 puts its pin behind the
+// bevel gear, about level with the axle and close to the back wall, under the edge of the bevel's back disc. The pawl
+// runs down and forward from there with its chisel tip between the outer ends of the bevel's teeth, nearly along the
+// rim, so a backward turn drives a tooth straight into the tip and back toward the pin and jams it, and a forward turn
+// lifts the tip over each tooth. The spring's coil sits on the pin, one straight leg bears on the back wall and the
+// other ends in a triangle that hooks behind the pawl and presses its tip into the teeth.
+const ARL_PV = [-167.8, -51.5], ARL_LIFT = 6 * D2R;   // pin; how far each passing tooth swings the pawl out
+const ARL_TA = Math.atan2(-Math.cos(GRIP_A), -Math.sin(GRIP_A)) - 45 * D2R;   // the tip's bearing from the bevel axle: a gap between teeth
+const ARL_TIP = [BEVEL[0] + 11 * Math.cos(ARL_TA), BEVEL[1] + 11 * Math.sin(ARL_TA)];
+const ARL_U = (() => { const dx = ARL_TIP[0] - ARL_PV[0], dy = ARL_TIP[1] - ARL_PV[1], l = Math.hypot(dx, dy); return [dx / l, dy / l, l]; })();
+const arlAt = (a, b) => [ARL_PV[0] + ARL_U[0] * a - ARL_U[1] * b, ARL_PV[1] + ARL_U[1] * a + ARL_U[0] * b];   // a along the pawl, b toward the gear
 function arlSpring() {   // one wire: back leg, coil round the pin, front leg ending in the triangle hook
-  const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = 2.2, z1 = 0.4, n = 60;
+  const [px, py] = ARL_PV, R = 1.5, z0 = 2.2, z1 = 0.4, n = 60, L = ARL_U[2];
+  const hook = arlAt(0.55 * L, -1.7), a0 = 100 * D2R, a1 = Math.atan2(hook[1] - py, hook[0] - px) + 4 * Math.PI;
   const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
-  const xr = -167.5;
-  const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, 5], [xr, -51.6, 5], [xr, -50.9, 0.7]];
+  const at = (a, z) => [...arlAt(0.55 * L + a, -1.7), z];
+  const pts = [[-169.5, -46.5, z0], ...coil, at(0, z1), at(0.6, 5), at(-1.3, 5), at(-0.6, 0.7)];
   const path = new THREE.CurvePath();
   for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
   return new THREE.TubeGeometry(path, 160, 0.3, 6, false);
 }
 function arlLatch() {
-  const [px, py] = ARL_PV, boss = Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI; return [px + 2 * Math.cos(a), py + 2 * Math.sin(a)]; });
-  return [[profR([...boss, [-165, -55], [-163.1, -55.4], [-163.6, -52.6]], 2.2, 0.3).translate(0, 0, 3.5), 'steel'],
+  const [ux, uy, L] = ARL_U, a0 = Math.atan2(ux, -uy);   // the boss: half round the pin, from the gear side round the back
+  const boss = Array.from({ length: 13 }, (_, i) => { const a = a0 + i / 12 * Math.PI; return [ARL_PV[0] + 2 * Math.cos(a), ARL_PV[1] + 2 * Math.sin(a)]; });
+  return [[profR([...boss, arlAt(L - 0.4, -0.7), arlAt(L, 0), arlAt(L - 1.2, 0.5)], 2.2, 0.3).translate(0, 0, 3.5), 'steel'],
     [cyl(1, 11, 'z', ...ARL_PV, 5, 12), 'steel'], [cyl(1.75, 5.1, 'z', ...ARL_PV, 7.15, 16), 'brass'], [arlSpring(), 'spring']];
 }
 part('antiReversal', 'Anti-reversal latch + spring', 'gear', 'Ratchet pawl on the bevel gear', [215, -40, 30], STAGE.gears,
@@ -1224,6 +1233,8 @@ renderer.setAnimationLoop(() => {
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
     if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
+    // each tooth lifts the pawl's tip as it passes and lets it snap back into the next gap
+    if (id === 'antiReversal') { const t = aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN / (2 * Math.PI / BEV_N); turnAbout(p, ARL_PV, -ARL_LIFT * (t - Math.floor(t))); }
     if (id === 'piston' || id === 'pistonHead') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     if (id === 'nozzle' || id === 'tappet') p.position.x -= nozBack;
