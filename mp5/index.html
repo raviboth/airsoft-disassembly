@@ -33,11 +33,16 @@
   .item:hover { background:#252a33; }
   .item.sel { background:#24365c; }
   .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
-  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; max-height:calc(100vh - 146px); overflow-y:auto; }
   .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  #ctrl .seg button { flex:1; padding:4px 0; }
+  #ctrl button.on { border-color:var(--acc); background:#24365c; }
+  #ctrl .ph2 { margin-top:12px; padding-top:8px; border-top:1px solid var(--line); }
+  #bFire { flex:1; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #bFire.on { background:#5c2424; border-color:#c04040; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
@@ -87,7 +92,7 @@
     #bar .btns button { flex:1; }
     #side { left:8px; top:96px; bottom:8px; width:min(86vw,330px); z-index:4; }
     #side .sub { display:none; }
-    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; }
+    #ctrl { left:auto; right:8px; top:96px; width:min(86vw,270px); z-index:4; max-height:calc(100vh - 104px); }
     #cube { top:100px; right:8px; width:84px; height:84px; }
     #info { left:0; right:0; bottom:0; width:auto; max-height:55vh; border-radius:12px 12px 0 0; border-bottom:0; z-index:3; }
     #info.peek { max-height:96px; }
@@ -148,6 +153,13 @@
     <button id="bInfo">Overview</button>
     <button id="bList">Parts list</button>
   </div>
+  <div class="ph ph2">Gun</div>
+  <label>Selector (S) <span id="selv">safe</span></label>
+  <div class="row seg" id="selRow"><button data-sel="0" class="on">Safe</button><button data-sel="1">Semi</button><button data-sel="2">Auto</button></div>
+  <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
+  <div class="row"><button id="bCock" title="C">Cock (C)</button><button id="bMag" title="M">Drop magazine (M)</button></div>
+  <label>BBs <span id="rnd"></span></label>
+  <label><span>Slow motion</span><input id="slow" type="checkbox" checked></label>
 </div>
 
 <div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
@@ -1558,11 +1570,12 @@ function showOverview() {
     <li>Hop-up: pull the cocking handle back to open the ejection port, and set the slider on top of the hop-up chamber through it.</li>
     <li>Field strip (the two teardown videos): magazine out; push out the handguard pin and take the handguard off; push out the stock pin and slide the stock off the back; take out the four set screws at the front of the receiver and slide the whole front end (barrel, front sight, tri-lug) off forward; push out the lower receiver pin and slide the lower back and down off the receiver, gearbox and all. The hop-up and inner barrel then pull out.</li>
     <li>Gearbox out of the lower: the screw at the back that holds the spring guide, the motor plate and motor, then the two screws down inside the grip.</li>
+    <li>Gun controls: the selector turns the levers, the selector gears and the plate on the gearbox; on safe the trigger does not move. Hold Fire (or Space) to pull the trigger: semi fires one shot per pull, auto keeps cycling until you let go, and the gears stop wherever they are when the switch opens. Each cycle feeds a BB from the magazine and fires it, until the magazine is empty. Cock pulls the cocking handle back and turns it up into its pocket, drawing the dummy bolt back off the hop-up; Drop magazine presses the catch and drops it, and Insert puts a full one back. Slow motion runs a cycle in 0.9 seconds; off, it runs at about 15 a second.</li>
     <li>The Trigger slider runs one cycle: the trigger closes the switch, the sector gear turns once, its cam draws the tappet plate and nozzle back to feed a BB, its teeth draw the piston back, and the last tooth lets it go. The Stock slider pulls the stock out.</li>
     <li>The Explode slider follows that order: magazine (to 7%), handguard (to 17%), stock (to 27%), front end (to 38%), lower with the gearbox (to 53%), hop-up and inner barrel (to 60%), the gearbox out of the lower (to 70%); each group then spreads into its parts (to 86%), and last the receiver gives up its small parts.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of the ${MANUAL.length} numbers in VFC's parts list. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic, S selector, Space fire, C cocking handle, M magazine. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
 }
 function showList(hitNos = []) {
   const rows = MANUAL.map(([no, name, code]) => {
@@ -1744,7 +1757,13 @@ addEventListener('keydown', e => {
   else if (k === 'i') showPanel('info', !isOpen('info'));
   else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
   else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+  else if (k === ' ') { e.preventDefault(); if (!e.repeat) setHeld(true); }
+  else if (k === 's') setSel((GUN.sel + 1) % 3);
+  else if (k === 'c') toggleCock();
+  else if (k === 'm') toggleMag();
 });
+addEventListener('keyup', e => { if (e.key === ' ') setHeld(false); });
+addEventListener('blur', () => setHeld(false));
 MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
@@ -1757,10 +1776,33 @@ const exv = document.getElementById('exv');
 const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
 const stockCtl = document.getElementById('stockpos'), spv = document.getElementById('spv');
 const TRIG = { pos: 0, stock: 0 };
-const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+const GUN = { sel: 0, held: false, cock: false, magIn: true, rounds: 29, chambered: true };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = !GUN.sel && TRIG.pos ? 'locked (safe)' : TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
 const showStock = () => { TRIG.stock = +stockCtl.value; spv.textContent = TRIG.stock ? 'extended' : 'collapsed'; };
 trigCtl.oninput = showTrig; showTrig(); stockCtl.oninput = showStock; showStock();
 let trigCur = 0, stockCur = 0;
+// The gun's own controls. Selector: the lever's pointer turns from the safe box to the semi leader line (34 degrees), and
+// on past the burst marking to the full-auto band (140 degrees); the VFC AEG has safe, semi and auto only. Holding the
+// trigger closes the switch and the sector gear turns: on semi the cut-off lever keeps the switch closed until the cycle
+// ends, then holds it open until the trigger is let go; on auto the gears run while the switch is closed and stop where
+// they are when it opens, which can leave the piston part drawn. Each cycle feeds a BB from the magazine as the nozzle
+// comes forward again and sends it off as the piston flies forward.
+const SEL_ANG = [0, 34 * D2R, 140 * D2R], SEL_NAME = ['safe', 'semi', 'auto'];
+const selv = document.getElementById('selv'), rnd = document.getElementById('rnd'), slowCb = document.getElementById('slow');
+const fireBtn = document.getElementById('bFire'), cockBtn = document.getElementById('bCock'), magBtn = document.getElementById('bMag');
+const selBtns = [...document.querySelectorAll('#selRow button')];
+function setSel(m) { GUN.sel = m; selv.textContent = SEL_NAME[m]; selBtns.forEach((b, i) => b.classList.toggle('on', i === m)); showTrig(); }
+function setHeld(h) { GUN.held = h; fireBtn.classList.toggle('on', h); }
+function toggleCock() { GUN.cock = !GUN.cock; cockBtn.textContent = GUN.cock ? 'Release (C)' : 'Cock (C)'; cockBtn.classList.toggle('on', GUN.cock); }
+function toggleMag() { GUN.magIn = !GUN.magIn; if (GUN.magIn) GUN.rounds = 30; magBtn.textContent = GUN.magIn ? 'Drop magazine (M)' : 'Insert magazine (M)'; }
+const showRounds = () => { const t = `${GUN.magIn ? GUN.rounds : 'no magazine'}${GUN.chambered ? ' + 1 chambered' : ''}`; if (rnd.textContent !== t) rnd.textContent = t; };
+selBtns.forEach((b, i) => b.onclick = () => setSel(i));
+fireBtn.addEventListener('pointerdown', e => { fireBtn.setPointerCapture(e.pointerId); setHeld(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) fireBtn.addEventListener(ev, () => setHeld(false));
+fireBtn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+cockBtn.onclick = toggleCock; magBtn.onclick = toggleMag;
+let fireT = 0, cyc = -1, pullFired = false, selCur = 0, cockCur = 0, magCur = 0, pressCur = 0, lastT = performance.now();
+const flying = [], BB_GEO = new THREE.SphereGeometry(2.97, 12, 8);
 // Staged explode, in strip order (the two teardown videos): the magazine drops, the handguard pin comes out and the
 // handguard drops and slides off, the stock pin comes out and the stock slides off the back, the four set screws come
 // out and the front end slides forward, the lower pin comes out and the lower slides back and down with the gearbox, the
@@ -1801,16 +1843,51 @@ const turnAbout = (p, [px, py], a) => {
   p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
 };
 // piston stroke, the spring's back end and its length
+// cocking handle: from its place to the back of the slot, then turned up about the tube's axis into the pocket
+const COCK_TRAVEL = X(351) - X(489), COCK_LIFT = 28 * D2R, COCK_SPRING = CP.x0 + 43 - CB_X - 1.2;
+const bbPart = parts.find(p => p.userData.id === 'bb');
 const STROKE = 44, SPRING_BACK = GB_REAR + 4.5, SPRING_LEN = PST_FLOOR - SPRING_BACK;
 renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
   exv.textContent = Math.round(exCur * 100) + '%';
-  trigCur += (TRIG.pos - trigCur) * 0.2; stockCur += (TRIG.stock - stockCur) * 0.2;
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.05); lastT = now;
+  trigCur += ((GUN.sel ? TRIG.pos : 0) - trigCur) * 0.2; stockCur += (TRIG.stock - stockCur) * 0.2;
+  // trigger, switch and cycle (see GUN above); the switch closes two thirds of the way through the trigger's travel
+  const live = GUN.sel > 0;
+  fireT = THREE.MathUtils.clamp(fireT + (GUN.held && live ? 8 : -8) * dt, 0, 1);
+  const sw = fireT > 0.66;
+  if (!GUN.held) pullFired = false;
+  if (cyc < 0 && sw && live && !(GUN.sel === 1 && pullFired)) { cyc = 0; pullFired = true; }
+  if (cyc >= 0 && (GUN.sel === 1 || sw)) {
+    const was = cyc;
+    cyc += dt / (slowCb.checked ? 0.9 : 1 / 15);   // VFC's MP5 runs about 15 rounds a second
+    if (was < 0.3 && cyc >= 0.3 && !GUN.chambered && GUN.magIn && GUN.rounds > 0) { GUN.rounds--; GUN.chambered = true; }
+    if (was < 0.8 && cyc >= 0.8 && GUN.chambered) {
+      GUN.chambered = false;
+      const b = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial({ ...MAT.white }));
+      b.position.copy(bbPart.position).x -= 15; b.userData.v = slowCb.checked ? 600 : 6000;
+      root.add(b); flying.push(b);
+    }
+    if (cyc >= 1) cyc = GUN.sel === 2 && sw ? cyc - 1 : -1;
+  }
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const b = flying[i]; b.position.x += b.userData.v * dt; b.visible = !isolated && catOn.mag;
+    if (b.position.x > 1200) { root.remove(b); b.material.dispose(); flying.splice(i, 1); }
+  }
+  showRounds();
+  // selector, cocking handle (back along its slot, then turned up into the pocket) and magazine
+  selCur += THREE.MathUtils.clamp(SEL_ANG[GUN.sel] - selCur, -6 * dt, 6 * dt);
+  cockCur = THREE.MathUtils.clamp(cockCur + (GUN.cock ? 2 : cockCur > 0.75 ? -3 : -8) * dt, 0, 1);
+  magCur = THREE.MathUtils.clamp(magCur + (GUN.magIn ? -2.5 : 2.5) * dt, 0, 1);
+  pressCur = THREE.MathUtils.clamp(pressCur + (!GUN.magIn && magCur < 0.5 ? 12 : -12) * dt, 0, 1);
+  const ck = stageT(cockCur, 0, 0.75) * COCK_TRAVEL, ckUp = stageT(cockCur, 0.75, 1) * COCK_LIFT, bolt = ck * 45 / COCK_TRAVEL;
+  const selIdx = selCur <= SEL_ANG[1] ? selCur / SEL_ANG[1] : 1 + (selCur - SEL_ANG[1]) / (SEL_ANG[2] - SEL_ANG[1]);
   // the trigger comes back over the first fifth and closes the switch; then the sector gear turns once: its cam draws
   // the tappet and nozzle back to feed a BB, its teeth pick up the rack and draw the piston back from 30% to 80% of
   // the turn, and the last tooth lets the piston fly forward and the air sends the BB off
-  const tA = 10 * D2R * THREE.MathUtils.clamp(trigCur / 0.2, 0, 1), u = THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1);
+  const firing = fireT > 0 || cyc >= 0;
+  const tA = 10 * D2R * (firing ? fireT : THREE.MathUtils.clamp(trigCur / 0.2, 0, 1)), u = firing ? Math.max(cyc, 0) : THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1);
   const pull = u < 0.8 ? STROKE * THREE.MathUtils.clamp((u - 0.3) / 0.5, 0, 1) : 0, aS = u * 2 * Math.PI;
   const nozBack = 4 * Math.sin(Math.PI * THREE.MathUtils.clamp(u / 0.3, 0, 1));
   const shot = THREE.MathUtils.clamp((u - 0.8) / 0.15, 0, 1);
@@ -1826,7 +1903,18 @@ renderer.setAnimationLoop(() => {
     if (id === 'piston') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     if (id === 'cylinder' || id === 'tappet') p.position.x -= nozBack;
-    if (id === 'bb') { p.position.x += 240 * shot; p.visible = shot < 1 && (isolated ? p === isolated : catOn.mag); }
+    if (id === 'bb') { if (!firing) p.position.x += 240 * shot; p.visible = GUN.chambered && (firing || shot < 1) && (isolated ? p === isolated : catOn.mag); }
+    if (id === 'selector') turnAbout(p, SEL_PV, selCur);
+    if (id === 'selGears') p.children.slice(1, 5).forEach((c, i) => { c.position.set(0, 0, 0);
+      turnAbout(c, i % 2 ? [SEL_PV[0] + 9, SEL_PV[1] + 5] : SEL_PV, i % 2 ? -selCur * 12 / 14 : selCur); });
+    if (id === 'selPlate') p.position.x -= 3 * selIdx;
+    if (id === 'cockHandle') { p.position.x -= ck; p.rotation.x = ckUp; p.position.y += CT.y * (1 - Math.cos(ckUp)); p.position.z -= CT.y * Math.sin(ckUp); }
+    if (id === 'cockPiece') { const [pc, sp] = p.children, s = (COCK_SPRING - ck) / COCK_SPRING;
+      pc.position.set(-ck, CT.y * (1 - Math.cos(ckUp)), -CT.y * Math.sin(ckUp)); pc.rotation.x = ckUp;
+      sp.scale.x = s; sp.position.x = (CB_X + 0.6) * (1 - s); }
+    if (id === 'dummyBolt') { const [bl, , sp] = p.children, s = (70 - bolt) / 70; bl.position.x = -bolt; sp.scale.x = s; sp.position.x = -150 * (1 - s); }
+    if (id === 'mag') p.position.y -= 130 * stageT(magCur, 0, 1);
+    if (id === 'magCatch') p.position.z -= 1.5 * pressCur;
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
@@ -1854,7 +1942,7 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(-170, -10, 0), EX_POS = fit(new THREE.Vector3(-300, 420, -2100), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__mp5 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG };
+window.__mp5 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG, GUN };
 </script>
 </body>
 </html>
