@@ -748,12 +748,12 @@ function stippleNubs(s) {
 part('handguard', 'Handguard', 'frt', ['03-3'], [140, -150, 0],
   'Polymer handguard with the stippled grip panels, a sunk panel round the pin at the front of each side, a long groove along each side above them and the row of vent holes under the cocking tube. It holds the battery (the A5\'s stock has no room for one) and is held by a single pin at the front: push it out and the handguard comes off forward.',
   (() => {
-    const hgIn = [[-5, HG.top - 2.6], [152, HG.top - 2.6], [152, HG.bot + 2.6], [-5, HG.bot + 2.6]];
+    const hgIn = [[-5, HG.top - 2.6], [137, HG.top - 2.6], [137, HG.bot + 2.6], [-5, HG.bot + 2.6]];   // ends short of the pin recess
     const groove = s => slab(rr(X(522), X(279), Y(195), Y(185), 2.2, 3), 0, 1).scale(1, 1, 20).translate(0, 0, s * (hgZ(Y(190)) - 1.1) + (s > 0 ? 0 : -20));
-    // the front of each side is sunk 1.4mm round the pin, the recess ending behind it in a curved edge (VFC's side photo,
+    // the front of each side is sunk 3mm round the pin, the recess ending behind it in a curved edge (VFC's side photo,
     // Airsoft GI's close-ups); the pin's hole has a raised collar in it
     const POCK = P([[195, 160], [252.5, 160], [252.5, 168.75], [251.5, 182], [250, 191], [246, 200], [240, 207.5], [234, 211.5], [227.5, 213.75], [215, 215], [195, 215]]);
-    const pocket = cut(cut(loftX(hgSide, () => HG.hw + 4, HG_N, 48, 4), [loftX(hgSide, () => HG.hw - 1.4, HG_N, 48, 4)]), [slab(POCK, -40, 40)], INTERSECTION);
+    const pocket = cut(cut(loftX(hgSide, () => HG.hw + 4, HG_N, 48, 4), [loftX(hgSide, () => HG.hw - 3.2, HG_N, 48, 4)]), [slab(POCK, -40, 40)], INTERSECTION);
     const shell = cut(loftX(hgSide, () => HG.hw, HG_N, 48, 4), [
       loftX(hgIn, () => HG.hw - 2.6, HG_N, 48, 6),                                  // battery space, open at the back
       cyl(8.4, 30, 'x', 170, 0, 0, 24),                                              // barrel through the nose
@@ -762,7 +762,7 @@ part('handguard', 'Handguard', 'frt', ['03-3'], [140, -150, 0],
       ...[255, 505].map(px => cyl(3.4, 60, 'z', X(px), Y(278), 0, 16)),             // scallops in the bottom edge
       cyl(1.6, 60, 'z', X(219), Y(185), 0, 12),                                     // pin hole
       pocket]);
-    const collar = mergeGeometries([1, -1].map(s => cut(cyl(4.3, 1.6, 'z', X(221), Y(183.75), s * (hgZ(Y(183.75), HG.hw - 1.4) + 0.5), 24), [cyl(2.6, 4, 'z', X(221), Y(183.75), s * 20, 16)])));
+    const collar = mergeGeometries([1, -1].map(s => cut(cyl(4.3, 1.6, 'z', X(221), Y(183.75), s * (hgZ(Y(183.75), HG.hw - 3.2) + 0.6), 24), [cyl(2.6, 4, 'z', X(221), Y(183.75), s * 20, 16)])));
     return [[shell, 'poly'], [collar, 'poly'], [stippleNubs(1), 'poly'], [stippleNubs(-1), 'poly']];
   })(), { shell: true });
 
@@ -772,7 +772,7 @@ part('hgPin', 'Handguard pin', 'frt', ['03-4'], [140, -80, -90],
 
 part('battery', 'Battery (in the handguard, not included)', 'frt', [], [140, -240, 0],
   'Nunchuck battery in the handguard, a stick either side of the barrel, with its lead running back to the gearbox through a small hole in the front of the receiver. VFC sells the gun without one.',
-  [...[1, -1].map(s => [bx(14, 140, -21, -9, s * 4, s * 15).translate(0, 0, 0), 'green']),
+  [...[1, -1].map(s => [bx(14, 136, -21, -9, s * 4, s * 15).translate(0, 0, 0), 'green']),
    [bx(14, 30, -10, 10, -3, 3), 'red']]);
 
 // ================= UPPER RECEIVER AND COCKING =================
