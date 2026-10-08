@@ -718,8 +718,10 @@ const gearR = (n, m) => ({ r: m * n / 2 + m, root: m * n / 2 - 1.25 * m });   //
 // half, a beak reaching back under the sector gear for the cam on its outer face, and a long arm forward to the switch
 // with a hook at its end. Jefftron's install photos show it in place, the arm along the top and the hook down at the
 // switch, with its little coil spring lying in a pocket in the shell behind the lever's hump; Leviathan's puts the
-// post a little below and in front of the sector bushing. The spring's front end slips over a peg on the hump and its
-// back end over a stub in the pocket. It pushes the hump forward, which holds the beak up in the cam's path; once a
+// post a little below and in front of the sector bushing. Close up, Jefftron's photos show a small window through the
+// left wall above the lever's ring, with the lever's hump standing up into its front end and the spring lying in it
+// behind the hump, its back end plugged into a bore that runs on back into the shell. The window opens onto the
+// selector plate outside, which bears on the spring and the hump through it. The spring pushes the hump forward, which holds the beak up in the cam's path; once a
 // turn the cam's lobe presses the beak down, the lever rocks and its hook lifts the switch open.
 const CO_PV = [-123.6, -31.6], CO_Z = -8.6, CO_LIFT = 8 * D2R;   // post, the lever's mid-plane, how far the cam rocks it
 const CO = (px, py) => [CO_PV[0] + (px - 513.5) / 29, CO_PV[1] - (py - 599.5) / 29];
@@ -727,14 +729,15 @@ const CO_OUT = [[196, 650], [267, 582], [297, 601], [314, 635], [348, 626], [369
   [559, 412], [596, 410], [630, 366], [728, 409], [933, 410], [1000, 438], [1044, 476], [1082, 552], [1084, 584], [1072, 608], [1060, 613],
   [1004, 597], [981, 536], [944, 513], [695, 516], [666, 535], [664, 616], [640, 670], [615, 705], [575, 735], [539, 750], [495, 791],
   [476, 794], [362, 797], [311, 767], [203, 769], [168, 759], [138, 732], [126, 693], [137, 676]].map(p => CO(...p));
-const CO_BEAK = CO(267, 582), CO_PEG = CO(600, 388), CO_SEAT = -128.6;   // beak tip, the spring's peg, the pocket's face
+const CO_BEAK = CO(267, 582), CO_SEAT = CO_PV[0] - 5.5;   // beak tip, the back of the spring's bore
+const CO_PEG = [CO_PV[0] + 1.5, CO_PV[1] + 5.8], CO_SZ = -9.4;   // where the spring meets the hump, and its axis' depth
+const CO_WIN = [CO_PV[0] - 0.5, CO_PV[0] + 5.5, CO_PV[1] + 4.3, CO_PV[1] + 7.4];   // the window through the left wall
 const CO_BEAK_A = Math.atan2(CO_BEAK[1] - SECTOR[1], CO_BEAK[0] - SECTOR[0]);
 const SEC_CAM_A = CO_BEAK_A - 306 * D2R;   // the cam's lobe at rest: it reaches the beak 85% of the way round
 function cutoffGeo() {
   const [x0, y] = CO_PEG;
   return [[cut(profR(CO_OUT, 1.6, 0.2).translate(0, 0, CO_Z), [cyl(2.28, 4, 'z', ...CO_PV, CO_Z, 24)]), 'steel'],
-    [cyl(0.7, 1.6, 'x', x0 - 0.8, y, CO_Z, 10), 'steel'],
-    [spring(1.15, 0.3, x0 - 0.3 - CO_SEAT, 8, 'x', CO_SEAT, y, CO_Z), 'spring'],
+    [spring(1.15, 0.3, x0 - CO_SEAT, 8, 'x', CO_SEAT, y, CO_SZ), 'spring'],
     [ringZ(0, 2.8, ...CO_PV, CO_Z + 0.8, CO_Z + 1.5, 20), 'steel']];
 }
 // the motor's lean, a little steeper than the grip's: the steepest that keeps its can inside the back of the grip at the
@@ -1215,7 +1218,8 @@ function gbHalf(s) {
   // the cylinder window: the side of the housing is open over the cylinder, corners radiused
   const win = prof(rr(VS([92, 0])[0], VS([15, 0])[0], -9.8, 10.2, 2.5), 16, 0).translate(0, 0, s * 13);
   const half = Array.from({ length: 33 }, (_, i) => { const t = Math.PI * (i / 32 - 0.5); return [s * HOUSE_R * Math.cos(t), HOUSE_R * Math.sin(t)]; });
-  const body = cut(profR(out, BODY_Z, 0.8).translate(0, 0, s * BODY_Z / 2), [...holes, win]);
+  const coWin = s < 0 ? [bx(CO_WIN[0], CO_WIN[1], CO_WIN[2], CO_WIN[3], -12, -9.5), cyl(1.5, 9, 'x', CO_WIN[0] - 3, CO_PEG[1], CO_SZ, 16)] : [];   // the cut-off spring's window and bore
+  const body = cut(profR(out, BODY_Z, 0.8).translate(0, 0, s * BODY_Z / 2), [...holes, win, ...coWin]);
   const house = cut(secX(s > 0 ? half.reverse() : half, GB_REAR, GB_FRONT, 0.6), [...holes, win]);
   const fin = cut(profR(VSP([[0, 86], [143.75, 86], [143.75, 95.2], [140, 98.6], [0, 98.6]]), 4.6, 0.6).translate(0, 0, s * 2.3), holes);
   const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
@@ -1224,8 +1228,8 @@ function gbHalf(s) {
     ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'], [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'steel']])];
   if (s > 0) for (const [x, y] of GB_SCREWS) pieces.push([ringZ(1, 2.6, x, y, BODY_Z, BODY_Z + 1.6, 16), 'blued']);
   // the cut-off lever's post and its spring's pocket, cast into the left half
-  if (s < 0) pieces.push([cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'], [bx(CO_SEAT - 2, CO_SEAT, CO_PEG[1] - 1.7, CO_PEG[1] + 1.7, -9.7, -7.4), 'zinc'],
-    [cyl(0.7, 1, 'x', CO_SEAT + 0.5, CO_PEG[1], CO_Z, 10), 'zinc']);
+  if (s < 0) pieces.push(...[[cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
+    [cut(bx(CO_SEAT - 1, CO_WIN[0], CO_PEG[1] - 1.9, CO_PEG[1] + 1.9, -9.8, -8), [cyl(1.5, 9, 'x', CO_WIN[0] - 3, CO_PEG[1], CO_SZ, 16)]), 'zinc']]);
   if (s > 0) for (const [x, y] of GB_TOP_SCREWS) pieces.push([ringZ(1, 2.6, x, y, 2.3, 3.9, 16), 'blued']);
   return pieces;
 }
@@ -1238,7 +1242,7 @@ part('gearboxR', 'Gearbox shell, right + screws', 'gbx', ['08-26', '08-3', '08-4
 
 part('cylinder', 'Cylinder + head, nozzle', 'gbx', ['08-40', '08-39', '08-38'], [-250, 190, 0],
   'Ported cylinder, about 80mm long, the cylinder head with its O-ring, and the nozzle that reaches into the hop-up and pushes each BB into the bucking. The nozzle\'s collar sits in the tappet plate\'s fork.',
-  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, 5, 14, -2.6, 2.6), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel'],
+  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, -2.6, 2.6, 5, 14), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel'],
    [latheX([[0, -50], [11.2, -50], [11.2, -44], [12.2, -44], [12.2, -39.2], [11, -38.5], [2.1, -38.5], [2.1, -30], [0, -30]], 28), 'alu'],
    [latheX([[10.6, -48.2], [11.4, -48.2], [11.4, -47], [10.6, -47]], 24), 'black'],
    [tube(2.2, 3.4, NOZ_TIP - 19, NOZ_TIP, 20), 'nylon'], [tube(2.2, 4.4, NOZ_TIP - 19, NOZ_TIP - 17.6, 20), 'nylon']]);
@@ -2000,9 +2004,9 @@ renderer.setAnimationLoop(() => {
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
       const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));
-      const t = CO_LIFT * k * k * (3 - 2 * k), [lever, peg, spr] = p.children;
-      for (const c of [lever, peg]) { c.position.set(0, 0, 0); turnAbout(c, CO_PV, t); }
-      const x1 = CO_PV[0] + (CO_PEG[0] - 0.3 - CO_PV[0]) * Math.cos(t) - (CO_PEG[1] - CO_PV[1]) * Math.sin(t), sc = (x1 - CO_SEAT) / (CO_PEG[0] - 0.3 - CO_SEAT);
+      const t = CO_LIFT * k * k * (3 - 2 * k), [lever, spr] = p.children;
+      lever.position.set(0, 0, 0); turnAbout(lever, CO_PV, t);
+      const x1 = CO_PV[0] + (CO_PEG[0] - CO_PV[0]) * Math.cos(t) - (CO_PEG[1] - CO_PV[1]) * Math.sin(t), sc = (x1 - CO_SEAT) / (CO_PEG[0] - CO_SEAT);
       spr.scale.x = sc; spr.position.x = CO_SEAT * (1 - sc);
     }
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
