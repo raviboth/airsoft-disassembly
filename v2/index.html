@@ -671,6 +671,7 @@ const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], 
 const GB_PIN = VS([42.5, 42.3]);
 const GB_SCREWS = VSP([[153, 57.4], [126, 19], [109.4, 8], [76.9, 31.7], [24, 66]]), GB_TOP_SCREWS = [6.25, 48.75, 91.9, 135].map(y => VS([y, 91.6]));
 const TRG_PV = PH(645, 507);                         // trigger pivot
+const TRG_HOOK = [TRG_PV[0] - 5.9, TRG_PV[1] - 2.7];  // the hole for the trigger spring's bent end
 const TRG_SLOT = bx(-130, -115, -60, -46, 1, 7);     // where the trigger blade leaves the bottom of the shell
 // the air system at rest, piston forward: cylinder, its head, the piston's back end and the inside face of its head
 const CYL = [PH(600, 0)[0], -46], PST_BACK = -149, PST_FLOOR = -58;
@@ -729,7 +730,7 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
     [45, 54], [14.8, 54.1], [14.1, 60.2], [1.5, 60.6]]), (BODY_Z - 1.3) * 2, 0);
   const bore = cyl(12.4, GB_FRONT - GB_REAR - 4.5, 'x', (GB_FRONT + GB_REAR + 1.5) / 2, 0, 0, 40);
   const holes = [bore, pocket, TRG_SLOT, cyl(6, 6, 'x', GB_FRONT, 0, 0, 24), cyl(3.2, 6, 'x', GB_REAR, 0, 0, 16),
-    ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)), cyl(2.3, 40, 'z', ...GB_PIN, 0, 16),
+    ...[SECTOR, SPUR, BEVEL].map(([x, y]) => cyl(4, 40, 'z', x, y, 0, 24)), cyl(2.3, 40, 'z', ...GB_PIN, 0, 16), cyl(2, 40, 'z', ...TRG_PV, 0, 16),
     ...[...GB_SCREWS, ...GB_TOP_SCREWS].map(([x, y]) => cyl(1.4, 40, 'z', x, y, 0, 12))];
   // the cylinder window: the side of the housing is open over the cylinder, corners radiused
   const win = prof(rr(VS([92, 0])[0], VS([15, 0])[0], -9.8, 10.2, 2.5), 16, 0).translate(0, 0, s * 13);
@@ -741,7 +742,9 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
   const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
   const lug = cut(cyl(5, BODY_Z, 'z', ...GB_PIN, s * BODY_Z / 2, 24), holes);
   // the cut-off lever's post and its spring's pocket, cast into the left half
-  const co = s < 0 ? [[cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
+  // and the boss in the corner by the trigger that takes the trigger spring's bent end
+  const co = s < 0 ? [[cut(cyl(1.9, 10, 'z', ...TRG_HOOK, -5, 16), [cyl(0.45, 4, 'z', ...TRG_HOOK, 0, 8)]), 'zinc'],
+    [cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
     [cut(bx(CO_SEAT - 1, CO_WIN[0], CO_PEG[1] - 1.9, CO_PEG[1] + 1.9, -9.8, -8), [cyl(1.5, 9, 'x', CO_WIN[0] - 3, CO_PEG[1], CO_SZ, 16)]), 'zinc']] : [];
   return [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'], ...co,
     ...[SECTOR, SPUR, BEVEL].map(([x, y]) => [ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'])];
@@ -857,18 +860,30 @@ part('antiReversal', 'Anti-reversal latch + spring', 'gear', 'Ratchet pawl on th
   arlLatch());
 
 // ================= TRIGGER, SWITCH AND SELECTOR =================
+// the trigger's return spring: a torsion spring of two turns on the trigger's left pole. Its bent end plugs into a hole
+// in a boss cast in the corner of the left half (TRG_HOOK, set by the pivot); its straight leg runs forward under a peg on the trigger.
+// Pulling the trigger presses the peg down on the leg and winds the coil; the leg is a mesh of its own so it can turn
+// with the trigger while the coil and the bent end stay put.
+function trigSpring() {
+  const [px, py] = TRG_PV, R = 2.25, z0 = 0.15, z1 = 1.5, n = 80, a0 = 205 * D2R, a1 = (270 + 720) * D2R;
+  const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
+  const line = pts => { const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
+    return new THREE.TubeGeometry(path, pts.length * 2, 0.35, 6, false); };
+  return [[line([[...TRG_HOOK, -2], [...TRG_HOOK, z0], ...coil]), 'spring'], [line([[px, py - R, z1], [px + 5.5, py - R, z1]]), 'spring']];
+}
 part('trigger', 'Trigger + spring', 'trig', 'M4 type; other guns use their own', [70, -70, 30], STAGE.trig,
-  'Trigger on its pin in the shell, its blade out through the slot in the bottom. Pulling it lifts its front arm into the switch and closes the contacts; its spring returns it. The blade differs between guns (an MP5\'s reaches further down); the part inside the gearbox stays the same.',
+  'Trigger on its two poles in holes in the shell, its blade out through the slot in the bottom. Pulling it lifts its front arm into the switch and closes the contacts. Its spring is a small torsion spring on the trigger\'s left pole: the bent end plugs into a hole in the shell, the straight leg sits under a peg on the trigger, and pulling winds the coil so the trigger snaps back. The blade differs between guns (an MP5\'s reaches further down); the part inside the gearbox stays the same.',
   [[profR(PHP([[598, 420], [645, 418], [700, 430], [705, 447], [668, 470], [672, 515], [657, 548], [615, 545], [598, 515], [588, 465]]), 4, 0.6).translate(0, 0, 4), 'blued'],
    [profR(PHP([[657, 548], [637, 575], [614, 615], [614, 660], [630, 705], [650, 738], [640, 744], [616, 724], [590, 682], [578, 622], [588, 570], [615, 545]]), 4, 0.8).translate(0, 0, 4), 'blued'],
-   [cyl(1.5, 20, 'z', ...TRG_PV, 0, 12), 'steel'], [spring(1.4, 0.3, 7, 5, 'y', TRG_PV[0] - 4, TRG_PV[1] - 4, 1.4), 'spring']]);
+   [cyl(1.9, 19.4, 'z', ...TRG_PV, 0, 16), 'blued'], [cyl(0.6, 1.6, 'z', TRG_PV[0] + 3, TRG_PV[1] - 1.3, 1.7, 10), 'blued'], ...trigSpring()]);
 part('switch', 'Switch assembly', 'trig', 'Contacts; a MOSFET or ETU takes the load off them', [110, -60, 30], STAGE.trig,
   'Trigger contacts in a block screwed into the shell, in front of the sector gear. The trigger\'s arm closes them and the motor runs; the cut-off lever lifts them open once per cycle on semi. The contacts carry the full motor current and burn over time, the main reason for fitting a MOSFET or an electronic trigger unit.',
   [[profR(PHP([[650, 330], [810, 330], [815, 465], [798, 465], [798, 420], [650, 420]]), 8, 0.5).translate(0, 0, 1.5), 'nylon'],
    ...[[722, 744], [762, 788]].map(([a, b]) => [bx(PH(a, 0)[0], PH(b, 0)[0], PH(0, 376)[1], PH(0, 340)[1], 5.5, 6.1), 'brass']),
    [cyl(1.6, 9, 'z', ...PH(745, 395), 1.5, 12), 'steel']]);
 part('cutoff', 'Cut-off lever + spring', 'trig', 'Steel or zinc; spring and screw come with it', [70, -30, 30], STAGE.trig,
-  'Steel lever on a post in the left half, under the sector gear, with a little coil spring behind it. Its beak reaches back under the sector gear and its long arm forward to the switch. Once a turn the cam on the sector gear presses the beak down, the lever rocks and its hook lifts the switch open, so on semi the motor stops after one shot; the spring rocks it back. On full auto the selector plate holds it out of the way. The spring sits in a pocket in the shell with one end on a peg on the lever: it falls out when the shell is opened and is the part most often lost.',
+  'Steel lever on a post in the left half, under the sector gear, with a little coil spring behind it. Its beak reaches back under the sector gear and its long arm forward to the switch. Once a turn the cam on the sector gear presses the beak down, the lever rocks and its hook lifts the switch open, so on semi the motor stops after one shot; the spring rocks it back. On full auto the selector plate holds it out of the way. The spring lies in a window through the left half with its back end in a bore in the shell and its front end on the lever\'s hump: it falls out when the shell is opened and is the part most often lost.',
   cutoffGeo());
 // the selector plate sits on the outside of the right half, over the sector gear's bushing and above the spur's (the
 // scan's 75 x 15mm block)
@@ -1258,7 +1273,7 @@ renderer.setAnimationLoop(() => {
     p.position.set(0, 0, 0); p.rotation.set(0, 0, 0); p.scale.set(1, 1, 1);
     for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     const id = p.userData.id;
-    if (id === 'trigger') turnAbout(p, TRG_PV, tA);
+    if (id === 'trigger') { turnAbout(p, TRG_PV, tA); const coil = p.children[p.children.length - 2]; coil.position.set(0, 0, 0); turnAbout(coil, TRG_PV, -tA); }
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
       const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));

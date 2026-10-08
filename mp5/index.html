@@ -1206,6 +1206,8 @@ function motorGeo() {
     [cut(secX(flat(13.35, 11.5), 58.4, 71), vents), 'endcap'], [latheX([[0, 71], [4.9, 71], [4.9, 74], [0, 74]], 20), 'endcap'],
     [bx(63, 73.5, 12.4, 12.9, -2.4, 2.4), 'brass'], [bx(63, 73.5, -12.9, -12.4, -2.4, 2.4), 'brass']];
 }
+const TRG_PV = [X(789), Y(300)];                       // trigger pivot
+const TRG_HOOK = [TRG_PV[0] + 4.5, TRG_PV[1] - 3];   // the hole for the trigger spring's bent end
 function gbHalf(s) {
   const out = VSP([[0, 76.5], [158.75, 76.5], [158.75, 56.1], [134.4, 32.3], [133.75, 13.6], [108.75, 0.5], [97.5, 25.5], [47.5, 25.8],
     [46.5, 36.6], [46.5, 55.3], [16.25, 55.6], [15.6, 61.5], [0, 61.9]]);
@@ -1227,8 +1229,10 @@ function gbHalf(s) {
   const pieces = [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'],
     ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'], [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'steel']])];
   if (s > 0) for (const [x, y] of GB_SCREWS) pieces.push([ringZ(1, 2.6, x, y, BODY_Z, BODY_Z + 1.6, 16), 'blued']);
-  // the cut-off lever's post and its spring's pocket, cast into the left half
-  if (s < 0) pieces.push(...[[cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
+  // the cut-off lever's post and its spring's pocket, and the boss that takes the trigger spring's bent end, cast into
+  // the left half
+  if (s < 0) pieces.push(...[[cut(cyl(1.9, 4.8, 'z', ...TRG_HOOK, -7.6, 16), [cyl(0.45, 4, 'z', ...TRG_HOOK, -5.6, 8)]), 'zinc'],
+    [cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'],
     [cut(bx(CO_SEAT - 1, CO_WIN[0], CO_PEG[1] - 1.9, CO_PEG[1] + 1.9, -9.8, -8), [cyl(1.5, 9, 'x', CO_WIN[0] - 3, CO_PEG[1], CO_SZ, 16)]), 'zinc']]);
   if (s > 0) for (const [x, y] of GB_TOP_SCREWS) pieces.push([ringZ(1, 2.6, x, y, 2.3, 3.9, 16), 'blued']);
   return pieces;
@@ -1323,7 +1327,18 @@ part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', 
 // scaled so its pivot stud sits on the gearbox's trigger pin and the blade comes out of the back half of the guard. Thin
 // neck and head inside the gearbox (the head's flag works the switch, the tab behind it meets the cut-off lever), a
 // square shoulder where it widens, then a curved blade with a hollow front face. A torsion spring on the pin returns it.
-const TRG_PV = [X(789), Y(300)];
+// the return spring: a torsion spring of two turns on the pin, left of the neck and clear of the blade. Its bent end
+// plugs into a hole in a boss cast in the left half (TRG_HOOK, set with the pivot by the shell); its straight leg runs back over a peg on the neck.
+// Pulling the trigger lifts the peg into the leg and winds the coil; the leg is a mesh of its own so it can turn with
+// the trigger while the coil and the bent end stay put.
+function trigSpring() {
+  const [px, py] = TRG_PV, R = 2.2, z0 = -5.4, z1 = -4.1, n = 80, a0 = -34 * D2R, a1 = (90 + 720) * D2R;
+  const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
+  const line = pts => { const path = new THREE.CurvePath();
+    for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
+    return new THREE.TubeGeometry(path, pts.length * 2, 0.35, 6, false); };
+  return [[line([[...TRG_HOOK, -7.5], [...TRG_HOOK, z0], ...coil]), 'spring'], [line([[px, py + R, z1], [px - 6, py + R, z1]]), 'spring']];
+}
 const TRG_NECK = P([[786, 265], [790, 273], [792, 283], [796, 292], [803, 297], [813, 298], [820, 300], [821, 305], [814, 306], [803, 307], [794, 309],
   [791, 333], [787, 323], [785, 312], [784, 299], [780, 290], [772, 287], [767, 284], [771, 279], [778, 276], [784, 270]]);
 const TRG_BLADE = P([[786, 306], [803, 307], [808, 310], [816, 316], [823, 321], [828, 328], [824, 332], [818, 334], [818, 342], [824, 352], [829, 365],
@@ -1334,9 +1349,7 @@ part('trigger', 'Trigger + spring, trigger lever', 'gbx', ['08-19', '08-20', '08
   (() => { const [px, py] = TRG_PV;
     return [[profR(TRG_NECK, 4, 0.6), 'blued'], [profR(TRG_BLADE, 7, 1.2), 'blued'],
       [cyl(1.5, 22, 'z', px, py, 0, 12), 'steel'], [cyl(2.2, 1.2, 'z', px, py, -2.4, 16), 'blued'],
-      [spring(2.4, 0.4, 3.4, 4, 'z', px, py, 3.6), 'spring'],
-      [tubeAlong([[px - 2.4, py, 3.8], [px - 3.5, py - 4, 3.8], [px - 3, py - 9, 3.8]], 0.4, 8), 'spring'],
-      [tubeAlong([[px + 2.4, py, 6.8], [px + 6, py + 2, 6.8], [px + 10, py + 2.5, 6.8]], 0.4, 8), 'spring']]; })());
+      [cyl(0.6, 3.6, 'z', px - 4, py + 1.45, -3.7, 10), 'blued'], ...trigSpring()]; })());
 
 part('switch', 'Switch assembly + springs, screw', 'gbx', ['08-33', '08-31', '08-32'], [-290, 10, -70],
   'Trigger contacts. The trigger closes them, the motor runs; the cut-off lever lifts them open once per cycle on semi.',
@@ -2000,7 +2013,7 @@ renderer.setAnimationLoop(() => {
     for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     const id = p.userData.id;
     if (id === 'stock') p.position.x -= 150 * stockCur;
-    if (id === 'trigger') turnAbout(p, TRG_PV, -tA);
+    if (id === 'trigger') { turnAbout(p, TRG_PV, -tA); const coil = p.children[p.children.length - 2]; coil.position.set(0, 0, 0); turnAbout(coil, TRG_PV, tA); }
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
     if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
       const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));
