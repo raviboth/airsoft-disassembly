@@ -1324,23 +1324,34 @@ part('stockLock', 'Stock lock (housing, shells, collar, plunger, release lever)'
 // piecewise linear through [[u, v], ...] (u descending or ascending), held flat past the ends
 const lerpT = (t, u) => { const a = t[0][0] < t[t.length - 1][0] ? t : t.slice().reverse(); if (u <= a[0][0]) return a[0][1];
   for (let i = 1; i < a.length; i++) if (u <= a[i][0]) return a[i - 1][1] + (a[i][1] - a[i - 1][1]) * (u - a[i - 1][0]) / (a[i][0] - a[i - 1][0]); return a[a.length - 1][1]; };
+const BUTT_HW = u => lerpT([[Y(420), 20], [Y(290), 20], [Y(250), 23.4], [Y(200), 23.4], [Y(160), 17]], u);   // the butt's half width by height
 const BUTT = P([[1093, 175], [1150, 159], [1160, 162], [1168, 173], [1169, 253], [1173, 337], [1182, 400], [1177, 418], [1160, 420], [1148, 410],
   [1137, 370], [1123, 317], [1115, 277], [1103, 250], [1100, 233], [1093, 187]]);
 part('stock', 'Retractable stock (rails + butt)', 'stk', ['04-17'], [-640, 0, 0],
   'The A5 stock: two steel rails and a polymer butt. Each rail is a flat bar 17mm tall that lies along the receiver\'s side, with a lip along its top that runs in the lower groove; two notches in the lip take the lock\'s plunger, one collapsed and one extended. The rails end in the butt either side of a socket in its front, and the butt\'s back is checkered. Collapsed it gives VFC\'s 500mm; pulled out, 650mm.',
   [[cut(loftX([[1160, 420], [1177, 418], [1182, 400], [1173, 337], [1169, 253], [1168, 173], [1160, 162], [1150, 159], [1093, 175], [1093, 187], [1100, 233],
       [1103, 250], [1115, 277], [1123, 317], [1137, 370], [1148, 410]].map(([px, py]) => [Y(py), -X(px)]),        // lofted upright: bottom, up the back, down the front
-      u => lerpT([[Y(420), 20], [Y(290), 20], [Y(250), 23.4], [Y(200), 23.4], [Y(160), 17]], u), 3, 36, 3).rotateZ(Math.PI / 2),
+      BUTT_HW, 3, 36, 3).rotateZ(Math.PI / 2),
       [secX(rr(-14, 14, Y(232), Y(184), 6), X(1093) - 12, X(1093) + 1, 0)]), 'poly'],          // the socket in the front of the butt, between the rails
-   [(() => {                                         // the rubber pad's checkering: pyramids in a grid across the back face
-     const edge = [[173, 1168], [253, 1169], [337, 1173], [400, 1182]], g = [];
-     for (let py = 180; py <= 396; py += 4.6) {
-       let i = 1; while (i < edge.length - 1 && py > edge[i][0]) i++;
-       const [[pa, xa], [pb, xb]] = [edge[i - 1], edge[i]], px = xa + (xb - xa) * (py - pa) / (pb - pa), tilt = Math.atan2((xb - xa) / K, (pb - pa) / K);
-       for (let k = -3.5; k <= 3.5; k++) g.push(new THREE.ConeGeometry(1.9, 1.6, 4, 1).rotateY(Math.PI / 4).rotateZ(Math.PI / 2 + tilt).translate(X(px) - 0.5, Y(py), k * 4.6));
+   [(() => {
+     // the pad's checkering, from Redwolf's, WGC's and Sixmm's photos: square pyramids side by side in a square grid
+     // over the whole back, rows square to the back edge, with a smooth border round it. Each pyramid sits on the
+     // butt's rounded back face and leans with it.
+     const at = (e, py) => { let i = 1; while (i < e.length - 1 && py > e[i][0]) i++; const [[pa, xa], [pb, xb]] = [e[i - 1], e[i]]; return [xa + (xb - xa) * (py - pa) / (pb - pa), (xb - xa) / (pb - pa)]; };
+     const back = [[173, 1168], [253, 1169], [337, 1173], [400, 1182], [418, 1177]], front = [[187, 1093], [233, 1100], [250, 1103], [277, 1115], [317, 1123], [370, 1137], [410, 1148]];
+     const pitch = 3.6, g = [];
+     for (let py = 181; py <= 405; ) {
+       const [pb, sl] = at(back, py), pf = at(front, py)[0], tilt = Math.atan(sl), hw = BUTT_HW(Y(py)), hh = (pb - pf) / 2 / K, xc = X((pb + pf) / 2);
+       for (let k = -6; k <= 6; k++) {
+         const z = k * pitch, a = Math.abs(z) / hw; if (a > 0.8) continue;
+         const f = Math.cbrt(1 - a ** 3), lean = Math.atan(hh * a * a / hw / f ** 2) * Math.sign(z);
+         g.push(new THREE.ConeGeometry(pitch / Math.SQRT2, 1.4, 4, 1).rotateY(Math.PI / 4).rotateZ(Math.PI / 2 + tilt).rotateY(lean)
+           .translate(xc - hh * f - 0.55 * Math.cos(lean), Y(py), z + 0.55 * Math.sin(lean)));
+       }
+       py += pitch * K * Math.sqrt(1 + sl * sl);
      }
      return mergeGeometries(g.map(q => q.toNonIndexed()));
-   })(), 'black'],
+   })(), 'poly'],
    ...[1, -1].map(s => [cut(secX(railSec(s), X(1112), -36, 0.2), [
       bx(-46, -30, -16, -2.4, -30, 30), cut(bx(-54, -46, -16, -5.8, -30, 30), [cyl(8, 70, 'z', -54, -5.8, 0, 24)]),   // the face ends round below the lip
       ...[X(1075), X(1075) + 150].map(x => bx(x - 2, x + 2, 1.2, 4, -30, 30)),                              // lock notches, collapsed and extended
@@ -1520,7 +1531,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-small-push-pin-parts-01-17.html">Redwolf, VFC small push pin</a> and <a href="https://hkparts.net/small-parts/h-k-push-pin-set-mp5-g3-91-33-53-93/">HK Parts, H&amp;K push pin set</a> (the push pins: hollow head with its flare, the slotted tip and its spring wire),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk33-hk53-hk93-trigger-housing-sef-navy-polymer-push-pin-9mm-5-56-223/">HK Parts, MP5 SEF Navy polymer trigger housing</a> (the grip's rounded section and flare, the housing's narrower front and the fillet into the grip), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
-<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss, the rails' top lip and lock notches, the socket and checkering on the butt, the release lever's paddles on both sides, the sling loop), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
+<a href="https://www.redwolfairsoft.com/umarex-vfc-mp5k-gbb-upper-receiver-rear-sight-part-01-2-01-6-01-9-05-4-to-05-8.html">Redwolf, VFC MP5K upper receiver</a> and <a href="https://hkparts.net/receivers-flats-uppers/h-k-mp5-rear-receiver-section/">HK Parts MP5 rear receiver section</a> (the receiver's pressed grooves and lower bulge, claw mount tab and pockets, ejection port), <a href="https://www.redwolfairsoft.com/accessories-grips-and-stocks-gbb-vfc-mp5-retractable-buttstock-for-umarex-mp5-series-gbbr.html">Redwolf, VFC MP5 retractable stock</a> and <a href="https://www.wgcshop.com/products/vfc-mp5-gbb-retractable-buttstock-v2">WGC Shop, VFC MP5 retractable buttstock V2</a> and <a href="https://www.sixmm.com/products/vfc-retractable-buttstock-w-buffer-for-umarex-h-k-mp5-gbb-series">Sixmm, VFC MP5 retractable buttstock</a> (the square grid of pyramids on the butt pad), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-sp5-hk94-a3-f-stock-retractable-4-position/">HK Parts MP5 A3 F retractable stock</a> (the stock housing's sleeve and pin boss, the rails' top lip and lock notches, the socket in the butt, the release lever's paddles on both sides, the sling loop), <a href="https://www.thingiverse.com/thing:6410378">kaewon's HK MP5 model on Thingiverse</a> (the stock housing's proportions, measured from its end cap STL),
 <a href="../stoner96/">Stoner 96 page</a> (the V2 shell trace). Part names are ours; inside shapes and positions are approximate.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>VFC / Umarex MP5 A5 AEG</h2>
