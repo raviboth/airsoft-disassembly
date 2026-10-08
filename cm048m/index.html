@@ -41,6 +41,15 @@
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
+  button:disabled { opacity:.45; cursor:default; border-color:var(--line); }
+  #ctrl .ph.gun { margin-top:12px; }
+  #bFire { flex:1; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #bFire.on { background:#5c2424; border-color:#c04040; }
+  #ctrl .seg { display:flex; gap:0; }
+  #ctrl .seg button { flex:1; border-radius:0; padding:4px 6px; }
+  #ctrl .seg button:first-child { border-radius:5px 0 0 5px; }
+  #ctrl .seg button:last-child { border-radius:0 5px 5px 0; }
+  #ctrl .seg button.on { border-color:var(--acc); background:#24365c; }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
   #infoBody { overflow:auto; padding:12px 14px; }
   #info h2 { padding-right:18px; }
@@ -137,10 +146,21 @@
   <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
   <label><span>Labels</span><input id="labels" type="checkbox"></label>
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
-  <label>Trigger <span id="tpv">released</span></label>
-  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
   <label><span>Owner build (Kythera HPA)</span><input id="hpa" type="checkbox"></label>
   <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="ph gun">Gun</div>
+  <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
+  <label>Selector (S) <span id="selv">safe</span></label>
+  <div class="row seg" id="selSeg"><button data-s="0">Safe</button><button data-s="1">Auto</button><button data-s="2">Semi</button></div>
+  <label>Trigger <span id="tpv">released</span></label>
+  <input id="trigpos" type="range" min="0" max="1" step="0.01" value="0">
+  <label>Mag <span id="ammo">600 BBs</span></label>
+  <div class="row">
+    <button id="bMag" title="Press the paddle catch (M)">Drop mag (M)</button>
+    <button id="bFill" title="Load the mag (R)">Load (R)</button>
+    <button id="bCock" title="Pull the cocking lever back and hold it (K)">Cocking lever (K)</button>
+  </div>
+  <label><span>Slow motion</span><input id="slow" type="checkbox"></label>
   <div class="row">
     <button id="bReset">Reset view</button>
     <button id="bList">Manual parts list</button>
@@ -1695,12 +1715,13 @@ function showOverview() {
     <li>Motor mesh: M3 hex screw through the grip bottom. Hold the grip while adjusting.</li>
     <li>Weak points reported by owners: loose selector lever screw, BBs or debris jamming the selector plate, front sight play, motor whine until the height is set, air seal.</li>
     <li>Scale: traced from a side product photo at 0.823 mm/px (real AKM 880mm without tip, 915mm with it). Widths come from the Forbus AKM drawings and retail listings. The traced receiver is about 267mm against 259mm on the real AKM.</li>
-    <li>The Trigger slider in the View panel fires one shot: the trigger comes back and closes the switch, the gears spin up, the sector gear's cam draws the nozzle back to feed a BB, then its teeth draw the piston back against the spring for half a turn and the last tooth lets it go.</li>
+    <li>The Gun section of the View panel works the rifle. Hold to fire (Space) pulls the trigger. On Auto the gears run as long as it is held, about 13 shots a second (the manual gives 700 to 850 rounds a minute), and stop where they are when it is let go; on Semi the cut-off lets the sector gear make one turn per pull; on Safe the selector plate blocks the trigger. Each turn the sector gear's cam draws the nozzle back to feed a BB, then its teeth draw the piston back against the spring for half a turn and the last tooth lets it go, and with BBs in the mag one leaves the muzzle. Selector (S) steps safe, auto, semi, as the lever goes down. Drop mag (M) pushes the paddle catch and rocks the mag forward off its front lug; Load (R) fills it to 600. Cocking lever (K) pulls the dummy lever back and holds it, so the hop-up adjuster shows through the ejection port; on safe the selector blocks it. The owner HPA build fires semi only (the Kythera has no auto). Slow motion slows the cycle down.</li>
+    <li>The Trigger slider steps one shot by hand: the trigger comes back and closes the switch, then the sector gear makes one turn.</li>
     <li>The Explode slider strips it in order: the mag drops (to 8%), the dust cover and recoil spring guide come off rearward (to 22%), the butt plate and battery come out the back (to 27%), the upper handguard lifts off (to 33%), the selector lever comes off (to 38%), the stock pulls back (to 47%), the grip drops with the motor (to 53%), the barrel pin goes and the front end slides forward with the hop-up (to 63%), and the gearbox lifts out (to 72%). Each group then spreads into its parts (to 88%), and last the receiver's own parts come off.</li>
     <li>Owner build (tick "Owner build" in the controls): ZCI 455mm 6.02 barrel, R-hop, G&amp;G green bucking and a Polarstar Kythera V3 HPA engine in place of the AEG cylinder, gears and motor.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic, Space fire, S selector, M mag, R load, K cocking lever. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
 }
 function showList(hitNos = []) {
   const rows = MANUAL.map(([no, name, note]) => {
@@ -1887,7 +1908,14 @@ addEventListener('keydown', e => {
   else if (k === 'i') showPanel('info', !isOpen('info'));
   else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
   else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+  else if (k === ' ') { e.preventDefault(); if (!e.repeat) setHeld(true); }
+  else if (k === 's') stepSel();
+  else if (k === 'm') toggleMag();
+  else if (k === 'r') loadMag();
+  else if (k === 'k') toggleCock();
 });
+addEventListener('keyup', e => { if (e.key === ' ') setHeld(false); });
+addEventListener('blur', () => setHeld(false));
 MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
@@ -1903,6 +1931,43 @@ const TRIG = { pos: 0 };
 const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
 trigCtl.oninput = showTrig; showTrig();
 let trigCur = 0;
+// Gun state. sel: 0 safe, 1 auto, 2 semi (the AK lever goes down in that order). The sector gear's turns count up in ph;
+// a shot leaves as each turn passes 0.8, when the last tooth lets the piston go. Auto runs while the switch is closed and
+// stops where it is; semi runs on to the end of the turn (the cut-off lever).
+const MAG_BBS = 600;   // CYMA manual
+const GUN = { held: false, sel: 0, mag: true, bbs: MAG_BBS, cock: false };
+const SEL_NAMES = ['safe', 'auto (АВ)', 'semi (ОД)'];
+const SEL_A = [0, -12, -20].map(a => a * Math.PI / 180);  // lever turn per notch: the front tab drops to the АВ and ОД marks
+const SEL_PLATE = [0, mm(3), mm(6)];                        // selector plate travel back off safe (estimate)
+const COCK_TRAVEL = 85;                                      // photo px, far enough to clear the hop adjuster behind the port (estimate)
+const fireBtn = document.getElementById('bFire'), magBtn = document.getElementById('bMag'), cockBtn = document.getElementById('bCock');
+const ammoEl = document.getElementById('ammo'), slowCb = document.getElementById('slow'), selv = document.getElementById('selv');
+const selBtns = [...document.querySelectorAll('#selSeg button')];
+const showMag = () => { ammoEl.textContent = `${GUN.mag ? '' : 'out, '}${GUN.bbs} BB${GUN.bbs === 1 ? '' : 's'}`; magBtn.textContent = GUN.mag ? 'Drop mag (M)' : 'Insert mag (M)'; };
+const showSel = () => {
+  selv.textContent = SEL_NAMES[GUN.sel];
+  selBtns.forEach((b, i) => { b.classList.toggle('on', i === GUN.sel); b.disabled = i === 0 && GUN.cock; });
+  cockBtn.disabled = GUN.sel === 0; cockBtn.classList.toggle('on', GUN.cock);
+};
+function setHeld(h) { GUN.held = h; fireBtn.classList.toggle('on', h); }
+// the lever on safe blocks the cocking lever, and the cocking lever held back keeps the selector off safe
+function setSel(i) { if (i === 0 && GUN.cock) return; GUN.sel = i; showSel(); }
+function stepSel() { const n = (GUN.sel + 1) % 3; setSel(n === 0 && GUN.cock ? 1 : n); }
+function toggleMag() { GUN.mag = !GUN.mag; catchT = 1; showMag(); }
+function loadMag() { GUN.bbs = MAG_BBS; showMag(); }
+function toggleCock() { if (GUN.sel === 0) return; GUN.cock = !GUN.cock; showSel(); }
+fireBtn.addEventListener('pointerdown', e => { fireBtn.setPointerCapture(e.pointerId); setHeld(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) fireBtn.addEventListener(ev, () => setHeld(false));
+fireBtn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+selBtns.forEach((b, i) => b.onclick = () => setSel(i));
+magBtn.onclick = toggleMag; document.getElementById('bFill').onclick = loadMag; cockBtn.onclick = toggleCock;
+showSel(); showMag();
+let fireT = 0, ph = 0, phStop = 0, pullDone = false, magOut = 0, catchT = 0, cockOff = 0, selCur = 0, plateCur = 0, lastT = performance.now();
+const MAG_PV = [X(558), Y(123)], CATCH_PV = [X(643), Y(166)];
+// BBs: one waits in the bucking while the mag has any, and each shot sends a loose one out of the muzzle
+const BB_GEO = new THREE.SphereGeometry(mm(2.97), 14, 10), BB_X = X(592 - 4 / S), MUZ = X(24.5), flying = [];
+const bbIn = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial(MAT.white));
+bbIn.position.set(BB_X, 0, 0); root.add(bbIn);
 // Staged explode, in the CYMA AK strip order: the magazine drops, the dust cover and then the recoil spring guide lift
 // at the back and come off rearward, the butt plate and battery come out the back of the stock, the upper handguard lifts off, the selector lever
 // comes off its screw, the stock screws come out and the stock pulls back, the grip drops away with the motor, the barrel
@@ -1949,11 +2014,42 @@ renderer.setAnimationLoop(() => {
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
   exv.textContent = Math.round(exCur * 100) + '%';
   trigCur += (TRIG.pos - trigCur) * 0.2;
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.05); lastT = now;
+  const built = exCur < 0.01, slow = slowCb.checked;
+  // mag: the catch paddle goes forward, the mag rocks forward about its front lug, then drops clear
+  magOut += THREE.MathUtils.clamp((GUN.mag ? 0 : 1) - magOut, -2 * dt, 2 * dt);
+  catchT = Math.max(catchT - 2.5 * dt, 0);
+  const magIn = magOut < 0.01, magA = 0.3 * stageT(magOut, 0, 0.4), magDrop = 160 * stageT(magOut, 0.35, 1);
+  // selector lever and plate, cocking lever
+  selCur += (SEL_A[GUN.sel] - selCur) * 0.3; plateCur += (SEL_PLATE[GUN.sel] - plateCur) * 0.3;
+  cockOff += ((GUN.cock ? COCK_TRAVEL : 0) - cockOff) * 0.15;
+  // trigger pull (about 0.12s); on safe the plate stops it at the start. The switch closes near the end of the pull.
+  const hpa = build === 'hpa', auto = GUN.sel === 1 && !hpa;
+  fireT = THREE.MathUtils.clamp(fireT + (GUN.held && built ? 8 : -8) * dt, 0, GUN.sel === 0 ? 0.12 : 1);
+  if (fireT < 0.3) pullDone = false;
+  const closed = fireT > 0.9;
+  if (closed && !pullDone && !auto) { pullDone = true; phStop = Math.floor(ph) + 1; }   // semi: one turn per pull
+  const run = auto ? closed : ph < phStop;
+  const ph0 = ph;
+  if (run) { ph += dt * (slow ? 0.6 : 13); if (!auto) ph = Math.min(ph, phStop); }
+  // a shot each time a turn passes 0.8
+  for (let k = Math.floor(ph0 - 0.8) + 1; k <= Math.floor(ph - 0.8); k++) {
+    if (!magIn || !GUN.bbs) continue;
+    GUN.bbs--; showMag();
+    const b = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial(MAT.white));
+    b.position.set(X(37), 0, 0); b.userData.v = slow ? 300 : 3000; root.add(b); flying.push(b);
+  }
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const b = flying[i]; b.position.x += b.userData.v * dt; b.visible = !isolated && catOn.hop;
+    if (b.position.x > MUZ + 900) { root.remove(b); b.material.dispose(); flying.splice(i, 1); }
+  }
   // the trigger comes back over the first fifth and closes the switch; then the sector gear turns once: its cam draws
   // the tappet and nozzle back to feed a BB, its teeth pick up the rack and draw the piston back from 30% to 80% of
   // the turn, and the last tooth lets the piston fly forward
-  const tA = -12 * Math.PI / 180 * THREE.MathUtils.clamp(trigCur / 0.2, 0, 1), u = THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1);
-  const pull = u < 0.8 ? STROKE * THREE.MathUtils.clamp((u - 0.3) / 0.5, 0, 1) : 0, aS = u * 2 * Math.PI;
+  const tA = -12 * Math.PI / 180 * Math.max(THREE.MathUtils.clamp(trigCur / 0.2, 0, 1), fireT);
+  const uu = THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1) + ph, u = uu - Math.floor(uu);
+  const pull = u < 0.8 ? STROKE * THREE.MathUtils.clamp((u - 0.3) / 0.5, 0, 1) : 0, aS = uu * 2 * Math.PI;
+  bbIn.visible = built && magIn && GUN.bbs > 0 && (u < 0.8 || u > 0.95) && !isolated && catOn.hop;
   const nozBack = mm(4) * Math.sin(Math.PI * THREE.MathUtils.clamp(u / 0.3, 0, 1));
   for (const p of parts) {
     p.position.set(0, 0, 0); p.rotation.z = 0; p.scale.set(1, 1, 1);
@@ -1965,7 +2061,12 @@ renderer.setAnimationLoop(() => {
     if (id === 'bevelGear') turnAbout(p, BEVEL_AX, aS * 16 / 5.5 * 15 / 5);
     if (id === 'piston') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
-    if (id === 'nozzle' || id === 'tappet') p.position.x -= nozBack;
+    if (id === 'nozzle' || id === 'tappet' || id === 'kyNozzle') p.position.x -= nozBack;
+    if (id === 'selector' || id === 'selAdapter') turnAbout(p, [X(SEL_C[0]), Y(SEL_C[1])], selCur);
+    if (id === 'selPlate') p.position.x -= plateCur;
+    if (id === 'cockLever') p.position.x -= cockOff;
+    if (id === 'magCatch') turnAbout(p, CATCH_PV, 0.2 * Math.min(catchT * 2, 1));
+    if (p.userData.cat === 'mag') { turnAbout(p, MAG_PV, magA); p.position.x += 0.25 * magDrop; p.position.y -= magDrop; }
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
@@ -1995,7 +2096,7 @@ const fromHash = () => {
   if (location.hash.includes('hpa')) { hpaCb.checked = true; hpaCb.onchange(); }
 };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__cm = { TRIG, parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, S, OX, OY };
+window.__cm = { TRIG, GUN, flying, parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, S, OX, OY };
 </script>
 </body>
 </html>
