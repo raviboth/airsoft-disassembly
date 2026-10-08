@@ -1857,7 +1857,7 @@ renderer.setAnimationLoop(() => {
   const live = GUN.sel > 0;
   fireT = THREE.MathUtils.clamp(fireT + (GUN.held && live ? 8 : -8) * dt, 0, 1);
   const sw = fireT > 0.66;
-  if (!GUN.held) pullFired = false;
+  if (fireT < 0.2) pullFired = false;   // the trigger has to come most of the way forward again before the next pull counts
   if (cyc < 0 && sw && live && !(GUN.sel === 1 && pullFired)) { cyc = 0; pullFired = true; }
   if (cyc >= 0 && (GUN.sel === 1 || sw)) {
     const was = cyc;
