@@ -1276,20 +1276,21 @@ part('sectorGear', 'Sector gear', 'gbx', ['08-8'], [-250, 90, -150],
       [sx + 5.6 * Math.cos(SEC_CAM_A), sy + 5.6 * Math.sin(SEC_CAM_A)]];
     // the piston teeth: module 1 on a 31-tooth spacing, 16 of them; the cut-off cam is the teardrop on the outer face
     return [[gear(g.r, SEC_N, 3, sx, sy, -5.6, { hole: 2, lite: 5, root: g.root }), 'brass'], [gear(16.3, 31, 3.6, sx, sy, 0, { hole: 2, lite: 5, lr: g.r, span: [162, 342], root: 14.25 }), 'steel'],
-      [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [profR(cam, 1.2, 0.2).translate(0, 0, -7.7), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
+      [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [ringZ(1.9, 2.7, sx, sy, 1.8, 4.4, 20), 'brass'], [profR(cam, 1.2, 0.2).translate(0, 0, -7.7), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
 part('spurGear', 'Spur gear', 'gbx', ['08-25'], [-250, 60, -150],
   'Middle gear between the bevel and the sector gear: 39 teeth on the bevel\'s pinion, a 20-tooth pinion on the sector. With the bevel\'s 36 and 10 and the motor\'s 12 that is the standard 18.72:1.' + GEAR_NOTE,
   (() => { const [px, py] = SPUR;
     const g = gearR(SPUR_N, M_SPUR), q = gearR(SPUR_PN, M_SEC);
-    return [[gear(g.r, SPUR_N, 2.5, px, py, -8.4, { hole: 2, root: g.root }), 'brass'], [gear(q.r, SPUR_PN, 3.6, px, py, -5.5, { hole: 2, root: q.root }), 'steel'], [cyl(1.9, 22, 'z', px, py, 0, 12), 'steel']]; })());
+    return [[gear(g.r, SPUR_N, 2.5, px, py, -8.4, { hole: 2, root: g.root }), 'brass'], [gear(q.r, SPUR_PN, 3.6, px, py, -5.5, { hole: 2, root: q.root }), 'steel'],
+      [ringZ(1.9, 2.8, px, py, -3.7, -0.6, 20), 'steel'], [cyl(1.9, 22, 'z', px, py, 0, 12), 'steel']]; })());
 part('bevelGear', 'Bevel gear', 'gbx', ['08-15'], [-250, 30, -150],
   'Cone of 36 teeth for the motor pinion on a flat back disc, with a 10-tooth pinion on its hub for the spur gear; the anti-reversal latch catches the outer ends of its teeth. Standard V2 gears fit (D-RZ).',
   (() => { const [bx0, by0] = BEVEL, q = gearR(BEV_PN, M_SPUR);
     const am = Math.atan2(-Math.cos(MOTOR_A), -Math.sin(MOTOR_A));   // the motor's axis, where a tooth meets the pinion's gap
-    // back disc toward the right half, the cone of teeth facing the motor's axis, a hub through the middle and the
-    // 10-tooth pinion at its far end by the left half
+    // back disc toward the right half, the cone of teeth facing the motor's axis, a hub through the middle, then a
+    // many-sided boss nearly as wide as the 10-tooth pinion that it carries at its far end by the left half (SBA's photo)
     const crown = mergeGeometries(Array.from({ length: BEV_N }, (_, i) => crownTooth(5.6, BEV_R, 4.6).rotateZ(am + i * 10 * D2R))).translate(bx0, by0, 0);
-    return [[ringZ(2, BEV_R, bx0, by0, 4.6, 6.6, 48), 'brass'], [crown, 'brass'], [ringZ(2, 5.3, bx0, by0, 0.6, 4.6, 32), 'brass'], [ringZ(2, 3.2, bx0, by0, -7.1, 0.6, 24), 'steel'],
+    return [[ringZ(2, BEV_R, bx0, by0, 4.6, 6.6, 48), 'brass'], [crown, 'brass'], [ringZ(2, 5.3, bx0, by0, 0.6, 4.6, 32), 'brass'], [ringZ(2, 4.6, bx0, by0, -7.1, 0.6, 12), 'brass'],
       [gear(q.r, BEV_PN, 2.6, bx0, by0, -8.4, { hole: 2, root: q.root }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
 
 // The latch, after SHS's and CYMA's spare-part photos: a flat steel pawl on its own axle pin, a brass sleeve on the pin
