@@ -40,6 +40,10 @@
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
+  button:disabled { opacity:.45; cursor:default; border-color:var(--line); }
+  #ctrl .ph.gun { margin-top:12px; }
+  #bFire { flex:1; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #bFire.on { background:#5c2424; border-color:#c04040; }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
   #infoBody { overflow:auto; padding:12px 14px; }
   #info h2 { padding-right:18px; }
@@ -138,9 +142,18 @@
   <label><span>X-ray shells</span><input id="xray" type="checkbox"></label>
   <label><span>Labels</span><input id="labels" type="checkbox"></label>
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
+  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="ph gun">Gun</div>
+  <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
   <label>Slide <span id="spv">closed</span></label>
   <input id="slidepos" type="range" min="0" max="1" step="0.01" value="0">
-  <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <label>Mag <span id="ammo">23 BBs</span></label>
+  <div class="row">
+    <button id="bMag" title="Mag release (M)">Drop mag (M)</button>
+    <button id="bFill" title="Load the mag (R)">Load (R)</button>
+    <button id="bRel" title="Slide stop (L)" disabled>Slide release (L)</button>
+  </div>
+  <label><span>Slow motion</span><input id="slow" type="checkbox"></label>
   <div class="row">
     <button id="bReset">Reset view</button>
     <button id="bList">Manual parts list</button>
@@ -1151,7 +1164,8 @@ function showOverview() {
     <li>Hop is set with the wheel on the side of the chamber, slide off.</li>
     <li>Gen3 and Gen4 share the internals; Gen4 changes the frame texture, adds backstraps and a bigger mag catch. Gen5 has its own frame, slide, front chassis, slide stop, recoil guide set and base plate.</li>
     <li>Known weak points: the polymer loading nozzle cracks (reinforced Guarder or CowCow nozzles fix it), pot-metal hammer and sear wear, and the blowback housing can crack around the piston bore (Ebog).</li>
-    <li>The Slide slider in the View panel racks the slide: the slide, sights and blowback unit move, the barrel rides back a few mm and tips down to unlock.</li>
+    <li>The Gun section of the View panel works the pistol. Hold to fire (Space) pulls the trigger: the hammer drops, and with the mag in the slide blows back, recocks the hammer and comes home, one shot per pull. After the last BB the slide locks back; Slide release (L) sends it home. Drop mag (M) presses the catch and the mag drops out; Load (R) fills it to 23. With no mag there is no gas, so the hammer falls on nothing and the slide has to be racked to cock it again. Slow motion slows the cycle down.</li>
+    <li>The Slide slider racks the slide by hand: the slide, sights and blowback unit move, the barrel rides back a few mm and tips down to unlock.</li>
     <li>The Explode slider strips it in order: the mag drops out (to 15%), the slide comes off with the barrel in it (to 35%), the barrel and recoil guide come out of the slide (to 55%), each group spreads into its parts (to 80%), then the frame internals come out.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} WE part numbers. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
@@ -1340,7 +1354,13 @@ addEventListener('keydown', e => {
   else if (k === 'i') showPanel('info', !isOpen('info'));
   else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
   else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+  else if (k === ' ') { e.preventDefault(); if (!e.repeat) setHeld(true); }
+  else if (k === 'm') toggleMag();
+  else if (k === 'r') loadMag();
+  else if (k === 'l') releaseSlide();
 });
+addEventListener('keyup', e => { if (e.key === ' ') setHeld(false); });
+addEventListener('blur', () => setHeld(false));
 MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
@@ -1352,9 +1372,34 @@ addEventListener('resize', () => {
 const exv = document.getElementById('exv');
 const slideCtl = document.getElementById('slidepos'), spv = document.getElementById('spv');
 const SLIDE = { pos: 0 };
-const showSlide = () => { SLIDE.pos = +slideCtl.value; spv.textContent = SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed'; };
-slideCtl.oninput = showSlide; showSlide();
-let slideOff = 0;
+// Gun state. The hammer stays cocked while the slide is home; a pull breaks it, and with gas (a mag in) the slide blows
+// back, recocks it on the way and comes home again. The trigger has to go most of the way forward before the next pull
+// counts. After the last BB the follower lifts the slide stop and the slide stays back.
+const MAG_BBS = 23;   // WE
+const GUN = { held: false, mag: true, bbs: MAG_BBS, locked: false };
+const showSlide = () => {
+  SLIDE.pos = GUN.locked ? 1 : +slideCtl.value;
+  spv.textContent = GUN.locked ? 'locked back' : SLIDE.pos ? `${Math.round(SLIDE.pos * SLIDE_TRAVEL)} mm back` : 'closed';
+  relBtn.disabled = !GUN.locked;
+};
+const fireBtn = document.getElementById('bFire'), magBtn = document.getElementById('bMag'), relBtn = document.getElementById('bRel');
+const ammoEl = document.getElementById('ammo'), slowCb = document.getElementById('slow');
+const showMag = () => { ammoEl.textContent = `${GUN.mag ? '' : 'out, '}${GUN.bbs} BB${GUN.bbs === 1 ? '' : 's'}`; magBtn.textContent = GUN.mag ? 'Drop mag (M)' : 'Insert mag (M)'; };
+function setHeld(h) { GUN.held = h; fireBtn.classList.toggle('on', h); }
+function toggleMag() { GUN.mag = !GUN.mag; if (!GUN.mag) catchT = 1; showMag(); }
+function loadMag() { GUN.bbs = MAG_BBS; showMag(); }
+// the slide stop pressed down: the slide runs home and chambers
+function releaseSlide() { if (!GUN.locked) return; GUN.locked = false; slideCtl.value = 0; showSlide(); }
+slideCtl.oninput = () => { GUN.locked = false; showSlide(); };   // pulling the slide off the stop lets it go
+fireBtn.addEventListener('pointerdown', e => { fireBtn.setPointerCapture(e.pointerId); setHeld(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) fireBtn.addEventListener(ev, () => setHeld(false));
+fireBtn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+magBtn.onclick = toggleMag; document.getElementById('bFill').onclick = loadMag; relBtn.onclick = releaseSlide;
+showSlide(); showMag();
+let slideOff = 0, slideBase = 0, fireT = 0, pullFired = false, cyc = -1, cock = 1, falling = false, magOut = 0, catchT = 0, lastT = performance.now();
+const HAMMER_PV = [-75, -18], HAMMER_A = 0.45;   // hammer pin (geometry shifted 3mm back), and how far it turns back when cocked
+const TRIG_PV = [X(955), Y(305)], TRIG_A = 0.2;   // the trigger turns about the trigger pin
+const TBAR_PIN = [X(985), Y(395)];
 // Staged explode, in field-strip order (WE manual): the mag drops out first, then the slide group runs off forward and up
 // with the barrel still in it, then the barrel and recoil guide come out of the slide, then each group spreads into its
 // parts, and last the frame internals come out. Each part's moves add up to its explode vector, so at 100% every part
@@ -1369,14 +1414,54 @@ for (const p of parts) {
     : cat === 'bar' ? [[G_SLIDE, 0.15, 0.35], [rest(G_SLIDE), 0.35, 0.55]]
     : [[ex.clone(), 0.8, 1]];
 }
+const turnAbout = (p, [px, py], a) => {
+  p.rotation.z = a;
+  p.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  p.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
 const TILT = new Set(['outerBarrel', 'innerBarrel', 'hopChamber', 'bucking', 'hopArm', 'hopWheel']);
 renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
   exv.textContent = Math.round(exCur * 100) + '%';
-  slideOff += (SLIDE.pos * SLIDE_TRAVEL - slideOff) * 0.15;
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.05); lastT = now;
+  const built = exCur < 0.01;
+  // mag: out along its own axis; the catch button goes in as it lets go
+  magOut += THREE.MathUtils.clamp((GUN.mag ? 0 : 1) - magOut, -3 * dt, 3 * dt);
+  catchT = Math.max(catchT - 3 * dt, 0);
+  const magIn = magOut < 0.01;
+  // trigger pull (about 0.12s), the break near the end of it
+  fireT = THREE.MathUtils.clamp(fireT + (GUN.held && built ? 8 : -8) * dt, 0, 1);
+  if (fireT < 0.2) pullFired = false;
+  if (fireT > 0.9 && !pullFired) {
+    pullFired = true;
+    if (cock > 0.99 && slideOff < 0.5 && cyc < 0) {
+      falling = true;
+      if (magIn && GUN.bbs > 0) { cyc = 0; GUN.bbs--; showMag(); }
+    }
+  }
+  if (falling) { cock -= dt / (slowCb.checked ? 0.15 : 0.01); if (cock <= 0) { cock = 0; falling = false; } }
+  // blowback: the slide runs back over the first half of the cycle and home over the second, about 0.08s in all
+  let blow = 0;
+  if (cyc >= 0) {
+    cyc += dt / (slowCb.checked ? 1.2 : 0.08);
+    const u = Math.min(cyc, 1);
+    blow = SLIDE_TRAVEL * (u < 0.5 ? Math.sin(Math.PI * u) : (1 - Math.cos(Math.PI * 2 * (1 - u))) / 2);
+    if (u >= 0.5) { cock = 1; falling = false; }   // the slide has been all the way back (also on a slow frame that skips past it)
+    if (u >= 0.5 && !GUN.bbs && magIn) { GUN.locked = true; slideBase = SLIDE_TRAVEL; cyc = -1; showSlide(); }
+    else if (cyc >= 1) cyc = -1;
+  }
+  slideBase += (SLIDE.pos * SLIDE_TRAVEL - slideBase) * (GUN.locked ? 1 : 0.15);
+  slideOff = Math.max(slideBase, blow);
+  // racked by hand to the stop on an empty mag, the follower holds the slide stop up too
+  if (!GUN.locked && magIn && !GUN.bbs && slideOff > SLIDE_TRAVEL - 0.5) { GUN.locked = true; showSlide(); }
+  // the slide rolls the hammer back as it passes over it
+  cock = Math.max(cock, THREE.MathUtils.clamp((slideOff - 3) / 8, 0, 1));
   // slide stop: turns up about the trigger pin into the slide notch over the last 2mm of travel
-  const lockA = -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1);
+  const lockA = GUN.locked || magIn && !GUN.bbs ? -0.055 * THREE.MathUtils.clamp((slideOff - SLIDE_TRAVEL + 2) / 2, 0, 1) : 0;
+  const tA = -TRIG_A * fireT, hA = HAMMER_A * cock;
+  const tbX = TRIG_PV[0] + (TBAR_PIN[0] - TRIG_PV[0]) * Math.cos(tA) - (TBAR_PIN[1] - TRIG_PV[1]) * Math.sin(tA) - TBAR_PIN[0];
+  const magV = G_MAG.clone().setLength(110 * magOut * (1 - stageT(exCur, 0, 0.15)));
   // barrel unlock: after riding back with the slide, the barrel group pivots about the nose and the breech drops about
   // 2.6mm, so the hood comes down out of the ejection port and passes under the slide top (Glock tilt-barrel action)
   const tiltA = 0.027 * THREE.MathUtils.clamp((slideOff - 2.5) / 1.5, 0, 1);
@@ -1389,11 +1474,14 @@ renderer.setAnimationLoop(() => {
       p.position.x += MUZ - (MUZ * Math.cos(tiltA) - BY * Math.sin(tiltA));
       p.position.y += BY - (MUZ * Math.sin(tiltA) + BY * Math.cos(tiltA));
     }
-    if (p.userData.id === 'slideStop') {
-      p.rotation.z = lockA;
-      p.position.x += X(955) - (X(955) * Math.cos(lockA) - Y(305) * Math.sin(lockA));
-      p.position.y += Y(305) - (X(955) * Math.sin(lockA) + Y(305) * Math.cos(lockA));
-    }
+    const id = p.userData.id;
+    if (id === 'slideStop') turnAbout(p, [X(955), Y(305)], lockA);
+    else if (id === 'trigger') turnAbout(p, TRIG_PV, tA);
+    else if (id === 'triggerBar') p.position.x += tbX;
+    else if (id === 'hammer') turnAbout(p, HAMMER_PV, hA);
+    else if (id === 'knocker') p.position.x += 0.8 * (1 - THREE.MathUtils.clamp(cock * 6, 0, 1));
+    else if (id === 'magCatch') p.position.z += 1.4 * Math.min(catchT * 3, 1);
+    if (p.userData.cat === 'mag') p.position.add(magV);
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
@@ -1421,7 +1509,7 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(-5, -60, 0), EX_POS = fit(new THREE.Vector3(-160, 10, -800), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__g19 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, SLIDE };
+window.__g19 = { parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, SLIDE, GUN };
 </script>
 </body>
 </html>
