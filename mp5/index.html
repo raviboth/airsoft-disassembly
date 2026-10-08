@@ -549,15 +549,18 @@ function fixTJunctions(g) {
 
 
 // span = [a0, a1] in degrees: teeth only on that arc (a sector gear); lite = number of lightening holes
-function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z', span = null, lite = 0 } = {}) {
-  const s = new THREE.Shape(), n = teeth * 4, root = r * (1 - Math.min(0.14, 2.4 / r));
-  for (let i = 0; i <= n; i++) {
-    const a = i / n * Math.PI * 2, d = a / D2R, on = !span || (d >= span[0] && d <= span[1]), rr = (on && i % 4 < 2) ? r : root;
+function gear(r, teeth, th, cx, cy, cz, { hole = 0, axis = 'z', span = null, lite = 0, root = 0, lr = r } = {}) {   // lr: the radius the lightening holes are laid out on
+  // round-flanked teeth: a flat tip, flanks easing down to the root circle; span keeps only the teeth centred inside it
+  const s = new THREE.Shape(), rt = root || r * (1 - Math.min(0.14, 2.4 / r)), P = 2 * Math.PI / teeth, K = 12;
+  const ease = f => { const a = Math.abs(f); return a < 0.17 ? 1 : a > 0.33 ? 0 : 0.5 + 0.5 * Math.cos(Math.PI * (a - 0.17) / 0.16); };
+  for (let i = 0; i <= teeth * K; i++) {
+    const a = i / (teeth * K) * Math.PI * 2, k = Math.round(a / P), d = ((k * P / D2R) % 360 + 360) % 360;
+    const rr = rt + (!span || (d >= span[0] && d <= span[1]) ? (r - rt) * ease(a / P - k) : 0);
     i ? s.lineTo(rr * Math.cos(a), rr * Math.sin(a)) : s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
   }
   if (hole) { const h = new THREE.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
   for (let i = 0; i < lite; i++) { const h = new THREE.Path(), a = i / lite * Math.PI * 2;
-    h.absarc(0.55 * r * Math.cos(a), 0.55 * r * Math.sin(a), 0.17 * r, 0, Math.PI * 2, true); s.holes.push(h); }
+    h.absarc(0.55 * lr * Math.cos(a), 0.55 * lr * Math.sin(a), 0.17 * lr, 0, Math.PI * 2, true); s.holes.push(h); }
   const g = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false, curveSegments: 4 });
   g.translate(0, 0, -th / 2);
   if (axis === 'y') g.rotateX(Math.PI / 2);
@@ -701,9 +704,16 @@ const MC = [X(687), Y(300)];                         // magazine catch shaft, ac
 // the Stoner page's gearbox trace (3.5 px/mm), still used for the switch and the wiring, which follow the MP5 trigger
 const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 // gear axles as on the V2 page, from photos of open V2 gearboxes (iFixit's A&K, Sixmm's CYMA): the spur sits where its
-// pinion meshes the sector (16.2 + 6.8) and its big gear the bevel's pinion (14 + 7). The motor hangs off the bevel gear.
+// pinion meshes the sector and its big gear the bevel's pinion. The motor hangs off the bevel gear.
 const SECTOR = [-135, -26], SPUR = [-157.2, -32], BEVEL = [-152.5, -52.5];
-const SEC_R = 16.2, SEC_PIN = 6.8, SPUR_R = 14, BEV_PIN = 7, SEC_T = 14;
+// Tooth counts of a standard 18.72:1 set, counted from Airsoft Atlanta's photos of SHS's 18:1 set: bevel 36 with a 10-tooth
+// pinion, spur 39 with a 20-tooth pinion, sector 32 with 16 teeth for the piston (JVAN's figure for a standard stroke too).
+// With the motor's 12-tooth pinion they give 36/12 x 39/10 x 32/20 = 18.72. Each meshing pair shares a module sized to
+// the distance between its axles; the sector's piston teeth are module 1, the rack's 3.14mm pitch.
+const SEC_N = 32, SPUR_N = 39, SPUR_PN = 20, BEV_N = 36, BEV_PN = 10, PICK_N = 16;
+const M_SEC = Math.hypot(SECTOR[0] - SPUR[0], SECTOR[1] - SPUR[1]) * 2 / (SEC_N + SPUR_PN);
+const M_SPUR = Math.hypot(SPUR[0] - BEVEL[0], SPUR[1] - BEVEL[1]) * 2 / (SPUR_N + BEV_PN);
+const gearR = (n, m) => ({ r: m * n / 2 + m, root: m * n / 2 - 1.25 * m });   // tip and root radius
 // the motor's lean, a little steeper than the grip's: the steepest that keeps its can inside the back of the grip at the
 // top and the front strap at the bottom
 const MOTOR_A = 17 * D2R;
@@ -1130,7 +1140,7 @@ const GB_SCREWS = VSP([[153, 57.4], [126, 19], [109.4, 8], [76.9, 31.7], [24, 66
 // The pinion and the bevel gear's crown are a bevel pair, after AIP's photo of a 12-tooth D-hole pinion: the pinion is a
 // cone, its teeth tapering to its tip, on a round hub with a grub screw. Both pitch cones meet on the bevel gear's axle,
 // where the motor's axis crosses it, so the pinion's radius and the crown teeth's height both go with the distance from
-// that axle (12:36, a third). The pinion's tip sits 6.5mm from the axle.
+// that axle (12:36, a third). The pinion's tip sits 6.5mm from the axle; the bevel gear's teeth face down onto it.
 const PIN_TIP = 6.5, PIN_K = 1 / 3;
 function coneGear(n, r0, r1, x0, x1, phase = 0) {   // teeth along +x, radius r0 at x0 growing to r1 at x1
   const sh = new THREE.Shape(), m = n * 4;
@@ -1143,13 +1153,14 @@ function coneGear(n, r0, r1, x0, x1, phase = 0) {   // teeth along +x, radius r0
   g.computeVertexNormals();
   return g;
 }
-// one crown tooth on the bevel gear's face, pointing along +x: from d0 to d1 out from the axle, its top following the
-// pinion's cone down to the face at z0
+// one tooth on the bevel gear's cone, pointing along +x: from d0 to d1 out from the axle, standing down (-z) off the
+// back disc at z0, its tip following the pinion's cone
+const BEV_R = 11.8;   // the bevel gear's outer radius, about two thirds of the spur's in the photos
 function crownTooth(d0, d1, z0) {
   const g = new THREE.BoxGeometry(1, 1, 1), p = g.attributes.position;
   for (let v = 0; v < p.count; v++) {
-    const d = p.getX(v) < 0 ? d0 : d1, top = p.getZ(v) > 0, hw = 0.0436 * d * (top ? 0.6 : 1.3);
-    p.setXYZ(v, d, Math.sign(p.getY(v)) * hw, top ? -PIN_K * d + 0.4 : z0);
+    const d = p.getX(v) < 0 ? d0 : d1, tip = p.getZ(v) < 0, hw = 0.0436 * d * (tip ? 0.6 : 1.3);
+    p.setXYZ(v, d, Math.sign(p.getY(v)) * hw, tip ? PIN_K * d - 0.4 : z0);
   }
   g.computeVertexNormals();
   return g;
@@ -1201,20 +1212,20 @@ part('gearboxR', 'Gearbox shell, right + screws', 'gbx', ['08-26', '08-3', '08-4
 
 part('cylinder', 'Cylinder + head, nozzle', 'gbx', ['08-40', '08-39', '08-38'], [-250, 190, 0],
   'Ported cylinder, about 80mm long, the cylinder head with its O-ring, and the nozzle that reaches into the hop-up and pushes each BB into the bucking. The nozzle\'s collar sits in the tappet plate\'s fork.',
-  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, 5, 14, -2.6, 2.6)]), 'steel'],
+  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, 5, 14, -2.6, 2.6), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel'],
    [latheX([[0, -50], [11.2, -50], [11.2, -44], [12.2, -44], [12.2, -39.2], [11, -38.5], [2.1, -38.5], [2.1, -30], [0, -30]], 28), 'alu'],
    [latheX([[10.6, -48.2], [11.4, -48.2], [11.4, -47], [10.6, -47]], 24), 'black'],
    [tube(2.2, 3.4, NOZ_TIP - 19, NOZ_TIP, 20), 'nylon'], [tube(2.2, 4.4, NOZ_TIP - 19, NOZ_TIP - 17.6, 20), 'nylon']]);
 
-// 14 rack teeth on the underside, the rearmost over the sector gear's axle when the piston is forward; the spring runs
-// inside the hollow body
+// 15 rack teeth (SHS's standard piston) in a groove along the underside, their tips just proud of the body, the rearmost
+// over the sector gear's axle when the piston is forward; the spring runs inside the hollow body
 part('piston', 'Piston', 'gbx', ['08-41'], [-250, 225, 0],
-  'Polymer piston, hollow for the spring, with a 14-tooth rack along its underside and a ported head. The sector gear picks up the rearmost tooth, draws the piston back by the rack and lets it go off the front tooth.',
-  [[latheX([[8.8, PST_BACK], [10.6, PST_BACK], [10.6, -56], [0, -56], [0, PST_FLOOR], [8.8, PST_FLOOR], [8.8, PST_BACK]], 28), 'nylon'],
+  'Polymer piston, hollow for the spring, with a 15-tooth rack in a groove along its underside and a ported head. The sector gear picks up the rearmost tooth, draws the piston back by the rack and lets it go off the front tooth.',
+  [[cut(latheX([[8.8, PST_BACK], [10.6, PST_BACK], [10.6, -56], [0, -56], [0, PST_FLOOR], [8.8, PST_FLOOR], [8.8, PST_BACK]], 28), [bx(PST_BACK + 4, -93, -11, -9.4, -2.2, 2.2)]), 'nylon'],
    [latheX([[0, -56], [10.6, -56], [10.6, -53], [10.8, -53], [10.8, -50], [0, -50]], 28), 'alu'],
    [latheX([[10, -52.6], [11.2, -52.6], [11.2, -50.8], [10, -50.8]], 24), 'black'],
-   [bx(PST_BACK + 4, -95, -11.4, -9, -2, 2), 'nylon'],
-   [mergeGeometries(Array.from({ length: 14 }, (_, i) => prof([[-1.1, 0], [1.1, 0], [0.55, -2], [-0.55, -2]], 4, 0).translate(-139.4 + i * 3.14, -11.2, 0))), 'steel']]);
+   [bx(PST_BACK + 4, -93, -9.6, -8.8, -2, 2), 'nylon'],
+   [mergeGeometries(Array.from({ length: 15 }, (_, i) => prof([[-1.1, 0], [1.1, 0], [0.55, -2], [-0.55, -2]], 4, 0).translate(-139.4 + i * 3.14, -9.4, 0))), 'steel']]);
 
 part('mainSpring', 'Main spring + spring guide', 'gbx', ['08-36', '08-37'], [-250, 255, 0],
   'Main spring on its guide. The rear block screwed to the back of the gearbox holds the guide; take that screw out first when stripping the gearbox.',
@@ -1224,39 +1235,46 @@ part('mainSpring', 'Main spring + spring guide', 'gbx', ['08-36', '08-37'], [-25
 // the three gears, separate so the trigger slider can turn them
 const GEAR_NOTE = ' VFC numbers the bevel gear (08-15) and two other gears, 08-8 and 08-25, without saying which is the sector and which the spur; the pairing here is a guess.';
 part('sectorGear', 'Sector gear', 'gbx', ['08-8'], [-250, 90, -150],
-  'Gear with teeth on half its edge: they draw the piston back 44mm by its rack and run out, letting the piston go once per turn. The pin on its face pushes the tappet plate back first, and its cam trips the cut-off lever.' + GEAR_NOTE,
+  'A 32-tooth gear driven by the spur, with 16 coarser teeth on half the edge of the plate beside it: they draw the piston back 44mm by its rack and run out, letting the piston go once per turn. The pin on its face pushes the tappet plate back first, and its cam trips the cut-off lever.' + GEAR_NOTE,
   (() => { const [sx, sy] = SECTOR, pin = [sx + 7 * Math.cos(110 * D2R), sy + 7 * Math.sin(110 * D2R)];
-    return [[gear(SEC_R, 46, 3, sx, sy, -5.6, { hole: 2, lite: 5 }), 'brass'], [gear(SEC_T, 18, 3.6, sx, sy, 0, { hole: 2, span: [162, 342] }), 'steel'],
-      [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [cyl(4, 1.2, 'z', sx, sy, -7.7, 20), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
+    const g = gearR(SEC_N, M_SEC), cam = [...Array.from({ length: 25 }, (_, i) => { const a = (215 + 290 * i / 24) * D2R; return [sx + 3.2 * Math.cos(a), sy + 3.2 * Math.sin(a)]; }),
+      [sx + 5.6 * Math.cos(D2R * 200), sy + 5.6 * Math.sin(D2R * 200)]];
+    // the piston teeth: module 1 on a 31-tooth spacing, 16 of them; the cut-off cam is the teardrop on the outer face
+    return [[gear(g.r, SEC_N, 3, sx, sy, -5.6, { hole: 2, lite: 5, root: g.root }), 'brass'], [gear(16.3, 31, 3.6, sx, sy, 0, { hole: 2, lite: 5, lr: g.r, span: [162, 342], root: 14.25 }), 'steel'],
+      [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [profR(cam, 1.2, 0.2).translate(0, 0, -7.7), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
 part('spurGear', 'Spur gear', 'gbx', ['08-25'], [-250, 60, -150],
-  'Middle gear between the bevel and the sector gear.' + GEAR_NOTE,
+  'Middle gear between the bevel and the sector gear: 39 teeth on the bevel\'s pinion, a 20-tooth pinion on the sector. With the bevel\'s 36 and 10 and the motor\'s 12 that is the standard 18.72:1.' + GEAR_NOTE,
   (() => { const [px, py] = SPUR;
-    return [[gear(SPUR_R, 37, 2.5, px, py, -8.4, { hole: 2, lite: 5 }), 'brass'], [gear(SEC_PIN, 16, 3.6, px, py, -5.5, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', px, py, 0, 12), 'steel']]; })());
+    const g = gearR(SPUR_N, M_SPUR), q = gearR(SPUR_PN, M_SEC);
+    return [[gear(g.r, SPUR_N, 2.5, px, py, -8.4, { hole: 2, root: g.root }), 'brass'], [gear(q.r, SPUR_PN, 3.6, px, py, -5.5, { hole: 2, root: q.root }), 'steel'], [cyl(1.9, 22, 'z', px, py, 0, 12), 'steel']]; })());
 part('bevelGear', 'Bevel gear', 'gbx', ['08-15'], [-250, 30, -150],
-  'Gear with crown teeth on its face for the motor pinion; the anti-reversal latch rides on its rim. Standard V2 gears fit (D-RZ).',
-  (() => { const [bx0, by0] = BEVEL;
+  'Cone of 36 teeth for the motor pinion on a flat back disc, with a 10-tooth pinion on its hub for the spur gear; the anti-reversal latch catches the outer ends of its teeth. Standard V2 gears fit (D-RZ).',
+  (() => { const [bx0, by0] = BEVEL, q = gearR(BEV_PN, M_SPUR);
     const am = Math.atan2(-Math.cos(MOTOR_A), -Math.sin(MOTOR_A));   // the motor's axis, where a tooth meets the pinion's gap
-    const crown = mergeGeometries(Array.from({ length: 36 }, (_, i) => crownTooth(7.2, 11.2, -4.6).rotateZ(am + i * 10 * D2R))).translate(bx0, by0, 0);
-    return [[gear(13.4, 36, 2, bx0, by0, -5.6, { hole: 2 }), 'brass'], [crown, 'brass'], [gear(BEV_PIN, 17, 2.6, bx0, by0, -8.4, { hole: 2 }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
+    // back disc toward the right half, the cone of teeth facing the motor's axis, a hub through the middle and the
+    // 10-tooth pinion at its far end by the left half
+    const crown = mergeGeometries(Array.from({ length: BEV_N }, (_, i) => crownTooth(5.6, BEV_R, 4.6).rotateZ(am + i * 10 * D2R))).translate(bx0, by0, 0);
+    return [[ringZ(2, BEV_R, bx0, by0, 4.6, 6.6, 48), 'brass'], [crown, 'brass'], [ringZ(2, 5.3, bx0, by0, 0.6, 4.6, 32), 'brass'], [ringZ(2, 3.2, bx0, by0, -7.1, 0.6, 24), 'steel'],
+      [gear(q.r, BEV_PN, 2.6, bx0, by0, -8.4, { hole: 2, root: q.root }), 'steel'], [cyl(1.9, 22, 'z', bx0, by0, 0, 12), 'steel']]; })());
 
 // The latch, after SHS's and CYMA's spare-part photos: a flat steel pawl on its own axle pin, a brass sleeve on the pin
-// on the left of the pawl and a torsion spring on the right. It pivots by the back wall of the stem with its chisel tip
-// on the bevel gear's rim. The spring's coil sits on the pin, one straight leg bears on the back wall and the other ends
+// on the right of the pawl and a torsion spring on the left. It pivots by the back wall of the stem with its chisel tip
+// on the outer ends of the bevel gear's teeth. The spring's coil sits on the pin, one straight leg bears on the back wall and the other ends
 // in a triangle that hooks behind the pawl and presses its tip into the teeth.
 const ARL_PV = [-167.8, -44.4];
 function arlSpring() {   // one wire: back leg, coil round the pin, front leg ending in the triangle hook
-  const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = -4.0, z1 = -2.3, n = 60;
+  const [px, py] = ARL_PV, R = 1.5, a0 = 150 * D2R, a1 = (200 + 720) * D2R, z0 = 2.2, z1 = 0.4, n = 60;
   const coil = Array.from({ length: n + 1 }, (_, i) => { const t = i / n, a = a0 + (a1 - a0) * t; return [px + R * Math.cos(a), py + R * Math.sin(a), z0 + (z1 - z0) * t]; });
-  const xr = -168.95;
-  const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, -7.4], [xr, -51.6, -7.4], [xr, -50.9, -2.6]];
+  const xr = -168.05;
+  const pts = [[-172.2, -42.4, z0], ...coil, [xr, -50.3, z1], [xr, -49.7, 5], [xr, -51.6, 5], [xr, -50.9, 0.7]];
   const path = new THREE.CurvePath();
   for (let i = 1; i < pts.length; i++) path.add(new THREE.LineCurve3(new THREE.Vector3(...pts[i - 1]), new THREE.Vector3(...pts[i])));
   return new THREE.TubeGeometry(path, 160, 0.3, 6, false);
 }
 function arlLatch() {
   const [px, py] = ARL_PV, boss = Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI; return [px + 2 * Math.cos(a), py + 2 * Math.sin(a)]; });
-  return [[profR([...boss, [-167.4, -55.8], [-165.7, -56], [-166.2, -53.6]], 2.4, 0.3).translate(0, 0, -5.6), 'steel'],
-    [cyl(1, 9.5, 'z', ...ARL_PV, -6.25, 12), 'steel'], [cyl(1.75, 2.9, 'z', ...ARL_PV, -8.25, 16), 'brass'], [arlSpring(), 'spring']];
+  return [[profR([...boss, [-165.8, -55.4], [-164, -55.9], [-164.4, -53.2]], 2.2, 0.3).translate(0, 0, 3.5), 'steel'],
+    [cyl(1, 11, 'z', ...ARL_PV, 5, 12), 'steel'], [cyl(1.75, 5.1, 'z', ...ARL_PV, 7.15, 16), 'brass'], [arlSpring(), 'spring']];
 }
 part('antiReversal', 'Anti-reversal latch + springs', 'gbx', ['08-21', '08-22', '08-24'], [-290, 70, -150],
   'Latch riding on the bevel gear\'s rim that stops the gears running backwards under spring load. It turns on its own pin by the back wall of the stem, and a torsion spring on the pin (one leg on the shell, a triangle hook behind the pawl) keeps its tip in the teeth. VFC\'s sheet lists two springs and a spacer for it.',
@@ -1946,8 +1964,8 @@ renderer.setAnimationLoop(() => {
     if (id === 'stock') p.position.x -= 150 * stockCur;
     if (id === 'trigger') turnAbout(p, TRG_PV, -tA);
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
-    if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_R / SEC_PIN);
-    if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_R / SEC_PIN * SPUR_R / BEV_PIN);
+    if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
+    if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
     if (id === 'piston') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     if (id === 'cylinder' || id === 'tappet') p.position.x -= nozBack;
