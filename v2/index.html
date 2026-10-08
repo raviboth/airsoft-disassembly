@@ -787,7 +787,7 @@ part('pistonHead', 'Piston head + O-ring', 'air', 'Polymer or aluminium, ported 
    [latheX([[10, -52.6], [11.2, -52.6], [11.2, -50.8], [10, -50.8]], 24), 'black']]);
 part('cylinder', 'Cylinder', 'air', 'Ported, its type matched to the inner barrel length', [-10, 75, 40], STAGE.air,
   'Cylinder the piston runs in, about 80mm long. Its port lets only part of the swept air reach the barrel; the port is sized to the inner barrel (type 0 to 4, or a full unported cylinder for long barrels), so a barrel swap can call for a different cylinder.',
-  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, -2.6, 2.6, 5, 14), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel']]);
+  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, -2.6, 2.6, -14, -5), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel']]);
 part('cylinderHead', 'Cylinder head + O-ring', 'air', 'Polymer or aluminium', [45, 75, 40], STAGE.air,
   'Plug in the front of the cylinder, with an O-ring sealing it to the cylinder and a padded face the piston head stops against. The nozzle slides on its front spigot.',
   [[latheX([[0, -50], [11.2, -50], [11.2, -44], [12.2, -44], [12.2, -39.2], [11, -38.5], [2.1, -38.5], [2.1, -30], [0, -30]], 28), 'alu'],
@@ -885,13 +885,13 @@ part('switch', 'Switch assembly', 'trig', 'Contacts; a MOSFET or ETU takes the l
 part('cutoff', 'Cut-off lever + spring', 'trig', 'Steel or zinc; spring and screw come with it', [70, -30, 30], STAGE.trig,
   'Steel lever on a post in the left half, under the sector gear, with a little coil spring behind it. Its beak reaches back under the sector gear and its long arm forward to the switch. Once a turn the cam on the sector gear presses the beak down, the lever rocks and its hook lifts the switch open, so on semi the motor stops after one shot; the spring rocks it back. On full auto the selector plate holds it out of the way. The spring lies in a window through the left half with its back end in a bore in the shell and its front end on the lever\'s hump: it falls out when the shell is opened and is the part most often lost.',
   cutoffGeo());
-// the selector plate sits on the outside of the right half, over the sector gear's bushing and above the spur's (the
-// scan's 75 x 15mm block)
-part('selPlate', 'Selector plate', 'trig', 'M4 type; set by the gun\'s selector', [-210, -30, 60], STAGE.plate,
-  'Slotted plate on the outside of the right half. The gun\'s selector lever turns a cam that slides it, and its tabs reach through the shell to block the trigger (safe) or set the switch for semi or full. The first part off; it is easy to lose its spring. The plate differs between gun families.',
-  [[cut(profR([[-164, -19.5], [-96, -19.5], [-93, -22.5], [-93, -31.5], [-142, -31.5], [-147, -22.8], [-164, -22.8]], 0.9, 0.2).translate(0, 0, BODY_Z + 1.25),
-     [prof(rr(-128, -108, -23.4, -21.6, 0.9), 4, 0).translate(0, 0, BODY_Z)]), 'blued'],
-   [bx(-100, -96, -30.5, -24, BODY_Z + 1.7, BODY_Z + 3), 'blued'], [spring(0.7, 0.2, 8, 6, 'x', -160, -21.15, BODY_Z + 2.2), 'spring']]);
+// the selector plate sits on the outside of the left half, over the sector gear's bushing and above the spur's (the
+// scan's 75 x 15mm block), where CYMA's photos of a complete V2 show it; the cut-off spring's window opens under it
+part('selPlate', 'Selector plate', 'trig', 'M4 type; set by the gun\'s selector', [-210, -30, -60], STAGE.plate,
+  'Slotted plate on the outside of the left half, the same side as the gun\'s selector lever, which turns a cam that slides it. Its tabs reach through the shell to block the trigger (safe) or set the switch for semi or full, and it covers the window over the cut-off lever\'s spring. The first part off; it is easy to lose its spring. The plate differs between gun families.',
+  [[cut(profR([[-164, -19.5], [-96, -19.5], [-93, -22.5], [-93, -31.5], [-142, -31.5], [-147, -22.8], [-164, -22.8]], 0.9, 0.2).translate(0, 0, -BODY_Z - 1.25),
+     [prof(rr(-128, -108, -23.4, -21.6, 0.9), 4, 0).translate(0, 0, -BODY_Z)]), 'blued'],
+   [bx(-100, -96, -30.5, -24, -BODY_Z - 1.7, -BODY_Z - 3), 'blued'], [spring(0.7, 0.2, 8, 6, 'x', -160, -21.15, -BODY_Z - 2.2), 'spring']]);
 part('wiring', 'Wiring + connector', 'trig', 'Front or rear wired', [130, -95, 20], STAGE.wires,
   'Leads from the switch and the motor. This one is front-wired: the leads run forward under the cylinder to a battery in the handguard. Rear-wired gearboxes route them back along the shell to a battery in the stock.',
   [[tubeAlong([[...PH(805, 470), -4], [-90, -46, -6], [-80, -44, -9], [-50, -26, -9], [-20, -20, -9], [2, -20, -6]], 1.1, 60), 'red'],
@@ -1046,7 +1046,7 @@ function showOverview() {
   <p>Shell about 160 x 100 x 25mm, two cast halves split down the middle, 8mm bushing seats. Everything inside sits in the left half; the gearbox opens by lifting the right half off.</p>
   <ul>
     <li>Firing cycle (the Trigger slider): the trigger closes the switch, the motor turns the bevel, spur and sector gears, the sector's cam draws the tappet plate and nozzle back to let a BB up, its teeth draw the piston back against the spring, and the last tooth lets it go.</li>
-    <li>Strip order (the Explode slider): motor out of the grip (to 10%), selector plate and screws off the right side (to 18%), right half off (to 30%), spring and guide (to 42%), the cylinder, piston, nozzle and tappet plate together (to 55%), the gears and anti-reversal latch (to 70%), the trigger, switch and cut-off lever (to 85%), and the wiring.</li>
+    <li>Strip order (the Explode slider): motor out of the grip (to 10%), selector plate off the left side and the screws out of the right (to 18%), right half off (to 30%), spring and guide (to 42%), the cylinder, piston, nozzle and tappet plate together (to 55%), the gears and anti-reversal latch (to 70%), the trigger, switch and cut-off lever (to 85%), and the wiring.</li>
     <li>Before opening: release the anti-reversal latch (through the hole in the shell, with the motor out) so the gears unwind and the spring is not under load when the right half comes off.</li>
     <li>What differs between V2 guns: the nozzle length, the tappet plate, the selector plate, the trigger blade and the shell's front, which is shaped to each gun's receiver. Gears, piston, cylinder parts and springs swap across them.</li>
   </ul>

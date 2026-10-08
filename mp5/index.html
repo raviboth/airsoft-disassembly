@@ -1246,7 +1246,7 @@ part('gearboxR', 'Gearbox shell, right + screws', 'gbx', ['08-26', '08-3', '08-4
 
 part('cylinder', 'Cylinder + head, nozzle', 'gbx', ['08-40', '08-39', '08-38'], [-250, 190, 0],
   'Ported cylinder, about 80mm long, the cylinder head with its O-ring, and the nozzle that reaches into the hop-up and pushes each BB into the bucking. The nozzle\'s collar sits in the tappet plate\'s fork.',
-  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, -2.6, 2.6, 5, 14), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel'],
+  [[cut(tube(11.3, 12.2, CYL[0], CYL[1] + 2, 32), [bx(-104, -92, -2.6, 2.6, -14, -5), bx(CYL[0] - 1, -91, -13, -10, -2.4, 2.4)]), 'steel'],
    [latheX([[0, -50], [11.2, -50], [11.2, -44], [12.2, -44], [12.2, -39.2], [11, -38.5], [2.1, -38.5], [2.1, -30], [0, -30]], 28), 'alu'],
    [latheX([[10.6, -48.2], [11.4, -48.2], [11.4, -47], [10.6, -47]], 24), 'black'],
    [tube(2.2, 3.4, NOZ_TIP - 19, NOZ_TIP, 20), 'nylon'], [tube(2.2, 4.4, NOZ_TIP - 19, NOZ_TIP - 17.6, 20), 'nylon']]);
@@ -1370,11 +1370,11 @@ part('tappet', 'Tappet plate + spring', 'gbx', ['08-42', '08-43'], [-190, 70, -1
    [spring(1.8, 0.35, 15, 10, 'x', PH(930, 0)[0], PH(0, 336)[1], 4.5), 'spring'],
    [cyl(1.2, 5, 'z', ...PH(1080, 332), 4.5, 12), 'steel']]);
 
-part('selPlate', 'Selector plates + block, spring, nut', 'gbx', ['08-35', '08-34', '08-28', '08-27', '08-29', '08-30'], [-250, 80, 140],
-  'Slotted plates along the right of the gearbox, over the sector gear\'s bushing, that the selector gears move, setting the switch for safe, semi or full auto. VFC numbers four plates and blocks here; their shapes are simplified.',
-  [[cut(profR([[-164, -19.5], [-96, -19.5], [-93, -22.5], [-93, -31.5], [-142, -31.5], [-147, -22.8], [-164, -22.8]], 0.9, 0.2).translate(0, 0, BODY_Z + 1.25),
-     [prof(rr(-128, -108, -23.4, -21.6, 0.9), 4, 0).translate(0, 0, BODY_Z)]), 'blued'],
-   [bx(-100, -96, -30.5, -24, BODY_Z + 1.7, BODY_Z + 3), 'blued'], [spring(0.7, 0.2, 8, 6, 'x', -160, -21.15, BODY_Z + 2.2), 'spring']]);
+part('selPlate', 'Selector plates + block, spring, nut', 'gbx', ['08-35', '08-34', '08-28', '08-27', '08-29', '08-30'], [-250, 80, -140],
+  'Slotted plates along the left of the gearbox, over the sector gear\'s bushing, that the selector gears move, setting the switch for safe, semi or full auto. VFC numbers four plates and blocks here; their shapes are simplified.',
+  [[cut(profR([[-164, -19.5], [-96, -19.5], [-93, -22.5], [-93, -31.5], [-142, -31.5], [-147, -22.8], [-164, -22.8]], 0.9, 0.2).translate(0, 0, -BODY_Z - 1.25),
+     [prof(rr(-128, -108, -23.4, -21.6, 0.9), 4, 0).translate(0, 0, -BODY_Z)]), 'blued'],
+   [bx(-100, -96, -30.5, -24, -BODY_Z - 1.7, -BODY_Z - 3), 'blued'], [spring(0.7, 0.2, 8, 6, 'x', -160, -21.15, -BODY_Z - 2.2), 'spring']]);
 
 part('rearBlock', 'Rear block + screws', 'gbx', ['08-46', '08-44', '08-45'], [-320, 110, 0],
   'Block behind the gearbox in the back of the lower. Its long screw holds the spring guide: D-RZ takes it out first when lifting the gearbox from the lower.',
