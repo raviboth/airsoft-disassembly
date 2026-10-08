@@ -714,6 +714,29 @@ const SEC_N = 32, SPUR_N = 39, SPUR_PN = 20, BEV_N = 36, BEV_PN = 10, PICK_N = 1
 const M_SEC = Math.hypot(SECTOR[0] - SPUR[0], SECTOR[1] - SPUR[1]) * 2 / (SEC_N + SPUR_PN);
 const M_SPUR = Math.hypot(SPUR[0] - BEVEL[0], SPUR[1] - BEVEL[1]) * 2 / (SPUR_N + BEV_PN);
 const gearR = (n, m) => ({ r: m * n / 2 + m, root: m * n / 2 - 1.25 * m });   // tip and root radius
+// Cut-off lever, traced from Fox Airsoft's photo of Modify's steel V2 lever (29 px/mm): a ring on a post in the left
+// half, a beak reaching back under the sector gear for the cam on its outer face, and a long arm forward to the switch
+// with a hook at its end. Jefftron's install photos show it in place, the arm along the top and the hook down at the
+// switch, with its little coil spring lying in a pocket in the shell behind the lever's hump; Leviathan's puts the
+// post a little below and in front of the sector bushing. The spring's front end slips over a peg on the hump and its
+// back end over a stub in the pocket. It pushes the hump forward, which holds the beak up in the cam's path; once a
+// turn the cam's lobe presses the beak down, the lever rocks and its hook lifts the switch open.
+const CO_PV = [-123.6, -31.6], CO_Z = -8.6, CO_LIFT = 8 * D2R;   // post, the lever's mid-plane, how far the cam rocks it
+const CO = (px, py) => [CO_PV[0] + (px - 513.5) / 29, CO_PV[1] - (py - 599.5) / 29];
+const CO_OUT = [[196, 650], [267, 582], [297, 601], [314, 635], [348, 626], [369, 604], [390, 519], [426, 475], [479, 448], [554, 441],
+  [559, 412], [596, 410], [630, 366], [728, 409], [933, 410], [1000, 438], [1044, 476], [1082, 552], [1084, 584], [1072, 608], [1060, 613],
+  [1004, 597], [981, 536], [944, 513], [695, 516], [666, 535], [664, 616], [640, 670], [615, 705], [575, 735], [539, 750], [495, 791],
+  [476, 794], [362, 797], [311, 767], [203, 769], [168, 759], [138, 732], [126, 693], [137, 676]].map(p => CO(...p));
+const CO_BEAK = CO(267, 582), CO_PEG = CO(600, 388), CO_SEAT = -128.6;   // beak tip, the spring's peg, the pocket's face
+const CO_BEAK_A = Math.atan2(CO_BEAK[1] - SECTOR[1], CO_BEAK[0] - SECTOR[0]);
+const SEC_CAM_A = CO_BEAK_A - 306 * D2R;   // the cam's lobe at rest: it reaches the beak 85% of the way round
+function cutoffGeo() {
+  const [x0, y] = CO_PEG;
+  return [[cut(profR(CO_OUT, 1.6, 0.2).translate(0, 0, CO_Z), [cyl(2.28, 4, 'z', ...CO_PV, CO_Z, 24)]), 'steel'],
+    [cyl(0.7, 1.6, 'x', x0 - 0.8, y, CO_Z, 10), 'steel'],
+    [spring(1.15, 0.3, x0 - 0.3 - CO_SEAT, 8, 'x', CO_SEAT, y, CO_Z), 'spring'],
+    [ringZ(0, 2.8, ...CO_PV, CO_Z + 0.8, CO_Z + 1.5, 20), 'steel']];
+}
 // the motor's lean, a little steeper than the grip's: the steepest that keeps its can inside the back of the grip at the
 // top and the front strap at the bottom
 const MOTOR_A = 17 * D2R;
@@ -1200,6 +1223,9 @@ function gbHalf(s) {
   const pieces = [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'],
     ...[SECTOR, SPUR, BEVEL].flatMap(([x, y]) => [[ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'], [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'steel']])];
   if (s > 0) for (const [x, y] of GB_SCREWS) pieces.push([ringZ(1, 2.6, x, y, BODY_Z, BODY_Z + 1.6, 16), 'blued']);
+  // the cut-off lever's post and its spring's pocket, cast into the left half
+  if (s < 0) pieces.push([cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'], [bx(CO_SEAT - 2, CO_SEAT, CO_PEG[1] - 1.7, CO_PEG[1] + 1.7, -9.7, -7.4), 'zinc'],
+    [cyl(0.7, 1, 'x', CO_SEAT + 0.5, CO_PEG[1], CO_Z, 10), 'zinc']);
   if (s > 0) for (const [x, y] of GB_TOP_SCREWS) pieces.push([ringZ(1, 2.6, x, y, 2.3, 3.9, 16), 'blued']);
   return pieces;
 }
@@ -1237,8 +1263,8 @@ const GEAR_NOTE = ' VFC numbers the bevel gear (08-15) and two other gears, 08-8
 part('sectorGear', 'Sector gear', 'gbx', ['08-8'], [-250, 90, -150],
   'A 32-tooth gear driven by the spur, with 16 coarser teeth on half the edge of the plate beside it: they draw the piston back 44mm by its rack and run out, letting the piston go once per turn. The pin on its face pushes the tappet plate back first, and its cam trips the cut-off lever.' + GEAR_NOTE,
   (() => { const [sx, sy] = SECTOR, pin = [sx + 7 * Math.cos(110 * D2R), sy + 7 * Math.sin(110 * D2R)];
-    const g = gearR(SEC_N, M_SEC), cam = [...Array.from({ length: 25 }, (_, i) => { const a = (215 + 290 * i / 24) * D2R; return [sx + 3.2 * Math.cos(a), sy + 3.2 * Math.sin(a)]; }),
-      [sx + 5.6 * Math.cos(D2R * 200), sy + 5.6 * Math.sin(D2R * 200)]];
+    const g = gearR(SEC_N, M_SEC), cam = [...Array.from({ length: 25 }, (_, i) => { const a = SEC_CAM_A + (15 + 290 * i / 24) * D2R; return [sx + 3.2 * Math.cos(a), sy + 3.2 * Math.sin(a)]; }),
+      [sx + 5.6 * Math.cos(SEC_CAM_A), sy + 5.6 * Math.sin(SEC_CAM_A)]];
     // the piston teeth: module 1 on a 31-tooth spacing, 16 of them; the cut-off cam is the teardrop on the outer face
     return [[gear(g.r, SEC_N, 3, sx, sy, -5.6, { hole: 2, lite: 5, root: g.root }), 'brass'], [gear(16.3, 31, 3.6, sx, sy, 0, { hole: 2, lite: 5, lr: g.r, span: [162, 342], root: 14.25 }), 'steel'],
       [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [profR(cam, 1.2, 0.2).translate(0, 0, -7.7), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
@@ -1314,10 +1340,9 @@ part('switch', 'Switch assembly + springs, screw', 'gbx', ['08-33', '08-31', '08
    ...[267, 302].map(py => [ringZ(0, 1.4, GX(500), GY(py), 5, 5.8, 12), 'steel']),
    [bx(GX(470), GX(478), GB_FLOOR + 2, GY(262), -3, 3), 'brass']]);
 
-part('cutoff', 'Cut-off lever + spring', 'gbx', ['08-16', '08-17'], [-310, 20, -150],
-  'Lever under the sector gear: a cam on the gear knocks it each turn, and on semi it lifts the switch open so the motor stops after one shot.',
-  [[profR(PHP([[488, 492], [500, 482], [585, 486], [592, 496], [580, 504], [500, 508]]), 1.6, 0.3).translate(0, 0, 1.2), 'steel'],
-   [cyl(1.4, 4, 'z', ...PH(497, 496), 1.2, 10), 'steel'], [spring(0.8, 0.22, 7, 5, 'x', ...PH(520, 512), 1.2), 'spring']]);
+part('cutoff', 'Cut-off lever + spring, screw', 'gbx', ['08-16', '08-17'], [-310, 20, -150],
+  'Steel lever on a post in the left half, under the sector gear, with a little coil spring behind it. Its beak reaches back under the sector gear and its long arm forward to the switch. Once a turn the cam on the sector gear presses the beak down, the lever rocks and its hook lifts the switch open, so on semi the motor stops after one shot; the spring rocks it back. The spring sits in a pocket in the shell with one end on a peg on the lever, and is easy to lose when the shell comes apart.',
+  cutoffGeo());
 
 // tappet plate, from the photo: a strip along the bottom of the cylinder, a riser at the front with the fork round the
 // nozzle, a hook for the return spring, and a tab hanging down behind the sector gear's axle for its pin
@@ -1973,6 +1998,13 @@ renderer.setAnimationLoop(() => {
     if (id === 'stock') p.position.x -= 150 * stockCur;
     if (id === 'trigger') turnAbout(p, TRG_PV, -tA);
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
+    if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
+      const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));
+      const t = CO_LIFT * k * k * (3 - 2 * k), [lever, peg, spr] = p.children;
+      for (const c of [lever, peg]) { c.position.set(0, 0, 0); turnAbout(c, CO_PV, t); }
+      const x1 = CO_PV[0] + (CO_PEG[0] - 0.3 - CO_PV[0]) * Math.cos(t) - (CO_PEG[1] - CO_PV[1]) * Math.sin(t), sc = (x1 - CO_SEAT) / (CO_PEG[0] - 0.3 - CO_SEAT);
+      spr.scale.x = sc; spr.position.x = CO_SEAT * (1 - sc);
+    }
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
     if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
     // each tooth lifts the pawl's tip as it passes and lets it snap back into the next gap

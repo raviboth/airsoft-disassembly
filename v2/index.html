@@ -641,6 +641,29 @@ const SEC_N = 32, SPUR_N = 39, SPUR_PN = 20, BEV_N = 36, BEV_PN = 10, PICK_N = 1
 const M_SEC = Math.hypot(SECTOR[0] - SPUR[0], SECTOR[1] - SPUR[1]) * 2 / (SEC_N + SPUR_PN);
 const M_SPUR = Math.hypot(SPUR[0] - BEVEL[0], SPUR[1] - BEVEL[1]) * 2 / (SPUR_N + BEV_PN);
 const gearR = (n, m) => ({ r: m * n / 2 + m, root: m * n / 2 - 1.25 * m });   // tip and root radius
+// Cut-off lever, traced from Fox Airsoft's photo of Modify's steel V2 lever (29 px/mm): a ring on a post in the left
+// half, a beak reaching back under the sector gear for the cam on its outer face, and a long arm forward to the switch
+// with a hook at its end. Jefftron's install photos show it in place, the arm along the top and the hook down at the
+// switch, with its little coil spring lying in a pocket in the shell behind the lever's hump; Leviathan's puts the
+// post a little below and in front of the sector bushing. The spring's front end slips over a peg on the hump and its
+// back end over a stub in the pocket. It pushes the hump forward, which holds the beak up in the cam's path; once a
+// turn the cam's lobe presses the beak down, the lever rocks and its hook lifts the switch open.
+const CO_PV = [-123.6, -31.6], CO_Z = -8.6, CO_LIFT = 8 * D2R;   // post, the lever's mid-plane, how far the cam rocks it
+const CO = (px, py) => [CO_PV[0] + (px - 513.5) / 29, CO_PV[1] - (py - 599.5) / 29];
+const CO_OUT = [[196, 650], [267, 582], [297, 601], [314, 635], [348, 626], [369, 604], [390, 519], [426, 475], [479, 448], [554, 441],
+  [559, 412], [596, 410], [630, 366], [728, 409], [933, 410], [1000, 438], [1044, 476], [1082, 552], [1084, 584], [1072, 608], [1060, 613],
+  [1004, 597], [981, 536], [944, 513], [695, 516], [666, 535], [664, 616], [640, 670], [615, 705], [575, 735], [539, 750], [495, 791],
+  [476, 794], [362, 797], [311, 767], [203, 769], [168, 759], [138, 732], [126, 693], [137, 676]].map(p => CO(...p));
+const CO_BEAK = CO(267, 582), CO_PEG = CO(600, 388), CO_SEAT = -128.6;   // beak tip, the spring's peg, the pocket's face
+const CO_BEAK_A = Math.atan2(CO_BEAK[1] - SECTOR[1], CO_BEAK[0] - SECTOR[0]);
+const SEC_CAM_A = CO_BEAK_A - 306 * D2R;   // the cam's lobe at rest: it reaches the beak 85% of the way round
+function cutoffGeo() {
+  const [x0, y] = CO_PEG;
+  return [[cut(profR(CO_OUT, 1.6, 0.2).translate(0, 0, CO_Z), [cyl(2.28, 4, 'z', ...CO_PV, CO_Z, 24)]), 'steel'],
+    [cyl(0.7, 1.6, 'x', x0 - 0.8, y, CO_Z, 10), 'steel'],
+    [spring(1.15, 0.3, x0 - 0.3 - CO_SEAT, 8, 'x', CO_SEAT, y, CO_Z), 'spring'],
+    [ringZ(0, 2.8, ...CO_PV, CO_Z + 0.8, CO_Z + 1.5, 20), 'steel']];
+}
 const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], [ro, z1], [ri, z1], [ri, z0]], seg).rotateY(-Math.PI / 2).translate(cx, cy, 0);
 const GB_PIN = VS([42.5, 42.3]);
 const GB_SCREWS = VSP([[153, 57.4], [126, 19], [109.4, 8], [76.9, 31.7], [24, 66]]), GB_TOP_SCREWS = [6.25, 48.75, 91.9, 135].map(y => VS([y, 91.6]));
@@ -713,7 +736,10 @@ function gbHalf(s) {   // s = -1 left half, +1 right half; the halves meet on th
   const fin = cut(profR(VSP([[0, 86], [143.75, 86], [143.75, 95.2], [140, 98.6], [0, 98.6]]), 4.6, 0.6).translate(0, 0, s * 2.3), holes);
   const cap = cut(profR(VSP([[143.75, 84], [158.75, 84], [158.75, 87.3], [155.6, 90.4], [143.75, 90.4]]), 8, 0.6).translate(0, 0, s * 4), holes);
   const lug = cut(cyl(5, BODY_Z, 'z', ...GB_PIN, s * BODY_Z / 2, 24), holes);
-  return [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'],
+  // the cut-off lever's post and its spring's pocket, cast into the left half
+  const co = s < 0 ? [[cyl(2.15, 1.9, 'z', ...CO_PV, -8.75, 20), 'zinc'], [bx(CO_SEAT - 2, CO_SEAT, CO_PEG[1] - 1.7, CO_PEG[1] + 1.7, -9.7, -7.4), 'zinc'],
+    [cyl(0.7, 1, 'x', CO_SEAT + 0.5, CO_PEG[1], CO_Z, 10), 'zinc']] : [];
+  return [[body, 'zinc'], [house, 'zinc'], [fin, 'zinc'], [cap, 'zinc'], [lug, 'zinc'], ...co,
     ...[SECTOR, SPUR, BEVEL].map(([x, y]) => [ringZ(4, 6.2, x, y, s * BODY_Z, s * (BODY_Z + 0.8)), 'zinc'])];
 }
 const bushings = s => [SECTOR, SPUR, BEVEL].map(([x, y]) => [ringZ(1.6, 4, x, y, s * (BODY_Z - 2.5), s * (BODY_Z + 0.8)), 'brass']);
@@ -775,8 +801,8 @@ part('tappet', 'Tappet plate + spring', 'air', 'Polymer; M4 and MP5 types differ
 part('sectorGear', 'Sector gear', 'gear', '32 teeth; 16 for the piston', [165, 0, 30], STAGE.gears,
   'Two gears in one: a full 32-tooth gear that the spur\'s pinion drives, and beside it, in line with the piston, a wider plate with 16 coarser teeth on about half its edge. Those pick up the piston\'s rack, draw it back 44mm, then run out and let it go, once per turn. The pin on its face pushes the tappet plate back first, and the teardrop cam on its outer face trips the cut-off lever. Shims on the axle set its play; too much play chews the piston rack.',
   (() => { const [sx, sy] = SECTOR, pin = [sx + 7 * Math.cos(110 * D2R), sy + 7 * Math.sin(110 * D2R)];
-    const g = gearR(SEC_N, M_SEC), cam = [...Array.from({ length: 25 }, (_, i) => { const a = (215 + 290 * i / 24) * D2R; return [sx + 3.2 * Math.cos(a), sy + 3.2 * Math.sin(a)]; }),
-      [sx + 5.6 * Math.cos(D2R * 200), sy + 5.6 * Math.sin(D2R * 200)]];
+    const g = gearR(SEC_N, M_SEC), cam = [...Array.from({ length: 25 }, (_, i) => { const a = SEC_CAM_A + (15 + 290 * i / 24) * D2R; return [sx + 3.2 * Math.cos(a), sy + 3.2 * Math.sin(a)]; }),
+      [sx + 5.6 * Math.cos(SEC_CAM_A), sy + 5.6 * Math.sin(SEC_CAM_A)]];
     // the piston teeth: module 1 on a 31-tooth spacing, 16 of them; the cut-off cam is the teardrop on the outer face
     return [[gear(g.r, SEC_N, 3, sx, sy, -5.6, { hole: 2, lite: 5, root: g.root }), 'brass'], [gear(16.3, 31, 3.6, sx, sy, 0, { hole: 2, lite: 5, lr: g.r, span: [162, 342], root: 14.25 }), 'steel'],
       [cyl(1.4, 3, 'z', ...pin, 3.2, 12), 'steel'], [profR(cam, 1.2, 0.2).translate(0, 0, -7.7), 'steel'], [cyl(1.9, 22, 'z', sx, sy, 0, 12), 'steel']]; })());
@@ -837,10 +863,9 @@ part('switch', 'Switch assembly', 'trig', 'Contacts; a MOSFET or ETU takes the l
   [[profR(PHP([[650, 330], [810, 330], [815, 465], [798, 465], [798, 420], [650, 420]]), 8, 0.5).translate(0, 0, 1.5), 'nylon'],
    ...[[722, 744], [762, 788]].map(([a, b]) => [bx(PH(a, 0)[0], PH(b, 0)[0], PH(0, 376)[1], PH(0, 340)[1], 5.5, 6.1), 'brass']),
    [cyl(1.6, 9, 'z', ...PH(745, 395), 1.5, 12), 'steel']]);
-part('cutoff', 'Cut-off lever + spring', 'trig', 'Semi-auto cut-off', [70, -30, 30], STAGE.trig,
-  'Lever under the sector gear: a cam on the gear knocks it each turn, and on semi it lifts the switch open so the motor stops after one shot. Put it back before the trigger, with its spring hooked.',
-  [[profR(PHP([[488, 492], [500, 482], [585, 486], [592, 496], [580, 504], [500, 508]]), 1.6, 0.3).translate(0, 0, 1.2), 'steel'],
-   [cyl(1.4, 4, 'z', ...PH(497, 496), 1.2, 10), 'steel'], [spring(0.8, 0.22, 7, 5, 'x', ...PH(520, 512), 1.2), 'spring']]);
+part('cutoff', 'Cut-off lever + spring', 'trig', 'Steel or zinc; spring and screw come with it', [70, -30, 30], STAGE.trig,
+  'Steel lever on a post in the left half, under the sector gear, with a little coil spring behind it. Its beak reaches back under the sector gear and its long arm forward to the switch. Once a turn the cam on the sector gear presses the beak down, the lever rocks and its hook lifts the switch open, so on semi the motor stops after one shot; the spring rocks it back. On full auto the selector plate holds it out of the way. The spring sits in a pocket in the shell with one end on a peg on the lever: it falls out when the shell is opened and is the part most often lost.',
+  cutoffGeo());
 // the selector plate sits on the outside of the right half, over the sector gear's bushing and above the spur's (the
 // scan's 75 x 15mm block)
 part('selPlate', 'Selector plate', 'trig', 'M4 type; set by the gun\'s selector', [-210, -30, 60], STAGE.plate,
@@ -993,7 +1018,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://www.printables.com/mod
 <a href="https://www.youtube.com/watch?v=yAk1HI4xbGk">D-RZ Airsoft, MP5 gearbox removal</a> (a stock V2 opened up),
 <a href="https://www.patrolbase.co.uk/gearboxes">Patrol Base product photos of CYMA and Specna V2 shells</a> and <a href="https://www.retroarms.com/cnc-gearbox/cnc-gearbox-v2-8mm-bearings-qsc">RetroArms, CNC V2 shell</a> (the cylinder window),
 <a href="https://www.vsdmotor.com/airsoft-motor/high-speed-long-d-axis-airsoft-aeg-motor.html">VSD, long-type AEG motor outline drawing</a> (the motor's dimensions),
-<a href="https://www.airsoftatlanta.com/products/shs-steel-aeg-gear-set-standard-18-1-gear-ratio-2013-edition">Airsoft Atlanta, SHS 18:1 gear set</a> (photos the tooth counts are counted from; the box gives the 15-tooth piston), <a href="https://www.jvanairsoft.com/pages/types-of-sector-gears">JVAN, sector gear types</a> (16 teeth for a standard stroke), <a href="https://ampedairsoft.com/aip-motor-pinion-gear-for-aeg-d-shape/">Amped Airsoft, AIP motor pinion gear</a> (the pinion's cone, 12 teeth, hub and grub screw), <a href="https://ampedairsoft.com/shs-anti-reversal-latch-with-spring/">Amped Airsoft, SHS anti-reversal latch with spring</a> (the latch's pin, sleeve and torsion spring), <a href="https://www.ifixit.com/Guide/Airsoft+V2+Gearbox++Piston+Replacement/130410">iFixit, Airsoft V2 gearbox piston replacement</a> (photos of an open A&amp;K V2: where the gears, cylinder, tappet plate, switch, trigger, cut-off lever and anti-reversal latch sit),
+<a href="https://www.airsoftatlanta.com/products/shs-steel-aeg-gear-set-standard-18-1-gear-ratio-2013-edition">Airsoft Atlanta, SHS 18:1 gear set</a> (photos the tooth counts are counted from; the box gives the 15-tooth piston), <a href="https://www.jvanairsoft.com/pages/types-of-sector-gears">JVAN, sector gear types</a> (16 teeth for a standard stroke), <a href="https://foxairsoft.com/products/modify-steel-cut-off-lever">Fox Airsoft, Modify steel cut-off lever</a> (the lever's outline and spring), <a href="https://www.jefftron.net/upload/navod/manual_processor_unit-v2.pdf">Jefftron, Processor Unit V2 manual</a> and <a href="https://www.jefftron.cz/upload/navod/manual_leviathan-v2.pdf">Leviathan V2 manual</a> (the cut-off lever and its spring in place, its post by the sector bushing), <a href="https://ampedairsoft.com/aip-motor-pinion-gear-for-aeg-d-shape/">Amped Airsoft, AIP motor pinion gear</a> (the pinion's cone, 12 teeth, hub and grub screw), <a href="https://ampedairsoft.com/shs-anti-reversal-latch-with-spring/">Amped Airsoft, SHS anti-reversal latch with spring</a> (the latch's pin, sleeve and torsion spring), <a href="https://www.ifixit.com/Guide/Airsoft+V2+Gearbox++Piston+Replacement/130410">iFixit, Airsoft V2 gearbox piston replacement</a> (photos of an open A&amp;K V2: where the gears, cylinder, tappet plate, switch, trigger, cut-off lever and anti-reversal latch sit),
 <a href="https://www.sixmm.com/products/cymaitem-no-ma001-complete-gearbox-full-set-version-2for-aeg-m16">Sixmm, CYMA complete V2 gearbox</a> (both sides closed: the bushings, the selector plate, the 80mm cylinder),
 <a href="https://gunfire.com/en/products/complete-gearbox-v2-specna-arms-aether-tm-hal-tm-etu-1152240884.html">Gunfire, Specna Arms Aether V2 gearbox</a> (the gear layout marked on its shell). Inside shapes and positions are approximate.</p>`;
 function showOverview() {
@@ -1231,6 +1256,13 @@ renderer.setAnimationLoop(() => {
     const id = p.userData.id;
     if (id === 'trigger') turnAbout(p, TRG_PV, tA);
     if (id === 'sectorGear') turnAbout(p, SECTOR, aS);
+    if (id === 'cutoff') {   // the cam's lobe rocks the lever as it passes the beak; the spring takes up the peg's move
+      const d = Math.atan2(Math.sin(SEC_CAM_A + aS - CO_BEAK_A), Math.cos(SEC_CAM_A + aS - CO_BEAK_A)), k = Math.max(0, 1 - Math.abs(d) / (40 * D2R));
+      const t = CO_LIFT * k * k * (3 - 2 * k), [lever, peg, spr] = p.children;
+      for (const c of [lever, peg]) { c.position.set(0, 0, 0); turnAbout(c, CO_PV, t); }
+      const x1 = CO_PV[0] + (CO_PEG[0] - 0.3 - CO_PV[0]) * Math.cos(t) - (CO_PEG[1] - CO_PV[1]) * Math.sin(t), sc = (x1 - CO_SEAT) / (CO_PEG[0] - 0.3 - CO_SEAT);
+      spr.scale.x = sc; spr.position.x = CO_SEAT * (1 - sc);
+    }
     if (id === 'spurGear') turnAbout(p, SPUR, -aS * SEC_N / SPUR_PN);
     if (id === 'bevelGear') turnAbout(p, BEVEL, aS * SEC_N / SPUR_PN * SPUR_N / BEV_PN);
     // each tooth lifts the pawl's tip as it passes and lets it snap back into the next gap
