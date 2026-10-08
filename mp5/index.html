@@ -594,8 +594,8 @@ const MANUAL = [
   ['01-1', 'Cocking tube cap', 'VGB1CLR050'], ['01-2', 'Upper receiver', 'V0B1URV021'], ['01-3', 'Cocking handle', 'VGB1CLR081'],
   ['01-4', 'Cocking piece', 'V0B1CLR030'], ['01-5', 'Set screw', 'PSCW050503'], ['01-6', 'Cocking spring', 'V0B1SPG007'],
   ['01-7', 'Cocking tube bracket', 'V0B1CLR040'], ['01-8', 'Screw', 'PSCW030621'], ['01-9', 'Magazine release paddle', 'VGB1MRB061'],
-  ['01-10', 'Paddle pin', 'VGB1MRB030'], ['01-11', 'Screw', 'PSCW030503'], ['01-12', 'Magazine catch', 'VGB1MRB020'],
-  ['01-13', 'Magazine catch button', 'VGB1MRB040'], ['01-14', 'Catch spring', 'V020SPG070'], ['01-15', 'Lever', 'V0B1LRV060'],
+  ['01-10', 'Paddle pin', 'VGB1MRB030'], ['01-11', 'Screw', 'PSCW030503'], ['01-12', 'Push button', 'VGB1MRB020'],
+  ['01-13', 'Catch lug', 'VGB1MRB040'], ['01-14', 'Catch spring', 'V020SPG070'], ['01-15', 'Magazine catch', 'V0B1LRV060'],
   ['01-16', 'Dummy bolt', 'V0B1BLT010'], ['01-17', 'Bolt guide rod', 'V0B1BLT020'], ['01-18', 'E-clip', 'PBUKEETW20'], ['01-19', 'Bolt spring', 'V011BLT050'],
   ['02-1', 'Lower receiver', 'V0B1GRP011'], ['02-2', 'Lower receiver pin', 'U578PIN020'], ['02-3', 'Selector lever, left', 'V0B1GRP030'],
   ['02-4', 'Detent ball', 'PBAL030001'], ['02-5', 'Detent spring', 'V0B1SPG008'], ['02-6', 'Selector gear', 'V0B1GRP050'],
@@ -685,6 +685,7 @@ const MAG_HW = 11.5;
 const MAG_FEED = [X(594), Y(236)];                   // top of the feed lip, under the hop-up's feed port
 const HG_PIN = [X(221), Y(183.75)];                    // handguard pin (the bore of its head in the side photo)
 const LOW_PIN = [X(687), Y(333.3)];                  // lower receiver pin, through the magazine well (the bore of its head in the side photo)
+const MC = [X(687), Y(300)];                         // magazine catch shaft, across the back of the magazine well above the lower pin
 // the Stoner page's gearbox trace (3.5 px/mm) and its gear centres; the motor and grip hang off the bevel gear
 const GX = px => NOZ_TIP + (px - 732) / 3.5, GY = py => (133 - py) / 3.5, GP = pts => pts.map(([a, b]) => [GX(a), GY(b)]);
 const SECTOR = [GX(365), GY(213)], SPUR = [GX(305), GY(263)], BEVEL = [GX(283), GY(335)];
@@ -804,7 +805,7 @@ const RCV_IN = [[15.4, -15.7], [15.95, -15.2], ...lowBulge(15.95, 2.95), [15.95,
 const recSec = (half, r, a0) => [...half, ...arcPts(0, RCV.tc, r, a0, 180 - a0, 24), ...half.slice().reverse().map(([z, y]) => [-z, y])];
 const MAGWELL = P([[583, 250], [688, 250], [688, 352], [665, 347], [583, 322]]);
 part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0],
-  'Pressed steel upper receiver with the cocking tube welded to the front of its top, flush with it, and the magazine well under its front. The top\'s front end is swaged down onto the tube, and the handle\'s slot along the tube ends at the back in a tall pocket the handle is pushed up into to hold it back. The gearbox and hop-up sit inside; the handguard, the front end, the stock and the lower receiver all hang on it by pins and screws. Two grooves are pressed down each side: the lower one is the track the stock rails slide in. The tab on top and the pockets either side of it take an H&K claw mount, and the ejection port on the right opens onto the hop-up when the cocking handle is pulled back.',
+  'Pressed steel upper receiver with the cocking tube welded to the front of its top, flush with it, and the magazine well under its front. The top\'s front end is swaged down onto the tube, and the handle\'s slot along the tube ends at the back in a tall pocket the handle is pushed up into to hold it back. The gearbox and hop-up sit inside; the handguard, the front end, the stock and the lower receiver all hang on it by pins and screws. The magazine well has a raised pad and a lip along its bottom on each side; on the left it carries a pocket for the catch\'s plate and a plate with a leaf and knob held by two screws, and on the right a boss round the catch\'s push button. Two grooves are pressed down each side: the lower one is the track the stock rails slide in. The tab on top and the pockets either side of it take an H&K claw mount, and the ejection port on the right opens onto the hop-up when the cocking handle is pulled back.',
   (() => {
     const ring = (x0, x1, r0, r1, y0, y1) => cut(cyl(r1, x1 - x0, 'x', (x0 + x1) / 2, RCV.tc, 0, 64), [cyl(r0, x1 - x0 + 2, 'x', (x0 + x1) / 2, RCV.tc, 0, 64),
       bx(x0 - 2, x1 + 2, -40, y0, -30, 30), bx(x0 - 2, x1 + 2, y1, 60, -30, 30)]);
@@ -827,14 +828,29 @@ part('receiver', 'Upper receiver (with cocking tube)', 'rcv', ['01-2'], [0, 0, 0
     const slotCuts = [bx(X(505), X(310), CT.y - 3.5, CT.y + 3.5, -12, -2), slab(POCKET, -12, -2)];
     const tubeG = cut(latheX([[0, CT.x0], [CT.r, CT.x0], [CT.r, RCV.x1], [CT.r + 1, RCV.x1], [CT.r + 1, X(459)], [CT.r, X(458)], [CT.r, CT.x1], [0, CT.x1]], 28, CT.y),
       [latheX([[0, CT.x0 - 1], [CT.r - 1, CT.x0 - 1], [CT.r - 1, CT.x1 + 2], [0, CT.x1 + 2]], 24, CT.y), ...slotCuts]);
-    const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(3, 40, 'z', ...LOW_PIN, 0, 16)]);
+    // magazine well: on the left a pocket the catch's plate sits in, with a notch for its tab; on the right a pad and,
+    // behind it, a boss round the catch's push button, waisted down into the lower's boss round the pin (VFC's side photos)
+    const well = cut(slab(MAGWELL, -15, 15), [slab(shrink(MAGP, -0.8), -MAG_HW - 0.8, MAG_HW + 0.8), cyl(3, 40, 'z', ...LOW_PIN, 0, 16),
+      slab(rr(X(690), X(647), Y(316), Y(284.5), 1.2), -16, -14.2), slab(rr(X(663.5), X(654.5), Y(321.5), Y(312), 1.8), -16, -14.2),
+      cyl(2.1, 32, 'z', ...MC, 0, 16)]);
+    const btnBore = [cyl(4.65, 6, 'z', ...MC, 15, 32), cyl(5.1, 2, 'z', ...MC, 16.75, 40)];
+    const btnBoss = [cut(cyl(6.2, 2.9, 'z', ...MC, 15.25, 40), btnBore), cut(bx(MC[0] - 4.4, MC[0] + 4.4, LOW_PIN[1], MC[1], 13.8, 16.6), btnBore)];
+    const pads = [slab(rr(X(669), X(617), Y(311), Y(265), 2.2), 14.9, 15.5), slab(rr(X(641), X(600), Y(321), Y(273.5), 2.4), -15.6, -14.9)];
+    const wellLips = [1, -1].map(s => slab(P([[583, 322], [665, 347], [665, 342.5], [583, 317.5]]), s > 0 ? 14.9 : -15.5, s > 0 ? 15.5 : -14.9));
+    const slot = bx(X(621.5), X(619.5), Y(311), Y(305), 15.3, 15.7);
+    // VFC's leaf on the left plate: an angled plate held at its back by two screws, a round knob in its middle. VFC's list does
+    // not number it and no photo shows what it does, so it is drawn as part of the receiver.
+    const leaf = slab(P([[593.8, 283.1], [611.3, 283.1], [623.8, 292.5], [624.4, 305], [615, 316.9], [593.8, 317.5], [589.4, 313.8], [589.4, 285]]), -16.4, -15.5);
+    const knob = (latheX([[0, 0], [4, 0], [4, 1.1], [3.6, 1.5], [2.6, 1.5], [2.4, 1.1], [1, 1.1], [1, 0.8], [0, 0.8]], 32).rotateY(Math.PI / 2).translate(X(611.9), Y(298.4), -16.3));
+    const leafScrews = [[631.9, 288], [631.9, 316.5]].map(([a, b]) => latheX([[0, 0], [2.2, 0], [2.2, 0.4], [1.6, 0.9], [0, 1]], 20).rotateY(Math.PI / 2).translate(X(a), Y(b), -15.5));
     // claw mount tab welded on top: a curved saddle with a lip at each end
     const tab = cut(ring(X(772), X(729), RCV.tr - 0.2, RCV.tr + 1.2, 30, 60), [bx(X(772) - 1, X(729) + 1, 0, 60, 8, 30), bx(X(772) - 1, X(729) + 1, 0, 60, -30, -8)]);
     const dents = [[575, 614], [732, 771]].map(([a, b]) => ring(X(b) + 0.2, X(a) - 0.2, RCV.tr - 3.3, RCV.tr - 1.9, 22.4, 30));   // the pockets' pressed-in floors
     const lips = [X(769.5), X(731.5)].map(x => bx(x - 1.8, x + 1.8, RCV.top - 1, Y(125), -7.5, 7.5));
     const strips = [[552, 722], [777, 872]].map(([a, b]) => bx(X(b), X(a), RCV.top - 0.6, RCV.top + 0.7, -3.4, 3.4));   // flat lands along the top
     const keys = [[585, 604], [742, 761]].flatMap(([a, b]) => [1, -1].map(s => bx(X(b), X(a), 18.2, 21.4, s * 17, s * 18.1)));   // keys bridging the upper groove
-    return [[body, 'blued'], [tubeG, 'blued'], [well, 'blued'], [tab, 'blued'], ...lips.map(g => [g, 'blued']), ...strips.map(g => [g, 'blued']), ...keys.map(g => [g, 'blued']), ...dents.map(g => [g, 'blued']),
+    return [[body, 'blued'], [tubeG, 'blued'], [well, 'blued'], ...btnBoss.map(g => [g, 'blued']), ...pads.map(g => [g, 'blued']), ...wellLips.map(g => [g, 'blued']), [slot, 'black'],
+      [leaf, 'blued'], [knob, 'blued'], ...leafScrews.map(g => [g, 'steel']), [tab, 'blued'], ...lips.map(g => [g, 'blued']), ...strips.map(g => [g, 'blued']), ...keys.map(g => [g, 'blued']), ...dents.map(g => [g, 'blued']),
       decal('calDecal', ['Cal.9mmx19'], X(668), X(610), Y(270), Y(257), -15.1, { bold: false })];
   })(), { shell: true });
 
@@ -903,14 +919,21 @@ part('magRelease', 'Magazine release paddle + pin, screw', 'rcv', ['01-9', '01-1
   'H&K paddle behind the magazine well: push it forward and the magazine drops. It turns on a pin sleeve held by a screw.',
   [[profR(P([[676, 338], [690, 338], [697, 386], [692, 388], [681, 352]]), 8, 1), 'blued'], [cyl(2, 32, 'z', X(684), Y(340), 0, 12), 'steel']]);
 
-part('magCatch', 'Magazine catch + button, spring', 'rcv', ['01-12', '01-13', '01-14'], [0, -60, 90],
-  'Catch across the back of the magazine well that holds the magazine by the notch in its back, with the push button on the right of the well and the spring that keeps it engaged.',
-  [[bx(X(673), X(665), Y(310), Y(286), -12, 11), 'blued'], [bx(X(667), X(661), Y(301), Y(293), -6, 6), 'steel'],
-   [cyl(2.6, 6, 'z', X(669), Y(298), 13.2, 20), 'blued'], [spring(2, 0.35, 5, 5, 'z', X(669), Y(298), 6), 'spring']]);
-
-part('lever', 'Lever (01-15)', 'rcv', ['01-15'], [0, 40, 110],
-  'Small lever with a boxed end from VFC\'s upper receiver group, drawn beside the magazine catch. VFC gives it no name; what it does is not clear from the drawing.',
-  [[bx(-52, -38, -16, -10, 11, 14), 'steel'], [bx(-40, -36, -16, -6, 11, 14), 'steel']]);
+part('magCatch', 'Magazine catch + push button, lug, spring', 'rcv', ['01-15', '01-12', '01-13', '01-14'], [0, -60, 90],
+  'H&K-style catch: a shaft across the back of the magazine well, with a flat plate on its left end that sits in a pocket in the well\'s side and reaches through to the magazine, and a round push button pressed onto its right end. The spring inside the button pushes it out and holds the catch in the magazine\'s notch; press the button in, or push the paddle forward against the lug on the shaft, and the catch lets the magazine go. VFC\'s drawing gives the catch\'s plate a window and a rounded end round the shaft, and the button a D-shaped body with a ringed face.',
+  (() => {
+    const [sx, sy] = MC;
+    const along = g => g.rotateY(-Math.PI / 2).translate(sx, sy, 0);
+    const plate = [cut(slab(rr(X(681), X(649), Y(314), Y(288), 0.8), -15.4, -14.15), [slab(rr(X(670), X(652), Y(307.5), Y(292.5), 0.6), -16, -14.6)]),
+      slab(rr(X(699), X(679), Y(314.5), Y(285.5), 4), -15.4, -14.15), slab(rr(X(662), X(656), Y(320), Y(313), 1.4), -15.4, -14.15)];
+    const head = slab(rr(X(692), X(681.5), Y(307), Y(293), 2.4), -15.8, -15.2);
+    const bars = [slab(P([[653.6, 292.8], [656.6, 292.8], [656.6, 307.2], [653.6, 307.2]]), -14.8, -14.3), slab(P([[665.3, 292.8], [668.3, 292.8], [664.3, 307.2], [661.3, 307.2]]), -14.8, -14.3)];
+    const shaft = cyl(2, 31, 'z', sx, sy, 1.25, 16);
+    const lug = [along(latheX([[2, 3.5], [3.2, 3.5], [3.2, 9.5], [2, 9.5], [2, 3.5]], 24)), bx(X(680.5), X(676.5), Y(324), sy, 4.5, 8.5)];
+    const button = along(latheX([[0, 13.2], [4.5, 13.2], [4.5, 18.3], [4.1, 18.8], [3.7, 18.8], [3.5, 18.5], [3, 18.5], [2.8, 18.8], [2.3, 18.8], [2.1, 18.5], [1, 18.5], [1, 18.1], [0, 18.1]], 40));
+    return [...plate.map(g => [g, 'blued']), [head, 'blued'], ...bars.map(g => [g, 'steel']), [shaft, 'steel'], ...lug.map(g => [g, 'steel']), [button, 'blued'],
+      [spring(2.9, 0.4, 4.4, 5, 'z', sx, sy, 10.2), 'spring']];
+  })());
 
 // H&K diopter rear sight, traced from VFC's side photo and shaped from close-ups of VFC's part 05-4 and H&K's own drum and
 // base: a hollow knurled drum on an axis tipped about 23 degrees forward, sitting in a cradle at the front of the base, with
@@ -1475,6 +1498,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
 <a href="https://hkparts.net/cocking-tubes-charging-handles/hk-mp5-hk94-cocking-tube-support-spring/">HK Parts, MP5 cocking tube support</a> (the cocking piece's steps and holes),
+<a href="https://hkparts.net/small-parts/hk-mp5-mp5k-sp5-sp5k-magazine-catch-9mm/">HK Parts, MP5 magazine catch</a>, <a href="https://hkparts.net/all-parts/h-k-mp5-g3-ptr-hk93-push-button-for-magazine-catch/">HK Parts, magazine catch push button</a>, <a href="https://www.wgcshop.com/products/vfc-original-parts-mp5-gbb-magazine-release-part-vgb1mrb040">WGC Shop, VFC MP5 magazine release part</a> and <a href="https://maglatchusa.com/content/instructions/mp5.pdf">MagLatch MP5 install guide</a> (the catch's shaft, plate and push button, the button boss on the right of the well),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-small-push-pin-parts-01-17.html">Redwolf, VFC small push pin</a> and <a href="https://hkparts.net/small-parts/h-k-push-pin-set-mp5-g3-91-33-53-93/">HK Parts, H&amp;K push pin set</a> (the push pins: hollow head with its flare, the slotted tip and its spring wire),
 <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk33-hk53-hk93-trigger-housing-sef-navy-polymer-push-pin-9mm-5-56-223/">HK Parts, MP5 SEF Navy polymer trigger housing</a> (the grip's rounded section and flare, the housing's narrower front and the fillet into the grip), <a href="https://hkparts.net/hk-rifle-smg-parts/hk-mp5-hk90-series-selector-lever-ambi-right-side/">HK Parts, MP5 ambi selector lever</a> and <a href="https://www.evike.com/products/33208/">Evike, Matrix MP5 selector levers</a> (the selector lever's outline and pointer),
 <a href="https://www.redwolfairsoft.com/umarex-vfc-mp5a5-gbbr-rear-sight-parts-05-4.html">Redwolf, VFC rear sight part 05-4</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-hk94-sp5k-rear-sight-drum-base/">HK Parts rear sight drum and base</a> (the rear sight's drum, cradle, wings and window),
