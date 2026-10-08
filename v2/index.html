@@ -33,11 +33,16 @@
   .item:hover { background:#252a33; }
   .item.sel { background:#24365c; }
   .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
-  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; max-height:calc(100vh - 146px); overflow-y:auto; }
   .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  #ctrl .seg button { flex:1; padding:4px 0; }
+  #ctrl button.on { border-color:var(--acc); background:#24365c; }
+  #ctrl .ph2 { margin-top:12px; padding-top:8px; border-top:1px solid var(--line); }
+  #bFire { flex:1; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #bFire.on { background:#5c2424; border-color:#c04040; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
@@ -146,6 +151,11 @@
     <button id="bInfo">Overview</button>
     <button id="bList">Parts list</button>
   </div>
+  <div class="ph ph2">Gun</div>
+  <label>Selector (S) <span id="selv">safe</span></label>
+  <div class="row seg" id="selRow"><button data-sel="0" class="on">Safe</button><button data-sel="1">Semi</button><button data-sel="2">Auto</button></div>
+  <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
+  <label><span>Slow motion</span><input id="slow" type="checkbox" checked></label>
 </div>
 
 <div id="info" class="panel"><div class="grab" title="Expand or shrink"></div><button class="x" data-p="info" title="Close (I)">×</button><div id="infoBody"></div></div>
@@ -1014,7 +1024,18 @@ function showPanel(id, on) {
   if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
   if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
   document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+  fitPanels();
 }
+// On a desktop the view panel and the info panel share the right edge: when both are open and the window is short,
+// split the height so neither covers the other, the info panel keeping at least 200px. Each scrolls when squeezed.
+function fitPanels() {
+  const c = panelEl('ctrl'), i = panelEl('info');
+  c.style.maxHeight = i.style.maxHeight = '';
+  if (MOBILE.matches || !isOpen('ctrl') || !isOpen('info')) return;
+  const avail = innerHeight - c.getBoundingClientRect().top - 24, im = Math.min(innerHeight * 0.5, Math.max(200, avail - c.scrollHeight));
+  i.style.maxHeight = im + 'px'; c.style.maxHeight = avail - im + 'px';
+}
+addEventListener('resize', fitPanels);
 for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
 document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
 function toggleAll() {
@@ -1045,14 +1066,15 @@ function showOverview() {
   <div class="meta">The Tokyo Marui Version 2 gearbox: the split-shell AEG gearbox of the M4/M16 and MP5 families and the many guns built round the same internals.</div>
   <p>Shell about 160 x 100 x 25mm, two cast halves split down the middle, 8mm bushing seats. Everything inside sits in the left half; the gearbox opens by lifting the right half off.</p>
   <ul>
-    <li>Firing cycle (the Trigger slider): the trigger closes the switch, the motor turns the bevel, spur and sector gears, the sector's cam draws the tappet plate and nozzle back to let a BB up, its teeth draw the piston back against the spring, and the last tooth lets it go.</li>
+    <li>Gun controls: the selector slides the selector plate for safe, semi or auto; on safe the trigger does not move. Hold Fire (or Space) to pull the trigger: semi runs one cycle per pull, auto keeps cycling until you let go, and the gears stop wherever they are when the switch opens. Slow motion runs a cycle in 0.9 seconds; off, it runs at about 15 a second.</li>
+    <li>Firing cycle (Hold to fire, or the Trigger slider to step through it): the trigger closes the switch, the motor turns the bevel, spur and sector gears, the sector's cam draws the tappet plate and nozzle back to let a BB up, its teeth draw the piston back against the spring, and the last tooth lets it go.</li>
     <li>Strip order (the Explode slider): motor out of the grip (to 10%), selector plate off the left side and the screws out of the right (to 18%), right half off (to 30%), spring and guide (to 42%), the cylinder, piston, nozzle and tappet plate together (to 55%), the gears and anti-reversal latch (to 70%), the trigger, switch and cut-off lever (to 85%), and the wiring.</li>
     <li>Before opening: release the anti-reversal latch (through the hole in the shell, with the motor out) so the gears unwind and the spring is not under load when the right half comes off.</li>
     <li>What differs between V2 guns: the nozzle length, the tappet plate, the selector plate, the trigger blade and the shell's front, which is shaped to each gun's receiver. Gears, piston, cylinder parts and springs swap across them.</li>
   </ul>
   <p><b>Free to reuse.</b> The V2 is one of the most common AEG gearboxes, so this model is meant to be lifted into other projects. The page is one file of plain three.js: copy the gearbox section into your own page, or use the part shapes and coordinates as a starting point. No permission needed; a link back is welcome. The shell scan it builds on is public domain.</p>
   <p>${parts.length} modeled parts. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic, S selector, Space fire. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
 }
 function showList(hit = null) {
   const rows = parts.map(p => `<tr class="mod ${p === hit ? 'hit' : ''}" data-id="${p.userData.id}"><td>${p.userData.name}</td><td>${p.userData.spec}</td></tr>`).join('');
@@ -1231,7 +1253,11 @@ addEventListener('keydown', e => {
   else if (k === 'i') showPanel('info', !isOpen('info'));
   else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
   else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+  else if (k === ' ') { e.preventDefault(); if (!e.repeat) setHeld(true); }
+  else if (k === 's') setSel((GUN.sel + 1) % 3);
 });
+addEventListener('keyup', e => { if (e.key === ' ') setHeld(false); });
+addEventListener('blur', () => setHeld(false));
 MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
@@ -1243,9 +1269,24 @@ addEventListener('resize', () => {
 const exv = document.getElementById('exv');
 const trigCtl = document.getElementById('trigpos'), tpv = document.getElementById('tpv');
 const TRIG = { pos: 0 };
-const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
+const GUN = { sel: 0, held: false };
+const showTrig = () => { TRIG.pos = +trigCtl.value; tpv.textContent = !GUN.sel && TRIG.pos ? 'locked (safe)' : TRIG.pos === 0 ? 'released' : TRIG.pos === 1 ? 'fired' : `${Math.round(TRIG.pos * 100)}%`; };
 trigCtl.oninput = showTrig; showTrig();
 let trigCur = 0;
+// The gun's controls, as on the MP5 page. Safe blocks the trigger. Holding the trigger closes the switch and the sector
+// gear turns: on semi the cut-off lever keeps the switch closed until the cycle ends, then holds it open until the
+// trigger is let go; on auto the gears run while the switch is closed and stop where they are when it opens, which can
+// leave the piston part drawn. The selector plate slides back 3mm a step.
+const SEL_NAME = ['safe', 'semi', 'auto'];
+const selv = document.getElementById('selv'), slowCb = document.getElementById('slow'), fireBtn = document.getElementById('bFire');
+const selBtns = [...document.querySelectorAll('#selRow button')];
+function setSel(m) { GUN.sel = m; selv.textContent = SEL_NAME[m]; selBtns.forEach((b, i) => b.classList.toggle('on', i === m)); showTrig(); }
+function setHeld(h) { GUN.held = h; fireBtn.classList.toggle('on', h); }
+selBtns.forEach((b, i) => b.onclick = () => setSel(i));
+fireBtn.addEventListener('pointerdown', e => { fireBtn.setPointerCapture(e.pointerId); setHeld(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) fireBtn.addEventListener(ev, () => setHeld(false));
+fireBtn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+let fireT = 0, cyc = -1, pullFired = false, selCur = 0, lastT = performance.now();
 // Staged explode, in strip order: each part makes its whole move during its STAGE span, so at 100% every part sits at
 // its explode offset.
 const stageT = (t, a, b) => { const u = THREE.MathUtils.clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
@@ -1262,11 +1303,24 @@ renderer.setAnimationLoop(() => {
   // steady rate rather than an ease-out, so each stage of the strip gets its share of the time
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.015, 0.015);
   exv.textContent = Math.round(exCur * 100) + '%';
-  trigCur += (TRIG.pos - trigCur) * 0.2;
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.05); lastT = now;
+  trigCur += ((GUN.sel ? TRIG.pos : 0) - trigCur) * 0.2;
+  // trigger, switch and cycle (see GUN above); the switch closes two thirds of the way through the trigger's travel
+  const live = GUN.sel > 0;
+  fireT = THREE.MathUtils.clamp(fireT + (GUN.held && live ? 8 : -8) * dt, 0, 1);
+  const sw = fireT > 0.66;
+  if (fireT < 0.2) pullFired = false;   // the trigger has to come most of the way forward again before the next pull counts
+  if (cyc < 0 && sw && live && !(GUN.sel === 1 && pullFired)) { cyc = 0; pullFired = true; }
+  if (cyc >= 0 && (GUN.sel === 1 || sw)) {
+    cyc += dt / (slowCb.checked ? 0.9 : 1 / 15);   // about 15 rounds a second on a stock 18.72:1 set
+    if (cyc >= 1) cyc = GUN.sel === 2 && sw ? cyc - 1 : -1;
+  }
+  selCur += THREE.MathUtils.clamp(GUN.sel - selCur, -6 * dt, 6 * dt);
+  const firing = fireT > 0 || cyc >= 0;
   // the trigger comes back over the first fifth and closes the switch; then the sector gear turns once: its cam draws
   // the tappet and nozzle back to feed a BB, its teeth pick up the rack and draw the piston back from 30% to 80% of
   // the turn, and the last tooth lets the piston fly forward and the air sends the BB off
-  const tA = -10 * D2R * THREE.MathUtils.clamp(trigCur / 0.2, 0, 1), u = THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1);
+  const tA = -10 * D2R * (firing ? fireT : THREE.MathUtils.clamp(trigCur / 0.2, 0, 1)), u = firing ? Math.max(cyc, 0) : THREE.MathUtils.clamp((trigCur - 0.2) / 0.8, 0, 1);
   const pull = u < 0.8 ? STROKE * THREE.MathUtils.clamp((u - 0.3) / 0.5, 0, 1) : 0, aS = u * 2 * Math.PI;
   const nozBack = 4 * Math.sin(Math.PI * THREE.MathUtils.clamp(u / 0.3, 0, 1));
   for (const p of parts) {
@@ -1289,6 +1343,7 @@ renderer.setAnimationLoop(() => {
     if (id === 'piston' || id === 'pistonHead') p.position.x -= pull;
     if (id === 'mainSpring') { const s = (SPRING_LEN - pull) / SPRING_LEN; p.scale.x = s; p.position.x += SPRING_BACK * (1 - s); }
     if (id === 'nozzle' || id === 'tappet') p.position.x -= nozBack;
+    if (id === 'selPlate') p.position.x -= 3 * selCur;
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.5));
   }
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
@@ -1316,5 +1371,5 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(-150, 0, 20), EX_POS = fit(new THREE.Vector3(-120, 200, 900), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__v2 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG };
+window.__v2 = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, TRIG, GUN };
 </script>

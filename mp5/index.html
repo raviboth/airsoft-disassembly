@@ -1642,7 +1642,18 @@ function showPanel(id, on) {
   if (on && MOBILE.matches && id !== 'info') info.classList.add('peek');
   if (!MOBILE.matches) { store.open ||= {}; store.open[id] = on; save(); }
   document.getElementById('tAll').textContent = Object.keys(PANELS).some(isOpen) ? 'Hide all' : 'Show all';
+  fitPanels();
 }
+// On a desktop the view panel and the info panel share the right edge: when both are open and the window is short,
+// split the height so neither covers the other, the info panel keeping at least 200px. Each scrolls when squeezed.
+function fitPanels() {
+  const c = panelEl('ctrl'), i = panelEl('info');
+  c.style.maxHeight = i.style.maxHeight = '';
+  if (MOBILE.matches || !isOpen('ctrl') || !isOpen('info')) return;
+  const avail = innerHeight - c.getBoundingClientRect().top - 24, im = Math.min(innerHeight * 0.5, Math.max(200, avail - c.scrollHeight));
+  i.style.maxHeight = im + 'px'; c.style.maxHeight = avail - im + 'px';
+}
+addEventListener('resize', fitPanels);
 for (const id in PANELS) document.getElementById(PANELS[id]).onclick = () => showPanel(id, !isOpen(id));
 document.querySelectorAll('.x').forEach(b => b.onclick = () => showPanel(b.dataset.p, false));
 function toggleAll() {
