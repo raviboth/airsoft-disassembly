@@ -732,7 +732,7 @@ part('slingLoop', 'Sling loop (front)', 'frt', ['05-3'], [200, 40, -60],
   [[torus(4.2, 1.1, 'y', X(178), 9.6, -17.5), 'steel'], [cyl(1.4, 13, 'z', X(178), 9.6, -7.5, 12), 'steel']]);
 
 // handguard: side traced from the photo, rounded sections, hollow for the battery and the barrel
-const hgSide = P([[560, 168], [214, 168], [205, 172], [199, 182], [199, 260], [205, 270], [214, 275], [560, 275]]);   // back top, round the nose, back bottom (loftX order)
+const hgSide = P([[560, 172.5], [555, 168], [214, 168], [205, 172], [199, 182], [199, 260], [205, 270], [214, 275], [560, 275]]);   // back top, round the nose, back bottom (loftX order)
 const HG_N = 2.4;                                    // superellipse power of the section: the A5 handguard is round-sided, not boxy
 // z of the handguard's outer skin at height y, in the straight run behind the nose (top and bottom edges are level there)
 const hgZ = (y, hw = HG.hw) => { const t = Math.min(0.999, Math.abs((y - (HG.top + HG.bot) / 2) / ((HG.top - HG.bot) / 2))); return hw * (1 - t ** HG_N) ** (1 / HG_N); };
@@ -746,18 +746,24 @@ function stippleNubs(s) {
   return mergeGeometries(g);
 }
 part('handguard', 'Handguard', 'frt', ['03-3'], [140, -150, 0],
-  'Polymer handguard with the stippled grip panels, a long groove along each side above them and the row of vent holes under the cocking tube. It holds the battery (the A5\'s stock has no room for one) and is held by a single pin at the front: push it out and the handguard comes off forward.',
+  'Polymer handguard with the stippled grip panels, a sunk panel round the pin at the front of each side, a long groove along each side above them and the row of vent holes under the cocking tube. It holds the battery (the A5\'s stock has no room for one) and is held by a single pin at the front: push it out and the handguard comes off forward.',
   (() => {
     const hgIn = [[-5, HG.top - 2.6], [152, HG.top - 2.6], [152, HG.bot + 2.6], [-5, HG.bot + 2.6]];
     const groove = s => slab(rr(X(522), X(279), Y(195), Y(185), 2.2, 3), 0, 1).scale(1, 1, 20).translate(0, 0, s * (hgZ(Y(190)) - 1.1) + (s > 0 ? 0 : -20));
+    // the front of each side is sunk 1.4mm round the pin, the recess ending behind it in a curved edge (VFC's side photo,
+    // Airsoft GI's close-ups); the pin's hole has a raised collar in it
+    const POCK = P([[195, 160], [252.5, 160], [252.5, 168.75], [251.5, 182], [250, 191], [246, 200], [240, 207.5], [234, 211.5], [227.5, 213.75], [215, 215], [195, 215]]);
+    const pocket = cut(cut(loftX(hgSide, () => HG.hw + 4, HG_N, 48, 4), [loftX(hgSide, () => HG.hw - 1.4, HG_N, 48, 4)]), [slab(POCK, -40, 40)], INTERSECTION);
     const shell = cut(loftX(hgSide, () => HG.hw, HG_N, 48, 4), [
       loftX(hgIn, () => HG.hw - 2.6, HG_N, 48, 6),                                  // battery space, open at the back
       cyl(8.4, 30, 'x', 170, 0, 0, 24),                                              // barrel through the nose
       groove(1), groove(-1),
       ...[300, 350, 400, 445, 494].flatMap(px => [cyl(2.3, 60, 'z', X(px), Y(178), 0, 16)]),   // vent holes
       ...[255, 505].map(px => cyl(3.4, 60, 'z', X(px), Y(278), 0, 16)),             // scallops in the bottom edge
-      cyl(1.6, 60, 'z', X(219), Y(185), 0, 12)]);                                  // pin hole
-    return [[shell, 'poly'], [stippleNubs(1), 'poly'], [stippleNubs(-1), 'poly']];
+      cyl(1.6, 60, 'z', X(219), Y(185), 0, 12),                                     // pin hole
+      pocket]);
+    const collar = mergeGeometries([1, -1].map(s => cut(cyl(4.3, 1.6, 'z', X(221), Y(183.75), s * (hgZ(Y(183.75), HG.hw - 1.4) + 0.5), 24), [cyl(2.6, 4, 'z', X(221), Y(183.75), s * 20, 16)])));
+    return [[shell, 'poly'], [collar, 'poly'], [stippleNubs(1), 'poly'], [stippleNubs(-1), 'poly']];
   })(), { shell: true });
 
 part('hgPin', 'Handguard pin', 'frt', ['03-4'], [140, -80, -90],
@@ -1426,7 +1432,7 @@ const SOURCES = `<p class="src">Sources: <a href="https://get.vegaforce.com/down
 <a href="https://gunmagwarehouse.com/hk-mp5-sp5-hk94-9mm-30-round-magazine.html">GunMag Warehouse, H&amp;K MP5 30-round magazine</a> (six views: the magazine's curve, side ribs, dimples, catch notch and floorplate),
 <a href="https://www.youtube.com/watch?v=ebjZYhMQG_8">Umarex H&amp;K MP5 AEG disassembly video</a> (the pins and the handguard),
 <a href="https://www.redwolfairsoft.com/blog/umarex-mp5-a5-aeg-review">Redwolf MP5 A5 AEG review</a> (14mm anticlockwise thread),
-<a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the stock's butt pad, the cocking slot and which way the handle's checkering faces, the finish),
+<a href="https://www.airsoftgi.com/Spotlight/HKMP5/index.html">Airsoft GI MP5 spotlight</a> (close-up photos: handguard section, groove and stippling, the sunk panel round the handguard pin, the stock's butt pad, the cocking slot and which way the handle's checkering faces, the finish),
 <a href="https://www.evike.com/products/27738/">Evike, Guarder steel MP5 trigger</a> and <a href="https://airsoftstation.com/ultimate-upgrades-steel-mp5-trigger-for-aeg/">Airsoft Station, Ultimate Upgrades steel MP5 trigger</a> (the trigger's side profile and its torsion spring),
 <a href="https://hkparts.net/all-parts/mke-ap5-mp5-front-sight-tower/">HK Parts, MP5 front sight tower</a> and <a href="https://hkparts.net/all-parts/hkp-mp5-mp5k-front-sight-tower-assembly/">HK Parts, MP5 front sight tower assembly</a> (the tower's three rings and pinched webs, the post and its pin),
 <a href="https://hkparts.net/parts/hk-mp5-ap5-cocking-handle/">HK Parts, MP5 cocking handle</a> and <a href="https://www.gatewoodsupplyco.com/HK-MP5K-MP5-Cocking-Handle-and-Pin_p_286.html">Gatewood Supply, MP5 cocking handle and pin</a> (the cocking handle's stem and knob, traced from the end-on photo),
