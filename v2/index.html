@@ -626,9 +626,10 @@ const GRIP_A = 21.5 * D2R;                           // motor lean, set by the r
 const GB_FRONT = -33.8, VS = ([y, z]) => [GB_FRONT - 1.026 * y, 1.026 * (z - 76.5)], VSP = pts => pts.map(VS);
 const PH = (px, py) => [GB_FRONT + (px - 1227) / 6.9, (190 - py) / 6.9], PHP = pts => pts.map(p => PH(...p));
 const GB_REAR = VS([158.75, 0])[0], HOUSE_R = 14, BODY_Z = 11, GB_FLOOR = VS([0, 27])[1];
-// gear axles: the photos put the sector at (-135, -26) and the bevel at (-155.5, -50.5); the spur sits where its pinion
-// meshes the sector (16.2 + 6.8) and its big gear the bevel's pinion (14 + 7)
-const SECTOR = [-135, -26], SPUR = [-157.7, -29.6], BEVEL = [-155.5, -50.5];
+// gear axles: the photos put the sector at (-135, -26) and the bevel between (-157.7, -49.3) (iFixit) and (-149.6, -52.7)
+// (CYMA); the bevel is set at (-152.5, -52.5), low enough for the motor below it to fit the MP5's grip. The spur sits
+// where its pinion meshes the sector (16.2 + 6.8) and its big gear the bevel's pinion (14 + 7).
+const SECTOR = [-135, -26], SPUR = [-157.2, -32], BEVEL = [-152.5, -52.5];
 const SEC_R = 16.2, SEC_PIN = 6.8, SPUR_R = 14, BEV_PIN = 7, SEC_T = 14;   // sector big gear, spur pinion, spur big gear, bevel pinion, sector teeth
 const ringZ = (ri, ro, cx, cy, z0, z1, seg = 24) => latheX([[ri, z0], [ro, z0], [ro, z1], [ri, z1], [ri, z0]], seg).rotateY(-Math.PI / 2).translate(cx, cy, 0);
 const GB_PIN = VS([42.5, 42.3]);
