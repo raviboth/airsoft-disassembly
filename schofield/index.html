@@ -808,7 +808,7 @@ function showOverview() {
     <li>Top break: thumb the latch in front of the hammer back and the barrel and cylinder tip down about the hinge at the front of the frame. Near the end of the travel the extractor star rises out of the cylinder with the shells, then snaps back and lets them fall: the one-handed reload Major George Schofield designed for cavalry. Close it and the top strap clicks back under the latch.</li>
     <li>Shells: brass cases with a plastic bullet at the front that holds one 6mm BB (Redwolf). The gas comes in at the back of the case and pushes the BB out of the bullet into the barrel. They also fit WinGun's Webley.</li>
     <li>Gas: the capsule sits in the grip under the left panel, neck up. A screw in the base of the grip, turned with the hex key, pushes it onto the piercing pin. From the seat the gas runs forward to a valve in the frame behind the breech face. The hammer strikes the valve's stem, not the shell, and the valve lets a measure of gas through a rubber seal in the breech face into the shell in line with the barrel. WinGun's hammer-fired valve is described for its swing-out revolvers (Booligan Airsoft); its layout in this gun, the gas route and the lockwork's springs are estimated.</li>
-    <li>The Gun section of the View panel works the gun. Cock (C) thumbs the hammer back: the hand turns the cylinder a sixth and the trigger catches the hammer. Trigger (Space) lets the hammer fall on the valve; the shell in line with the barrel fires if it still holds a BB and there is gas, and the cylinder does not move until the next cock. Break open (B) tips the barrel down and ejects all six shells, spent or not; Load (R) puts six fresh ones in while it is open. Take grip off (G) lifts the left panel off to show the capsule, and New CO2 (N) swaps it. Slow motion slows the hammer, the cylinder and the break action.</li>
+    <li>The Gun section of the View panel works the gun. Cock (C) thumbs the hammer back: the hand turns the cylinder a sixth and the trigger catches the hammer. Trigger (Space) lets the hammer fall on the valve; the shell in line with the barrel fires if it still holds a BB and there is gas, and the cylinder does not move until the next cock. Break open (B) tips the barrel down and ejects all six shells, spent or not: each is kicked out at its own speed, tumbles, and falls and bounces on the floor; Load (R) puts six fresh ones in while it is open. Take grip off (G) lifts the left panel off to show the capsule, and New CO2 (N) swaps it. Slow motion slows the hammer, the cylinder and the break action.</li>
     <li>The Explode slider strips it in order: the left grip and the CO2 come out (to 35%, the hinge screw last), the barrel group lifts off the front and the cylinder, shells and extractor come off it (to 75%), then the right grip and the sideplate, and last the lockwork and the valve come out of the frame (to 100%).</li>
   </ul>
   <p>${parts.length} modeled assemblies. WinGun publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
@@ -1097,13 +1097,45 @@ function gunStep() {
   // the extractor rises over the last part of the opening, then snaps back at full open and throws the shells clear
   if (openT >= 0.999 && !snapped) {
     snapped = true;
-    flying_ = GUN.chambers.map((c, k) => c === 'empty' ? null : { k, live: c === 'live' }).filter(Boolean);
+    // each shell leaves on its own: kicked back along the cylinder's axis at its own speed, pushed out from the axis
+    // and to the side a little, tumbling, then falling under gravity and bouncing on the floor
+    mA.copy(mH).multiply(mT.makeTranslation(-EXT, 0, 0)).multiply(mC);
+    const back = new THREE.Vector3(-1, 0, 0).transformDirection(mH);
+    flying_ = GUN.chambers.map((c, k) => {
+      if (c === 'empty') return null;
+      const [y, z] = ch(k), c0 = new THREE.Vector3(18, y, z).applyMatrix4(mA), axis = new THREE.Vector3(18, CY, 0).applyMatrix4(mA);
+      const out = c0.clone().sub(axis).normalize();
+      const v = back.clone().multiplyScalar(1500 + 700 * Math.random()).addScaledVector(out, 150 + 200 * Math.random())
+        .add(new THREE.Vector3((Math.random() - 0.5) * 300, 250 * Math.random(), (Math.random() - 0.5) * 600));
+      return { k, live: c === 'live', m0: mA.clone(), c0, d: new THREE.Vector3(), v, q: new THREE.Quaternion(),
+        w: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(12 + 18 * Math.random()), rest: 0,
+        ax0: new THREE.Vector3(1, 0, 0).transformDirection(mA) };
+    }).filter(Boolean);
     if (flying_.length) flyT = 0;
     GUN.chambers.fill('empty'); show();
   }
   if (openT < 0.05) snapped = false;
   ext = snapped ? Math.max(0, ext - 120 * sl * dt) : EXT * ease(openT, 0.6, 0.98);
-  if (flyT >= 0) { flyT += sl * dt; if (flyT > 1.2) flyT = -1; }
+  if (flyT >= 0) {
+    const h = sl * dt, GRAV = 9810;
+    flyT += h;
+    for (const f of flying_) {
+      f.v.y -= GRAV * h; f.d.addScaledVector(f.v, h);
+      const wl = f.w.length(); if (wl > 1e-3) f.q.premultiply(new THREE.Quaternion().setFromAxisAngle(f.w.clone().divideScalar(wl), wl * h));
+      if (f.qT) f.q.slerp(f.qT, Math.min(1, 12 * h));
+      // the shell's lowest point, from how steeply it is tilted: half its length end-on, its radius lying flat
+      const a = f.ax0.clone().applyQuaternion(f.q), floorY = floor.position.y + 17.5 * Math.abs(a.y) + RIM_R * Math.sqrt(1 - a.y * a.y);
+      if (f.c0.y + f.d.y < floorY) {   // bounce: lose most of the speed and spin each time, then roll over flat and lie still
+        f.d.y = floorY - f.c0.y;
+        if (f.v.y < 0) { f.v.y *= -0.32; f.v.x *= 0.55; f.v.z *= 0.55; f.w.multiplyScalar(0.45); }
+        if (Math.abs(f.v.y) < 120) {
+          f.v.set(0, 0, 0); f.w.set(0, 0, 0); f.rest += h;
+          if (!f.qT) { const flat = new THREE.Vector3(a.x, 0, a.z); if (flat.lengthSq() < 1e-6) flat.set(1, 0, 0); f.qT = new THREE.Quaternion().setFromUnitVectors(a, flat.normalize()).multiply(f.q); }
+        }
+      }
+    }
+    if (flyT > 8 || flying_.every(f => f.rest > 2.5)) flyT = -1;
+  }
 
   for (let i = flying.length - 1; i >= 0; i--) {
     const b = flying[i]; b.position.x += b.userData.v * dt; b.visible = !isolated && catOn.brl;
@@ -1120,8 +1152,8 @@ function gunStep() {
   const fly = new Map(flyT >= 0 ? flying_.map(f => [f.k, f]) : []);
   for (let k = 0; k < 6; k++) {
     const st = GUN.chambers[k], f = fly.get(k), on = st !== 'empty' || !!f;
-    mA.copy(mH).multiply(mT.makeTranslation(f ? -(EXT + 220 * flyT) : -ext, 0, 0)).multiply(mC);
-    if (f) mA.premultiply(mB.makeTranslation(-40 * flyT, -900 * flyT * flyT, 0));
+    if (f) mA.makeTranslation(f.c0.x + f.d.x, f.c0.y + f.d.y, f.c0.z + f.d.z).multiply(mB.makeRotationFromQuaternion(f.q)).multiply(mT.makeTranslation(-f.c0.x, -f.c0.y, -f.c0.z)).multiply(f.m0);
+    else mA.copy(mH).multiply(mT.makeTranslation(-ext, 0, 0)).multiply(mC);
     for (const m of [SHELLM[2 * k], SHELLM[2 * k + 1]]) { m.matrix.copy(mA); m.visible = on; }
     BB_IN[k].matrix.copy(mA).multiply(BB_IN[k].userData.base);
     BB_IN[k].visible = st === 'live' || (f && f.live);
@@ -1192,7 +1224,7 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(0, 0, 0), EX_POS = fit(new THREE.Vector3(-90, 140, -820), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__st = { GUN, flying, parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root };
+window.__st = { fly: () => flyT < 0 ? [] : flying_.map(f => f.c0.clone().add(f.d).toArray().map(Math.round)), GUN, flying, parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root };
 </script>
 </body>
 </html>
