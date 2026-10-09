@@ -709,6 +709,7 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
       bx(X(700) + 1, X(597) - 1, Y(322) - 30, Y(322) + 1, -RW + 4, RW - 4),           // feed tray well under the cover
       cyl(4.2, 10, 'z', X(660), -11, -RW + 1, 20),                                       // BB feed port in the left wall
       cyl(3.6, 80, 'z', X(575), Y(384), 0, 16),                                         // front lightening hole
+      ...[-1, 1].map(s => cyl(7.2, 8, 'z', X(761), Y(390), s * RW, 28)),                  // notches round the rear body pin heads
       bx(X(963), -150, -16, 21, -SHELL_Z - 1, SHELL_Z + 1),                           // gearbox tunnel
       prof(rr(X(952), X(733), Y(359), Y(320), 7, 4), 2.4, 0).translate(0, 0, -RW),        // left side panel
       prof(rr(X(952), X(733), Y(342), Y(320), 6, 4), 2.4, 0).translate(0, 0, RW),         // right side panel
@@ -723,10 +724,13 @@ part('upperRcv', 'Upper receiver + top rail', 'rcv', [], [0, 80, 0],
   })(), { shell: true });
 
 part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
-  'Lower receiver: the trigger housing with the trigger guard and the selector, and the pistol grip below. It joins the upper with a tongue-and-groove rail and two body pins; the gearbox rests in it.',
+  'Lower receiver: the trigger housing with the trigger guard and the selector, and the pistol grip below. The guard opening has a straight front edge and rounds off at the back; its bottom is a thin bar, narrower than the housing. It joins the upper with a tongue-and-groove rail and two body pins; the gearbox rests in it.',
   (() => {
     const tray = profR(P([[470, 386], [965, 386], [962, 392], [905, 400], [887, 410], [835, 410], [835, 400], [705, 400], [705, 396], [600, 396], [600, 398], [470, 398]]), 46, 1.2);
-    const guard = profR(P([[740, 399], [835, 399], [835, 455], [828, 462], [750, 462], [740, 452]]), 22, 1.5, [rr(X(822), X(751), Y(451), Y(406), 8, 5)]);
+    // opening traced from the left-side photo: straight front edge, round at the back where it meets the grip
+    const opening = P([[751, 441], [751, 418], [754, 412], [760, 409], [800, 409], [808, 411], [814, 416], [818, 424], [819, 432], [817, 441], [812, 448], [806, 452], [758, 452], [753, 448]]);
+    const guard = cut(profR(P([[740, 399], [835, 399], [835, 455], [831, 459], [745, 459], [740, 454]]), 22, 1.5, [opening]),
+      [-1, 1].map(s => bx(X(825), X(747), Y(460), Y(451.5), s > 0 ? 6 : -12, s > 0 ? 12 : -6)));   // bottom bar narrower than the housing
     return [[cut(tray, [bx(X(835), X(752), Y(410), Y(395), -12, 12), bx(-285, -150, GB_FLOOR - 0.3, -38, -SHELL_Z - 1, SHELL_Z + 1)]), 'anod'], [guard, 'anod'],
       decal('safeL', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), -23.05, { align: 'left' }),
       decal('safeR', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), 23.05, { align: 'left' })];
@@ -789,12 +793,14 @@ part('rearSight', 'Rear sight (flip-up)', 'rcv', [], [0, 70, 0],
 
 part('selector', 'Selector lever (SAFE / FIRE)', 'rcv', [], [0, 0, -50],
   'Two-position selector, SAFE and FIRE (full auto only, no semi). Lever on the left above the grip.',
-  [[profR(P([[812, 386], [840, 384], [846, 390], [840, 396], [812, 394]]), 3, 0.8).translate(0, 0, -24.5), 'blued'],
+  [[profR(P([[811, 390.5], [813, 385], [818, 384], [842, 384], [843, 386], [843, 396], [818, 397], [813, 396]]), 3, 0.8).translate(0, 0, -24.5), 'blued'],
    [cyl(3.4, 50, 'z', X(840), Y(390), 0, 20), 'steel']]);
 
 part('bodyPins', 'Body pins (x2)', 'rcv', [], [0, -20, -70],
   'Two cross pins hold the lower to the upper. Push them out, after the stock and the grip, to separate the receivers and slide the gearbox out.',
-  [[cyl(2.8, 48, 'z', X(761), Y(390), 0, 20), 'steel'], [cyl(2.8, 48, 'z', X(500), Y(392), 0, 20), 'steel']]);
+  [[cyl(2.8, 48, 'z', X(761), Y(390), 0, 20), 'steel'], [cyl(2.8, 48, 'z', X(500), Y(392), 0, 20), 'steel'],
+   ...[-1, 1].flatMap(s => [[cyl(6.4, 4, 'z', X(761), Y(390), s * 25, 28), 'blued'],         // rear pin: round head in a notch under the upper
+     [cyl(4.2, 0.6, 'z', X(761), Y(390), s * 27.2, 24), 'steel']])]);
 
 // ================= GEARBOX AND HOP-UP =================
 const GB_F = -154, GB_R = -339;          // gearbox front and back: the cylinder head sits at the back of the feed tray, the hop-up ahead of it
@@ -1027,8 +1033,10 @@ part('wiring', 'Wiring (front wired)', 'gbx', [], [0, 150, -40],
 
 // ================= GRIP AND STOCK =================
 part('grip', 'Pistol grip + motor plate', 'stk', [], [0, -120, 0],
-  'A2-style pistol grip that houses the motor. The base plate screws off to reach the motor height screw.',
-  [[profR(P([[834, 408], [887, 408], [904, 440], [925, 480], [945, 515], [956, 530], [952, 540], [930, 548], [905, 552], [885, 553], [878, 546], [870, 525], [855, 495], [848, 490], [844, 480], [842, 470], [837, 460], [835, 430]]), 30, 6), 'checker']], { shell: true });
+  'A2-style pistol grip that houses the motor: smooth sides with a raised checkered panel, a finger bump on the front strap. The base plate screws off to reach the motor height screw.',
+  [[profR(P([[834, 408], [887, 408], [904, 440], [925, 480], [945, 515], [956, 530], [952, 540], [930, 548], [905, 552], [885, 553], [878, 546], [870, 525], [855, 495], [848, 490], [844, 480], [842, 470], [837, 460], [835, 430]]), 30, 6), 'poly'],
+   // checkered panel on each side, traced from the left-side photo
+   [profR(P([[861, 452], [872, 446], [885, 444], [895, 451], [908, 470], [925, 495], [937, 515], [936, 528], [929, 532], [902, 535], [895, 528], [884, 505], [870, 478], [862, 463]]), 31, 1.5), 'checker']], { shell: true });
 
 part('bufferTube', 'Buffer tube + receiver adapter', 'stk', [], [-90, 0, 0],
   'Buffer tube the stock slides on, screwed into an adapter at the back of the receiver. Aftermarket adapters fit AR stocks and M249 Para stocks.',
@@ -1092,7 +1100,7 @@ part('magBox', 'Box magazine shell + top frame', 'mag', [], [0, -130, -50],
   })(), { shell: true });
 
 part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
-  'Tan Cordura cover over the lower part of the box: brass snaps along the rim (four on each long face, two at the top corners of each end), a stitched seam near the bottom, and a zip down the middle of the left end, closed by a strap with a black snap button over the zip pull. It copies the real gun’s soft ammo pouch.',
+  'Tan Cordura cover over the lower part of the box: brass snaps along the rim (four on each long face, two at the top corners of each end), a stitched seam near the bottom, and a zip down the middle of the left end, closed at the top by a wide webbing strap with a black snap button; the zip pull hangs just below the strap. It copies the real gun’s soft ammo pouch.',
   (() => {
     const xF = MAG_X1 + 1.2, xB = MAG_X0 - 1.2, zL = MZ0 - 1.2, zR = MZ1 + 1.2;    // outside faces of the cover
     const yS = MAG_FR - 5, yC = MAG_BOT + 9, xz = (MAG_X0 + MAG_X1) / 2;
@@ -1102,11 +1110,12 @@ part('magPouch', 'Magazine cover (Cordura pouch)', 'mag', [], [0, -150, -110],
       [cut(secX(rr(zL, zR, MAG_BOT, MAG_FR, 6, 4), xB, xF, 1), [bx(MAG_X0 + 0.5, MAG_X1 - 0.5, MAG_BOT + 3, MAG_FR + 6, MZ0 + 0.5, MZ1 - 0.5)]), 'tan'],
       ...snaps,
       ...[[xF, 1], [xB, -1]].map(([x, sd]) => [bx(x + sd * 1.1 - 0.4, x + sd * 1.1 + 0.4, yC - 0.4, yC + 0.4, MZ0 + 4, MZ1 - 4), 'tan2']),   // bottom seam
-      [bx(xz - 3, xz + 3, MAG_BOT + 4, yS - 10, zL - 1.1, zL), 'tan2'],                   // zip tape
-      [bx(xz - 1.5, xz + 1.5, MAG_BOT + 4, yS - 10, zL - 1.6, zL - 0.9), 'brass'],        // zip teeth
-      [bx(xz - 2, xz + 2, yS - 22, yS - 12, zL - 2.4, zL - 1.4), 'brass'],                // zip pull
-      [bx(xz - 6, xz + 6, yS - 14, MAG_FR + 1, zL - 1.8, zL - 0.6), 'tan2'],               // snap strap
-      [cyl(4.6, 3, 'z', xz, yS - 4, zL - 3.6, 20), 'black']];                             // snap button
+      ...[MAG_X0 + 5, MAG_X1 - 5].map(x => [bx(x - 0.4, x + 0.4, MAG_BOT + 4, yS - 4, zL - 0.5, zL + 0.2), 'tan2']),   // corner seams, left end
+      [bx(xz - 3, xz + 3, MAG_BOT + 4, MAG_FR - 30, zL - 1.1, zL), 'tan2'],               // zip tape
+      [bx(xz - 1.5, xz + 1.5, MAG_BOT + 4, MAG_FR - 30, zL - 1.6, zL - 0.9), 'brass'],    // zip teeth
+      [bx(xz - 2.5, xz + 2.5, MAG_FR - 40, MAG_FR - 27, zL - 2.4, zL - 1.4), 'brass'],    // zip pull, hanging below the strap
+      [bx(xz - 13, xz + 13, MAG_FR - 32, MAG_FR + 1, zL - 1.8, zL - 0.6), 'tan2'],        // snap strap, wide webbing
+      [cyl(6.8, 3, 'z', xz, MAG_FR - 17, zL - 3.3, 24), 'black']];                        // snap button
   })(), { shell: true });
 
 part('feedTube', 'BB feed tube (spring tube)', 'mag', [], [-20, -80, -90],
