@@ -732,17 +732,22 @@ part('lowerRcv', 'Lower receiver (trigger housing)', 'rcv', [], [0, -40, 0],
       decal('safeR', ['SAFE', 'FIRE'], X(876), X(848), Y(405), Y(386), 23.05, { align: 'left' })];
   })(), { shell: true });
 
+// Top cover, after EMG's photos of the cover open and Redwolf's side photo: a grey box over the feed tray with a window
+// in each side, joined by an arm to a knuckle on a cross pin at its front (the round pin head beside the trades), so it
+// swings up from the back, to stand a little past upright. Ahead of the pin a flat latch tab lies over a coil spring.
 part('topCover', 'Top cover (feed cover)', 'rcv', [], [0, 110, 0],
-  'Top cover over the feed tray. On the real gun it holds the belt feed; on the airsoft gun it hinges up to reach the hop-up adjuster and the feed tray. The windows in its sides are dummies.',
+  'Grey top cover over the feed tray. On the real gun it holds the belt feed; on the airsoft gun it hinges up to reach the hop-up adjuster, the nozzle and the feed tray. It turns on a cross pin at its front end, beside the trades, and lifts from the back to stand a little past upright, as EMG\'s photos of it open show. An arm joins the box to the knuckle on the pin. The windows in its sides are dummies.',
   [[cut(profR(P([[597, 272], [700, 272], [700, 322], [597, 322]]), RW * 2, 1.5), [
-      prof(rr(X(692), X(605), Y(307), Y(287), 3, 3), 14, 0).translate(0, 0, -RW), prof(rr(X(692), X(605), Y(307), Y(287), 3, 3), 14, 0).translate(0, 0, RW)]), 'dark'],
-   [bx(X(692), X(605), Y(307), Y(287), -21.4, -21.05), 'black'], [bx(X(692), X(605), Y(307), Y(287), 21.05, 21.4), 'black'],
-   [bx(X(653), X(643), Y(293), Y(291), -RW + 4, RW - 4), 'steel']]);
+      prof(rr(X(692), X(605), Y(307), Y(289), 3, 3), 14, 0).translate(0, 0, -RW), prof(rr(X(692), X(605), Y(307), Y(289), 3, 3), 14, 0).translate(0, 0, RW)]), 'dark'],
+   [bx(X(692), X(605), Y(307), Y(289), -21.4, -21.05), 'black'], [bx(X(692), X(605), Y(307), Y(289), 21.05, 21.4), 'black'],
+   [bx(X(653), X(643), Y(293), Y(291), -RW + 4, RW - 4), 'steel'],
+   [profR(P([[553, 276], [598, 276], [598, 303], [578, 303], [563, 297], [553, 291]]), RW * 2 - 6, 1), 'dark'],   // arm to the knuckle
+   [cyl(4.6, RW * 2 - 6, 'z', X(558), Y(288), 0, 24), 'dark'],                                               // knuckle round the pin
+   [cyl(2.4, RW * 2 + 3, 'z', X(558), Y(288), 0, 16), 'steel'], ...[-1, 1].map(s => [cyl(3.4, 1.2, 'z', X(558), Y(288), s * (RW + 1.5), 20), 'steel'])]);
 
-part('coverLatch', 'Top cover latch lever + spring', 'rcv', [], [30, 100, 0],
-  'Latch lever ahead of the top cover, held down by a coil spring. Press it to unlatch and lift the cover.',
-  [[profR(P([[520, 275], [600, 275], [600, 283], [520, 283]]), 22, 0.8), 'blued'],
-   [cyl(6, RW * 2 + 4, 'z', X(562), Y(288), 0, 24), 'blued'],
+part('coverLatch', 'Top cover latch tab + spring', 'rcv', [], [30, 100, 0],
+  'Flat grey tab ahead of the cover\'s hinge pin, held up by a coil spring under it. Press it down to unlatch the cover, then lift the cover from the back.',
+  [[profR(P([[520, 275], [556, 275], [556, 283], [520, 283]]), 22, 0.8), 'dark'],
    [spring(3.2, 0.5, 15, 7, 'y', X(540), Y(297), -6), 'spring'],
    [spring(3.2, 0.5, 15, 7, 'y', X(540), Y(297), 6), 'spring']]);
 
@@ -1246,7 +1251,7 @@ info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.
 
 // ---------- info panel ----------
 const SOURCES = `<p class="src">Sources: <a href="https://www.redwolfairsoft.com/classic-army-metal-stone-96-lmg-aeg-black.html">Redwolf CA063M product photos</a> (side profiles traced at 1.432 px/mm),
-<a href="https://www.evike.com/products/49134/">Evike #49134 specs</a>, <a href="https://www.emgarms.com/49134/">EMG product page</a>,
+<a href="https://www.evike.com/products/49134/">Evike #49134 specs</a>, <a href="https://www.emgarms.com/49134/">EMG product page</a> (photos of the top cover open),
 Team Black Sheep's KAC LMG review (gearbox and field-strip photos), the Airsoft Canada and <a href="https://www.airsoftsociety.com/threads/upgrading-classic-army-kac-stoner-96.165999/">Airsoft Society</a> teardown threads,
 <a href="https://stampedetactical.com/classic-army-stoner-96/">BCI / Stampede Stoner 96 parts</a>,
 <a href="https://www.airsoftatlanta.com/products/shs-steel-aeg-gear-set-standard-18-1-gear-ratio-2013-edition">Airsoft Atlanta, SHS 18:1 gear set</a> (standard tooth counts), <a href="https://ampedairsoft.com/aip-motor-pinion-gear-for-aeg-d-shape/">AIP motor pinion</a>, <a href="https://ampedairsoft.com/shs-anti-reversal-latch-with-spring/">SHS anti-reversal latch</a> (the standard V2 parts, as on the V2 gearbox page), <a href="https://en.wikipedia.org/wiki/Knight%27s_Armament_Company_LAMG">Wikipedia: KAC LAMG</a>.
@@ -1260,7 +1265,7 @@ function showOverview() {
     <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare. The shell outline, gear axles and sizes, cylinder, piston rack, tappet plate and its spring, and the switch are traced from Team Black Sheep's photo of the open left half. The photo shows no cut-off lever, as fits a full-auto-only gun. Tooth counts, the crown teeth, the motor and the anti-reversal latch (hidden behind the bevel gear in the photo) follow the standard V2 parts on the V2 gearbox page and are approximate.</li>
     <li>Day-one fixes: the hop-up (rough casting, the barrel clip lets the barrel shift; Bullgear's Stoner hop-up replaces it), the box mag (tape the loading door, wire it to the trigger) and the weak stock motor.</li>
     <li>M249 mags: the box body is shared, the feed tube collar is not. Swap the feed tube (printed Stoner 96 tube, 3/8in coupler, or a BCI adapter set to Stoner 96) and tape the clamp if the mag wobbles.</li>
-    <li>The Gun section of the View panel works the gun. Hold to fire (Space) pulls the trigger; the gun is full auto only, so the gears run as long as it is held and stop where they are when it is let go. Each turn the pin on the sector gear pushes the tappet plate and nozzle back to feed a BB, then its teeth draw the piston back against the spring and the last tooth lets it go, and a BB leaves the muzzle. Rate of fire sets the turns a minute: shops list 800 to 1,000 rounds a minute for the stock gun (900 to start); slide it up for an upgraded motor and battery. Selector (S) steps SAFE and FIRE; on SAFE the trigger stops at the start of its pull. Drop mag (M) slides the box out to the left and down; Load (R) fills it to 1,200. Below about 200 BBs the box stops feeding every so often and the gun fires dry until you Shake (X) it, as owners report. Top cover (T) presses the latch and lifts the cover off the hop-up dial. Stock (E) slides the stock out 70mm (819mm to 889mm overall). Slow motion slows the cycle down.</li>
+    <li>The Gun section of the View panel works the gun. Hold to fire (Space) pulls the trigger; the gun is full auto only, so the gears run as long as it is held and stop where they are when it is let go. Each turn the pin on the sector gear pushes the tappet plate and nozzle back to feed a BB, then its teeth draw the piston back against the spring and the last tooth lets it go, and a BB leaves the muzzle. Rate of fire sets the turns a minute: shops list 800 to 1,000 rounds a minute for the stock gun (900 to start); slide it up for an upgraded motor and battery. Selector (S) steps SAFE and FIRE; on SAFE the trigger stops at the start of its pull. Drop mag (M) slides the box out to the left and down; Load (R) fills it to 1,200. Below about 200 BBs the box stops feeding every so often and the gun fires dry until you Shake (X) it, as owners report. Top cover (T) presses the latch tab and swings the cover up on its front hinge, off the hop-up dial and nozzle. Stock (E) slides the stock out 70mm (819mm to 889mm overall). Slow motion slows the cycle down.</li>
     <li>The Explode slider strips it in order: the box mag slides out of its bracket to the left (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
   </ul>
   <p>${parts.length} modeled assemblies. Classic Army publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
@@ -1462,7 +1467,7 @@ const FEED_LOW = 200, FEED_RUN = 40;   // below about 200 BBs the box feeds in s
 const GUN = { held: false, sel: 0, mag: true, bbs: MAG_BBS, cover: false, stock: false, rpm: 900, stall: false, run: 0 };
 const SEL_A = [0, 45 * D2R];           // lever turn from SAFE to FIRE (estimate)
 const STOCK_TRAVEL = 70;               // 819mm stock in, 889mm out (Evike)
-const COVER_A = 70 * D2R, COVER_PV = [X(700), Y(272)], LATCH_PV = [X(562), Y(288)];   // cover hinges at its back edge, the latch holds the front
+const COVER_A = -100 * D2R, COVER_PV = [X(558), Y(288)], LATCH_PV = COVER_PV;   // cover hinges on the pin at its front and stands a little past upright (EMG photos)
 const SEL_PV = [X(840), Y(390)], TRG_PV = [X(800), Y(401)];
 const SHOT_U = 0.8, PULL_U = 0.3;       // the teeth pick up the rack at 0.3 of a turn and let it go at 0.8
 const STROKE = Math.PI * PICK_R;        // half a turn of the piston teeth, about 42mm
