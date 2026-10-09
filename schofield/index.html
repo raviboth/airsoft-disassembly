@@ -412,12 +412,24 @@ const meshes = [];
 const root = new THREE.Group();
 scene.add(root);
 
+// wood grain for the grip panels, from the model-space position (the CSG cuts leave no uv coordinates): streaks running
+// down the grip, wavering a little, with darker rings
+function woodGrain(mat) {
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying vec3 vWp;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvWp = position;');
+    sh.fragmentShader = 'varying vec3 vWp;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      float u = vWp.x * 0.55 + vWp.y * 0.1 + sin(vWp.y * 0.09 + vWp.z * 0.2) * 1.6 + sin(vWp.y * 0.031) * 3.0;
+      float g = 0.5 + 0.5 * sin(u * 3.1), r = smoothstep(0.82, 1.0, 0.5 + 0.5 * sin(u * 0.9 + 1.3));
+      diffuseColor.rgb *= 0.82 + 0.22 * g - 0.18 * r;`);
+  };
+}
 function part(id, name, cat, explode, info, pieces, opts = {}) {
   const grp = new THREE.Group();
   grp.userData = { id, name, cat, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell };
   for (const [geo, matKey] of pieces) {
     const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey] });
     if (geo.type === 'LatheGeometry') mat.side = THREE.DoubleSide;
+    if (matKey === 'wood') woodGrain(mat);
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = true; m.receiveShadow = true;
     m.userData.part = grp; m.userData.baseEmissive = mat.emissive.getHex();
@@ -518,11 +530,30 @@ const ch = k => [CY + PR * Math.cos(k * 60 * D2R), PR * Math.sin(k * 60 * D2R)];
 const HINGE = [X(398), Y(365)];            // the barrel's hinge, at the front of the frame below the cylinder
 const STRAP = [7, 15.2, X(540)];           // top strap: bottom, top, back end
 const FR_Z = 16;                           // frame half width at the cylinder (estimate)
-const HPV = [X(593), Y(327)];              // hammer pivot (estimate)
+// The frame, grip, latch and hammer are traced from Barra's 2048px left-side photo of the same WinGun gun (its 5in
+// version), at 5.74 px/mm: the scale that gives the same breech-to-grip length as the ASG photo.
+const KB = 5.74, OXB = 1237, OYB = 775;
+const XB = px => (OXB - px) / KB, YB = py => (OYB - py) / KB;
+const PB = pts => pts.map(([a, b]) => [XB(a), YB(b)]);
+const HPV = [XB(1400), YB(855)];           // hammer pivot (estimate: hidden in the frame)
 const TPV = [X(552), Y(392)];              // trigger pivot (estimate)
-const LPV = [X(544), Y(309)];              // barrel latch pivot: the screw under the latch's knob
-const VALVE_X0 = -20.5, STEM_X = -23.4;    // back of the valve body, and the end of its stem that the hammer strikes
-const CO2_T = [-61.7, -33], CO2_A = Math.atan2(-71.7, -15.7);   // top of the CO2 capsule's neck, and the grip's line down to its base
+const LPV = [XB(1287.5), YB(805)];         // barrel latch pivot: the ringed screw under the latch's knob
+const VALVE_X0 = -17.5, STEM_X = -20.1;    // back of the valve body, and the end of its stem that the hammer strikes
+const CO2_T = [-64.2, -36.5], CO2_A = Math.atan2(-63.5, -11.3);   // top of the CO2 capsule's neck, and the grip's line down to its base
+// move each corner of an outline in by d along the bisector of its two edges
+function inset(pts, d) {
+  const n = pts.length; let A = 0;
+  for (let i = 0; i < n; i++) { const [a, b] = pts[i], [c, e] = pts[(i + 1) % n]; A += a * e - c * b; }
+  const sg = A > 0 ? 1 : -1;
+  return pts.map((p, i) => {
+    const a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
+    const n1 = new THREE.Vector2(-(p[1] - a[1]), p[0] - a[0]).normalize(), n2 = new THREE.Vector2(-(b[1] - p[1]), b[0] - p[0]).normalize();
+    const m = n1.clone().add(n2).normalize(), k = d / Math.max(0.4, m.dot(n1));
+    return [p[0] + sg * m.x * k, p[1] + sg * m.y * k];
+  });
+}
+// a polyline's x at height py (points ordered by py), for the grip's front and back edges
+const edgeAt = (poly, py) => { for (let i = 0; i < poly.length - 1; i++) { const [x0, y0] = poly[i], [x1, y1] = poly[i + 1]; if (py <= y1) return x0 + (x1 - x0) * (py - y0) / (y1 - y0); } return poly[poly.length - 1][0]; };
 
 // ================= BARREL AND HINGE =================
 part('barrel', 'Barrel + top strap', 'brl', [40, 80, 0],
@@ -532,7 +563,8 @@ part('barrel', 'Barrel + top strap', 'brl', [40, 80, 0],
    [profR(P([[30, 257], [32, 251], [40, 248], [50, 249], [56, 257]]), 2.2, 0.3), 'blued'],                              // front sight
    [profR(P([[236, 310], [266, 333], [370, 333], [385, 342], [398, 352], [420, 345], [430, 330], [430, 312]]), 12, 0.8), 'blued'],   // under-lug
    [cyl(X(398) - X(420) + 0.2, 12, 'z', ...HINGE, 0, 32), 'blued'],                                                      // hinge knuckle
-   [cut(bx(STRAP[2], CYL_X1 + 0.6, STRAP[0], STRAP[1], -9, 9), [bx(STRAP[2] - 1, STRAP[2] + 3, 12.4, 16, -10, 10)]), 'blued']], { shell: true });   // top strap, notched for the latch
+   [cut(bx(STRAP[2], CYL_X1 + 0.6, STRAP[0], STRAP[1], -9, 9), [bx(STRAP[2] - 1, STRAP[2] + 3, 12.4, 16, -10, 10)]), 'blued'],
+   ...[[1110, 704], [1200, 704]].map(([px, py]) => [ringZ(0, 1.9, XB(px), YB(py), -9, -9.6, 16), 'steel'])], { shell: true });   // top strap screws   // top strap, notched for the latch
 
 part('innerBarrel', 'Inner barrel', 'brl', [60, 115, 0],
   'Brass inner barrel inside the outer barrel, from the cylinder gap to just short of the muzzle. The 6mm version has a fixed hop-up (Redwolf).',
@@ -573,36 +605,67 @@ part('extractor', 'Extractor star + rod', 'cyl', [-15, 170, 0],
    [mergeGeometries(Array.from({ length: 6 }, (_, k) => bx(0.2, 1, -1, 1, -3.8, -1.6).rotateX(k * 60 * D2R + 30 * D2R).translate(0, CY, 0))), 'steel']]);   // ratchet teeth
 
 // ================= FRAME AND LOCKWORK =================
-const FR_OUT = P([[525, 282], [545, 280], [568, 282], [578, 286], [605, 300], [625, 305], [655, 322], [690, 345], [712, 360], [718, 372], [700, 380], [645, 396], [628, 400], [600, 397], [576, 401], [545, 401], [480, 399], [420, 397], [408, 390], [410, 377], [525, 377]]);
-const FR_IN = P([[528, 289], [570, 290], [600, 305], [650, 330], [688, 355], [640, 390], [560, 394], [528, 394]]);
-const GF_OUT = P([[712, 360], [720, 372], [732, 415], [746, 460], [756, 505], [760, 552], [652, 553], [654, 520], [650, 490], [643, 450], [634, 412], [628, 400], [645, 394], [700, 378]]);
-const GF_IN = P([[703, 378], [728, 420], [741, 462], [750, 505], [753, 545], [660, 545], [660, 505], [652, 460], [643, 418], [648, 400]]);
+// grip: side outline with the frame's straps at its front and back edges, and the wood's front and back edges
+const GRIPB = [[1500, 1105], [1505, 1080], [1515, 1050], [1540, 1000], [1580, 975], [1630, 964], [1665, 970], [1690, 990], [1730, 1050], [1770, 1140], [1800, 1230],
+  [1825, 1320], [1845, 1400], [1852, 1470], [1848, 1482], [1540, 1482], [1533, 1470], [1538, 1400], [1545, 1330], [1540, 1260], [1525, 1180]];
+const GRIP_FRONT = [[1453, 940], [1500, 1105], [1525, 1180], [1540, 1260], [1545, 1330], [1538, 1400], [1533, 1470], [1533, 1500]];
+const GRIP_BACK = [[1640, 940], [1665, 970], [1690, 990], [1730, 1050], [1770, 1140], [1800, 1230], [1825, 1320], [1845, 1400], [1852, 1470], [1852, 1500]];
+const GRIP_SCREW = [XB(1705), YB(1230)];
+// The grip is lofted through horizontal sections between the traced front and back edges: rounded (superellipse)
+// sections, slimmer at the front, swelling slightly towards the butt, then trimmed to the traced side outline. The
+// frame's grip core is the same shape 7mm slimmer, so only its front and back straps show between the panels.
+const gripLv = (dw, dx) => Array.from({ length: 20 }, (_, i) => { const py = 940 + i * (1490 - 940) / 19, t = i / 19;
+  return { y: YB(py), xf: XB(edgeAt(GRIP_FRONT, py)) - dx, xb: XB(edgeAt(GRIP_BACK, py)) + dx, w: 30 + 5 * Math.sin(Math.PI / 2 * t) + dw }; });
+const gripLoft = (dw, dx) => cut(loft(gripLv(dw, dx), { n: 2.3, seg: 64, frontTaper: 0.8 }), [prof(PB(GRIPB), 60, 0)], INTERSECTION);
+const GRIP_WOOD = gripLoft(0, 1.2), GRIP_CORE = gripLoft(-7, 0), GRIP_CUT = gripLoft(-6.6, 0);   // wood, the frame's grip core inside it, and the core's cutter
+// the frame narrows behind the hammer to the grip's width: its plan outline
+const FR_HALF = x => x > -40 ? FR_Z : x > -58 ? FR_Z - (FR_Z - 13) * (-40 - x) / 18 : 13;
+const frPlan = d => prof([[70, FR_Z - d], [-40, FR_Z - d], [-58, 13 - d], [-140, 13 - d], [-140, -13 + d], [-58, -13 + d], [-40, -FR_Z + d], [70, -FR_Z + d]], 400, 0).rotateX(Math.PI / 2);
+const FR_PLAN = frPlan(0);
+const FR_OUT = PB([[1240, 758], [1300, 760], [1330, 780], [1347, 795], [1460, 840], [1510, 862], [1560, 892], [1610, 925], [1650, 955], [1668, 972],
+  [1630, 964], [1580, 975], [1540, 1000], [1515, 1050], [1505, 1080], [1500, 1105], [1470, 1075], [1440, 1058], [1400, 1048], [1300, 1042], [1100, 1040],
+  [990, 1042], [941, 1032], [945, 990], [1240, 990]]);
+const FR_IN = PB([[1246, 768], [1325, 787], [1460, 850], [1600, 925], [1530, 990], [1495, 1075], [1430, 1050], [1246, 1033]]);
 part('frame', 'Frame', 'frm', [0, 0, 0],
-  'Metal frame: the standing breech behind the cylinder, the hammer slot, the forked lugs at the front that carry the hinge, and the grip frame. The CO2 capsule sits in the grip frame; the valve lives in the frame behind the breech face. All-metal construction (Gunmart).',
-  [[cut(profR(FR_OUT, 2 * FR_Z, 1), [prof(FR_IN, 2 * FR_Z - 4, 0),
-      bx(X(612), X(568), Y(310), Y(276), -4, 4),                      // hammer slot
+  'Metal frame: the standing breech behind the cylinder, the hammer slot, the forked lugs at the front that carry the hinge, and the grip frame, whose rounded front and back straps show between the grip panels. The CO2 capsule sits in the grip frame, open on the left; the valve lives in the frame behind the breech face. All-metal construction (Gunmart).',
+  [[cut(cut(profR(FR_OUT, 2 * FR_Z, 3.5), [FR_PLAN], INTERSECTION), [cut(prof(FR_IN, 2 * FR_Z - 4, 0), [frPlan(2)], INTERSECTION),
+      bx(XB(1462), -18.3, YB(860), YB(780), -4, 4),                    // hammer slot
       bx(X(560), X(540), Y(420), Y(380), -3.5, 3.5),                  // trigger slot
       cyl(3.2, 6, 'x', -1, 0, 0, 16)]), 'blued'],                     // gas port in the breech face
-   [cut(profR(GF_OUT, 24, 1), [prof(GF_IN, 22, 0).translate(0, 0, -4)]), 'blued'],
+   [cut(GRIP_CORE, [prof(inset(PB(GRIPB), 4.5), 24, 0).translate(0, 0, -5)]), 'blued'],   // grip frame, open on the left for the capsule
    ...[-1, 1].map(s => [bx(40, HINGE[0], HINGE[1] - 11.6, HINGE[1] + 2, Math.min(s * 6.3, s * (FR_Z - 0.6)), Math.max(s * 6.3, s * (FR_Z - 0.6))), 'blued']),   // forked hinge lugs
    ...[-1, 1].map(s => [ringZ(2.4, 11.6, ...HINGE, s * 6.3, s * (FR_Z - 0.6), 32), 'blued'])], { shell: true });
 
 part('sideplate', 'Sideplate', 'frm', [0, 0, -55],
-  'Plate on the left of the frame over the lockwork, held by two screws.',
-  [[profR(P([[548, 300], [575, 290], [612, 300], [655, 325], [675, 348], [662, 385], [630, 394], [560, 394], [546, 380]]), 1, 0.3).translate(0, 0, -FR_Z - 0.3), 'blued'],
-   ...[[563, 359], [647, 355]].map(([px, py]) => [ringZ(0, 2.6, X(px), Y(py), -FR_Z - 0.6, -FR_Z - 1.5, 16), 'steel'])], { shell: true });
+  'Plate on the left of the frame over the lockwork, held by two screws, its edge following the curve of the frame behind the cylinder.',
+  [[profR(PB([[1262, 790], [1330, 805], [1400, 830], [1470, 858], [1530, 890], [1548, 925], [1540, 965], [1510, 995], [1460, 1015], [1400, 1024], [1330, 1018],
+      [1290, 998], [1268, 960], [1256, 900], [1254, 830]]), 1.2, 0.4).translate(0, 0, -FR_Z - 0.3), 'blued'],
+   ...[[1337, 950], [1520, 940]].flatMap(([px, py]) => { const z = -FR_HALF(XB(px)); return [[ringZ(0, 2.7, XB(px), YB(py), z - 0.8, z - 1.7, 20), 'steel'],
+     [bx(XB(px) - 2.4, XB(px) + 2.4, YB(py) - 0.3, YB(py) + 0.3, z - 1.9, z - 1.4), 'black']]; })], { shell: true });
 
+// latch, traced: the round-topped thumb piece with its knurled top and rear sight notch, the neck, and the boss round
+// its pivot screw on the left of the frame
+const LATCH = PB([[1274, 660], [1300, 657], [1325, 661], [1340, 670], [1350, 690], [1352, 710], [1345, 728], [1330, 745], [1316, 758], [1310, 780], [1312, 805],
+  [1305, 825], [1288, 832], [1268, 825], [1260, 805], [1262, 775], [1275, 748], [1288, 732], [1289, 720], [1274, 720]]);
 part('latch', 'Barrel latch', 'frm', [-15, 80, 0],
-  'Lever on the frame in front of the hammer, with a round knob on top. Its nose hooks over the end of the top strap; thumb the knob back and the barrel is free to tip down (Redwolf: “a lever in front of the hammer”). A spring pushes it forward again.',
-  [[profR([[LPV[0] - 3, LPV[1] - 3], [LPV[0] + 3, LPV[1] - 3], [STRAP[2] + 1.8, 12.4], [STRAP[2] + 1.8, 14.6], [X(560), 14.6], [X(560), 9]], 9, 0.5).translate(0, 0, -3), 'blued'],
-   [cyl(5.2, 9, 'z', X(552), Y(262), -3, 28), 'blued'], [cyl(1.4, 12, 'z', ...LPV, -3, 12), 'steel']]);
+  'Lever on the frame in front of the hammer, pivoting on the ringed screw low on its left side. Its round-topped thumb piece is knurled across the top and notched for the rear sight; its lip hooks over the end of the top strap. Thumb it back and the barrel is free to tip down (Redwolf: “a lever in front of the hammer”). A spring pushes it forward again.',
+  [[cut(profR(LATCH, 9, 1.2), [bx(XB(1360), XB(1265), YB(668), YB(650), -0.9, 0.9)]), 'blued'],                     // rear sight notch along the top
+   [mergeGeometries(Array.from({ length: 8 }, (_, i) => { const t = (i + 0.5) / 8, x = XB(1278 + 56 * t), y = YB(659 + 5 * t * t) + 0.1;
+     return bx(x - 0.3, x + 0.3, y - 0.5, y + 0.3, -4.4, 4.4); })), 'dark'],                                                   // knurling
+   [ringZ(0, 4.4, ...LPV, -FR_Z - 0.2, -FR_Z - 1.3, 28), 'blued'], [ringZ(0, 2.6, ...LPV, -FR_Z - 1.3, -FR_Z - 1.9, 20), 'steel'],
+   [bx(LPV[0] - 2.2, LPV[0] + 2.2, LPV[1] - 0.3, LPV[1] + 0.3, -FR_Z - 2.1, -FR_Z - 1.6).rotateZ(0), 'black'],
+   [cyl(1.4, 2 * FR_Z, 'z', ...LPV, 0, 12), 'steel']]);
 
-// hammer, traced at rest: spur, front face over the valve stem, and the body down round the pivot
-const HAM = P([[605, 258], [611, 252], [615, 249], [616, 253], [610, 262], [605, 278], [603, 300], [602, 322], [600, 336], [592, 340], [584, 336], [580, 322], [578, 300], [572, 288], [574, 282], [583, 272]]);
+// hammer, traced at rest: the thin spur curling up and back with its checkering, the face over the valve stem, and the
+// body down round the pivot inside the frame (that part estimated)
+const HAM = PB([[1451, 691], [1440, 689], [1427, 692], [1415, 702], [1405, 715], [1395, 725], [1380, 730], [1365, 730], [1355, 733], [1350, 745], [1350, 755],
+  [1352, 770], [1350, 795], [1355, 830], [1365, 860], [1385, 880], [1410, 885], [1428, 870], [1432, 840], [1425, 815], [1410, 800], [1402, 790], [1390, 775],
+  [1387, 760], [1392, 750], [1405, 732], [1420, 720], [1437, 702], [1450, 695]]);
 part('hammer', 'Hammer', 'frm', [-40, 80, 0],
-  'Single action only: thumb the hammer back to turn the cylinder and set the trigger, then the trigger lets it fall (Gunmart, davekearley.co.uk). On the CO2 gun the hammer does not touch the shell: it strikes the valve stem in the frame behind the breech face, which lets a measure of gas through to the shell (WinGun’s hammer-fired valve, Booligan Airsoft review). The full-cock notch on its underside holds it on the trigger.',
-  [[cut(profR(HAM, 7, 0.6), [cyl(1.8, 10, 'z', ...HPV, 0, 14)]), 'dark'],
-   [mergeGeometries(Array.from({ length: 5 }, (_, i) => bx(-0.5, 0.5, -0.4, 0.4, -3.6, 3.6).translate(X(608) - i * 1.2, Y(254) + i * 1.3, 0))), 'blued'],   // spur checkering
+  'Single action only: thumb the hammer back to turn the cylinder and set the trigger, then the trigger lets it fall (Gunmart, davekearley.co.uk). On the CO2 gun the hammer does not touch the shell: it strikes the valve stem in the frame behind the breech face, which lets a measure of gas through to the shell (WinGun’s hammer-fired valve, Booligan Airsoft review). The spur is checkered on top; the full-cock notch on the underside holds it on the trigger.',
+  [[cut(profR(HAM, 7, 1), [cyl(1.8, 10, 'z', ...HPV, 0, 14)]), 'dark'],
+   [mergeGeometries(Array.from({ length: 9 }, (_, i) => { const t = (i + 0.5) / 9, x0 = XB(1450 - 52 * t), y0 = YB(690 + 20 * t * t) + 0.25, a = Math.atan2(-40 * t / KB, 52 / KB);
+     return bx(-0.3, 0.3, -0.5, 0.4, -3.3, 3.3).rotateZ(a).translate(x0, y0, 0); })), 'blued'],                             // spur checkering
    [cyl(1.6, 14, 'z', ...HPV, 0, 14), 'steel']]);
 
 part('hammerSpring', 'Hammer spring + strut', 'frm', [-80, 60, 0],
@@ -616,7 +679,7 @@ const TRG = P([[546, 392], [556, 388], [560, 393], [556, 410], [552, 428], [547,
 part('trigger', 'Trigger', 'frm', [0, -90, 0],
   'Curved trigger in the round guard. Its upper arm is the sear: it catches the hammer’s full-cock notch, and a short pull frees it. Light and predictable (Gunmart); with the hammer down it does nothing.',
   [[profR(TRG, 5, 0.5), 'dark'],
-   [profR([[TPV[0] + 1.5, TPV[1] + 2], [TPV[0] - 2, TPV[1] - 1], [-25, -26], [-22.5, -23.5]], 4, 0.4), 'dark'],   // sear arm
+   [profR([[TPV[0] + 1.5, TPV[1] + 2], [TPV[0] - 2, TPV[1] - 1], [-25.5, -21.5], [-23, -19.8]], 4, 0.4), 'dark'],   // sear arm
    [cyl(1.3, 9, 'z', ...TPV, 0, 12), 'steel'],
    [spring(1.6, 0.35, 9, 6, 'x', TPV[0] + 1, TPV[1] + 7, 0), 'spring']]);
 
@@ -644,7 +707,7 @@ part('valveStem', 'Valve stem (knocker)', 'gas', [-170, 95, 0],
 
 part('gasTube', 'Gas route', 'gas', [-150, 0, 0],
   'Passage from the capsule’s piercing seat at the top of the grip forward under the hammer and up into the valve. Drawn as a tube; in the gun it may be drilled through the frame.',
-  [[tubeAlong([[CO2_T[0] + 3, CO2_T[1] + 4, 6], [-45, -32, 7], [-22, -33, 7], [-10, -26, 6], [-9, -6, 3], [-10, -3.5, 0]], 1.1, 60), 'brass']]);
+  [[tubeAlong([[CO2_T[0] + 1.1, CO2_T[1] + 6, 4], [-45, -32, 7], [-22, -33, 7], [-10, -26, 6], [-9, -6, 3], [-10, -3.5, 0]], 1.1, 60), 'brass']]);
 
 part('co2Seat', 'Piercing seat', 'gas', [-150, -20, 0],
   'Block at the top of the grip frame with the piercing pin and seal that the capsule’s neck is screwed up against.',
@@ -657,18 +720,20 @@ part('co2', 'CO2 capsule (12g)', 'gas', [-150, -40, 0],
 
 part('co2Screw', 'Piercing screw', 'gas', [-150, -60, 0],
   'Screw in the base of the grip that pushes the capsule up onto the piercing pin; it takes the hex key (Gunmart).',
-  [[alongDir(latheX([[0, 83], [6, 83], [6, 85], [3.6, 85], [3.6, 92], [5.6, 92], [5.6, 95], [0, 95]], 24), CO2_A, ...CO2_T), 'steel']]);
+  [[alongDir(latheX([[0, 83], [6, 83], [6, 84.5], [3.6, 84.5], [3.6, 86], [5.6, 86], [5.6, 88], [0, 88]], 24), CO2_A, ...CO2_T), 'steel']]);
 
 // ================= GRIPS =================
-const GRIP = P([[632, 398], [640, 382], [660, 372], [690, 364], [712, 361], [722, 372], [735, 410], [750, 460], [760, 510], [765, 555], [762, 563], [650, 564], [645, 555], [652, 520], [650, 490], [641, 445], [633, 412]]);
+// The grip is lofted through horizontal sections between the traced front and back edges: rounded (superellipse)
+// sections, slimmer at the front, swelling slightly towards the butt, then trimmed to the traced side outline and split
+// down the middle round the grip frame.
+const gripHalf = s => cut(GRIP_WOOD, [bx(-140, 0, -140, 0, s < 0 ? 0 : -30, s < 0 ? 30 : 0), GRIP_CUT,
+  ...(s < 0 ? [cyl(4.5, 20, 'z', XB(1700), YB(1482), -12, 20)] : [])]);                        // finger notch at the base of the left panel
 part('gripL', 'Left grip panel', 'grp', [0, -20, -70],
-  'Wood-effect synthetic panel. It comes off to load the CO2: lift it at the small finger notch at its base (Gunmart). Take grip off (G) in the View panel.',
-  [[cut(profR(GRIP, 6, 1.4), [cyl(4, 20, 'z', X(700), Y(562), 0, 20)]).translate(0, 0, -15), 'wood'],
-   [ringZ(0, 4, X(708), Y(481), -18, -18.6, 20), 'blued']], { shell: true });
+  'Wood-effect synthetic panel, rounded over its face and edges. It comes off to load the CO2: lift it at the small finger notch at its base (Gunmart). Take grip off (G) in the View panel.',
+  [[gripHalf(-1), 'wood'], [ringZ(0, 4, ...GRIP_SCREW, -17.2, -18, 20), 'blued']], { shell: true });
 part('gripR', 'Right grip panel + screw', 'grp', [0, -20, 70],
   'Right panel, fixed. Its screw holds both panels.',
-  [[profR(GRIP, 6, 1.4).translate(0, 0, 15), 'wood'],
-   [ringZ(0, 4, X(708), Y(481), 18, 18.6, 20), 'blued'], [cyl(1.4, 36, 'z', X(708), Y(481), 0, 10), 'steel']], { shell: true });
+  [[gripHalf(1), 'wood'], [ringZ(0, 4, ...GRIP_SCREW, 17.2, 18, 20), 'blued'], [cyl(1.4, 36, 'z', ...GRIP_SCREW, 0, 10), 'steel']], { shell: true });
 
 
 // ---------- UI: list ----------
@@ -795,6 +860,7 @@ info.addEventListener('click', e => { if (info.classList.contains('peek') && !e.
 // ---------- info panel ----------
 const SOURCES = `<p class="src">Sources: <a href="https://www.redwolfairsoft.com/gas-blow-back-pistols-gun-heaven-gun-heaven-1877-major-3-6mm-co2-revolver-black.html">Redwolf, WinGun 1877 Major 3</a> (specs: 330mm, 1.08kg, 315 FPS, fixed hop-up; the latch, CO2 and shells),
 <a href="https://wolfarmouries.co.uk/asg-schofield-s-w-model-3-major-3-co2-airsoft-revolver.html">Wolf Armouries, ASG Schofield</a> (left-side product photo, side profile traced at 2.23 px/mm; 320mm, about 420 FPS),
+<a href="https://www.barraairguns.com/products/schofield-6mm-airsoft-co2-pistol-aged">Barra Airguns, Schofield 5in Airsoft</a> (the same WinGun gun: frame, grip, latch and hammer traced from the 2048px left-side photo at 5.74 px/mm; the grip, latch and rear sight from the three-quarter views),
 <a href="https://davekearley.co.uk/asg-schofield/">davekearley.co.uk review</a> (photos of the gun open, the shells and the CO2 in the grip; single action, 60 shots a capsule),
 <a href="https://www.gunmart.net/gun-reviews/airguns/air-pistols/schofield-6-revolver">Gunmart review</a> (loading the CO2, the hex key, the break action and extractor),
 <a href="https://www.booliganairsoft.com/2012/12/wingun-7-series-co2-revolver.html">Booligan Airsoft, WinGun 7 series</a> (WinGun's hammer-fired valve and shell seals),
