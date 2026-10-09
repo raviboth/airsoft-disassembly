@@ -40,6 +40,15 @@
   #ctrl .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   button { background:#232833; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:5px 9px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--acc); }
+  button:disabled { opacity:.45; cursor:default; border-color:var(--line); }
+  #ctrl .ph.gun { margin-top:12px; }
+  #bFire { flex:1; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #bFire.on { background:#5c2424; border-color:#c04040; }
+  #ctrl .seg { display:flex; gap:0; }
+  #ctrl .seg button { flex:1; border-radius:0; padding:4px 6px; }
+  #ctrl .seg button:first-child { border-radius:5px 0 0 5px; }
+  #ctrl .seg button:last-child { border-radius:0 5px 5px 0; }
+  #ctrl .seg button.on { border-color:var(--acc); background:#24365c; }
   #info { right:12px; bottom:12px; width:360px; max-height:50vh; display:flex; flex-direction:column; }
   #infoBody { overflow:auto; padding:12px 14px; }
   #info h2 { padding-right:18px; }
@@ -139,6 +148,23 @@
   <label><span>Labels</span><input id="labels" type="checkbox"></label>
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
   <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="ph gun">Gun</div>
+  <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
+  <label>Selector (S) <span id="selv">safe</span></label>
+  <div class="row seg" id="selSeg"><button data-s="0">Safe</button><button data-s="1">Fire</button></div>
+  <label>Rate of fire <span id="rpmv">900 rpm</span></label>
+  <input id="rpm" type="range" min="300" max="1800" step="50" value="900">
+  <label>Mag <span id="ammo">1200 BBs</span></label>
+  <div class="row">
+    <button id="bMag" title="Press the paddle and slide the mag out (M)">Drop mag (M)</button>
+    <button id="bFill" title="Load the mag (R)">Load (R)</button>
+    <button id="bShake" title="Shake the mag to free the last BBs (X)">Shake (X)</button>
+  </div>
+  <div class="row">
+    <button id="bCover" title="Press the latch and lift the top cover (T)">Open top cover (T)</button>
+    <button id="bStock" title="Press the lever and slide the stock (E)">Extend stock (E)</button>
+  </div>
+  <label><span>Slow motion</span><input id="slow" type="checkbox"></label>
   <div class="row">
     <button id="bReset">Reset view</button>
     <button id="bInfo">Overview</button>
@@ -1126,10 +1152,11 @@ function showOverview() {
     <li>Gearbox: Classic Army's own 8mm shell, long at the front, round standard V2 internals: V2/V3 gears, quick-change spring, bore-up cylinder, double O-ring head, nozzle just under 19mm. Wired to the front. The shell is not sold as a spare. The shell outline, gear axes, cylinder, switch block and tappet spring are traced from Team Black Sheep's photo of the open left half; the smaller parts (crown teeth, anti-reversal latch, cut-off lever, tappet plate) follow the standard V2 layout and are approximate.</li>
     <li>Day-one fixes: the hop-up (rough casting, the barrel clip lets the barrel shift; Bullgear's Stoner hop-up replaces it), the box mag (tape the loading door, wire it to the trigger) and the weak stock motor.</li>
     <li>M249 mags: the box body is shared, the feed tube collar is not. Swap the feed tube (printed Stoner 96 tube, 3/8in coupler, or a BCI adapter set to Stoner 96) and tape the clamp if the mag wobbles.</li>
+    <li>The Gun section of the View panel works the gun. Hold to fire (Space) pulls the trigger; the gun is full auto only, so the gears run as long as it is held and stop where they are when it is let go. Each turn the sector gear\'s cam draws the tappet plate and nozzle back to feed a BB, then its teeth draw the piston back against the spring and the last tooth lets it go, and a BB leaves the muzzle. Rate of fire sets the turns a minute: shops list 800 to 1,000 rounds a minute for the stock gun (900 to start); slide it up for an upgraded motor and battery. Selector (S) steps SAFE and FIRE; on SAFE the trigger stops at the start of its pull. Drop mag (M) slides the box out to the left and down; Load (R) fills it to 1,200. Below about 200 BBs the box stops feeding every so often and the gun fires dry until you Shake (X) it, as owners report. Top cover (T) presses the latch and lifts the cover off the hop-up dial. Stock (E) slides the stock out 70mm (819mm to 889mm overall). Slow motion slows the cycle down.</li>
     <li>The Explode slider strips it in order: the box mag slides out of its bracket to the left (to 15%), the barrel and handguard group comes off forward and the stock off the back (to 35%), the receiver parts spread (to 60%), then the gearbox comes out and opens (to 100%).</li>
   </ul>
   <p>${parts.length} modeled assemblies. Classic Army publishes no exploded view or parts list for this gun, so parts are named, not numbered. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
-  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
+  <p class="src">Keys: / search, F zoom to the selected part, Esc show all or deselect, H hide or show panels, P parts, V view, I info, 1 to 6 front, back, top, left, right and bottom views, O orthographic, Space fire, S selector, M mag, R load, X shake, T top cover, E stock. Click a face, edge or corner of the view cube to look from there, or drag it to turn the view.</p>${SOURCES}`;
 }
 document.getElementById('bInfo').onclick = () => select(null);
 
@@ -1302,13 +1329,132 @@ addEventListener('keydown', e => {
   else if (k === 'i') showPanel('info', !isOpen('info'));
   else if (VIEW_KEYS[k]) viewFrom(VIEW_KEYS[k]);
   else if (k === 'o') { orthoCb.checked = !orthoCb.checked; orthoCb.onchange(); }
+  else if (k === ' ') { e.preventDefault(); if (!e.repeat) setHeld(true); }
+  else if (k === 's') setSel(1 - GUN.sel);
+  else if (k === 'm') toggleMag();
+  else if (k === 'r') loadMag();
+  else if (k === 'x') shakeMag();
+  else if (k === 't') toggleCover();
+  else if (k === 'e') toggleStock();
 });
+addEventListener('keyup', e => { if (e.key === ' ') setHeld(false); });
+addEventListener('blur', () => setHeld(false));
 MOBILE.addEventListener('change', initPanels);
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
 });
+
+// ---------- gun ----------
+// Gun state. sel: 0 SAFE, 1 FIRE (full auto only). The sector gear's turns count up in ph and run while the trigger
+// switch is closed; a shot leaves as each turn passes 0.75, when the last tooth lets the piston go.
+const MAG_BBS = 1200;                  // Evike / EMG
+const FEED_LOW = 200, FEED_RUN = 40;   // below about 200 BBs the box feeds in spells and wants a shake (owner reports; the spell length is an estimate)
+const GUN = { held: false, sel: 0, mag: true, bbs: MAG_BBS, cover: false, stock: false, rpm: 900, stall: false, run: 0 };
+const SEL_A = [0, 45 * D2R];           // lever turn from SAFE to FIRE (estimate)
+const STOCK_TRAVEL = 70;               // 819mm stock in, 889mm out (Evike)
+const COVER_A = 70 * D2R, COVER_PV = [X(700), Y(272)], LATCH_PV = [X(562), Y(288)];   // cover hinges at its back edge, the latch holds the front
+const SEL_PV = [X(840), Y(390)], TRG_PV = [X(800), Y(401)];
+const SHOT_U = 0.75, PULL_U = 0.3;      // the teeth pick up the rack at 0.3 of a turn and let it go at 0.75
+const STROKE = 160 * D2R * 12.4;        // the sector's 160 degrees of teeth at their 12.4mm radius, about 35mm
+const SPRING_BACK = -336, SPRING_LEN = 128;
+const fireBtn = document.getElementById('bFire'), magBtn = document.getElementById('bMag'), coverBtn = document.getElementById('bCover');
+const stockBtn = document.getElementById('bStock'), shakeBtn = document.getElementById('bShake');
+const ammoEl = document.getElementById('ammo'), slowCb = document.getElementById('slow'), selv = document.getElementById('selv');
+const rpmCtl = document.getElementById('rpm'), rpmv = document.getElementById('rpmv');
+const selBtns = [...document.querySelectorAll('#selSeg button')];
+const showMag = () => {
+  ammoEl.textContent = `${GUN.mag ? '' : 'out, '}${GUN.bbs} BB${GUN.bbs === 1 ? '' : 's'}${GUN.stall && GUN.mag && GUN.bbs ? ', not feeding' : ''}`;
+  magBtn.textContent = GUN.mag ? 'Drop mag (M)' : 'Insert mag (M)';
+  shakeBtn.disabled = !GUN.mag;
+};
+const showSel = () => { selv.textContent = GUN.sel ? 'FIRE' : 'SAFE'; selBtns.forEach((b, i) => b.classList.toggle('on', i === GUN.sel)); };
+function setHeld(h) { GUN.held = h; fireBtn.classList.toggle('on', h); }
+function setSel(i) { GUN.sel = i; showSel(); }
+function toggleMag() { GUN.mag = !GUN.mag; showMag(); }
+function loadMag() { GUN.bbs = MAG_BBS; GUN.stall = false; GUN.run = 0; showMag(); }
+function shakeMag() { if (!GUN.mag) return; GUN.stall = false; GUN.run = 0; shakeT = 1; showMag(); }
+function toggleCover() { GUN.cover = !GUN.cover; coverBtn.textContent = GUN.cover ? 'Close top cover (T)' : 'Open top cover (T)'; }
+function toggleStock() { GUN.stock = !GUN.stock; stockBtn.textContent = GUN.stock ? 'Collapse stock (E)' : 'Extend stock (E)'; }
+const showRpm = () => { GUN.rpm = +rpmCtl.value; rpmv.textContent = `${GUN.rpm} rpm (${(GUN.rpm / 60).toFixed(1)} a second)`; };
+rpmCtl.oninput = showRpm; showRpm();
+fireBtn.addEventListener('pointerdown', e => { fireBtn.setPointerCapture(e.pointerId); setHeld(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) fireBtn.addEventListener(ev, () => setHeld(false));
+fireBtn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') e.preventDefault(); });
+selBtns.forEach((b, i) => b.onclick = () => setSel(i));
+magBtn.onclick = toggleMag; document.getElementById('bFill').onclick = loadMag; shakeBtn.onclick = shakeMag;
+coverBtn.onclick = toggleCover; stockBtn.onclick = toggleStock;
+showSel(); showMag();
+let fireT = 0, ph = 0, magOut = 0, shakeT = 0, coverT = 0, stockT = 0, selCur = 0, windA = 0, lastT = performance.now();
+const byId = Object.fromEntries(parts.map(p => [p.userData.id, p]));
+const kids = id => byId[id].children.filter(c => c.isMesh);
+const GEARS = kids('gears'), TRIGGER = kids('trigger'), CYL = kids('cylinder'), SPRING = kids('mainSpring')[0], PISTON = kids('piston'), WIND = kids('magMotor')[1];
+const MAG_IDS = new Set(['magBox', 'magPouch', 'feedTube', 'magMotor']);
+// turn a mesh or part about a pivot (x, y) in the side plane, on top of whatever position it already has
+const turnAbout = (o, [px, py], a) => {
+  o.rotation.z = a;
+  o.position.x += px - (px * Math.cos(a) - py * Math.sin(a));
+  o.position.y += py - (px * Math.sin(a) + py * Math.cos(a));
+};
+// BBs: one waits in the bucking while the box is feeding, and each shot sends a loose one out of the muzzle
+const BB_GEO = new THREE.SphereGeometry(2.97, 14, 10), BB_X = -111, flying = [];
+const bbIn = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: 0.35 }));
+bbIn.position.set(BB_X, 0, 0); root.add(bbIn);
+function gunStep() {
+  const now = performance.now(), dt = Math.min((now - lastT) / 1000, 0.05); lastT = now;
+  const built = exCur < 0.01, slow = slowCb.checked, ease = k => 1 - Math.exp(-k * dt);
+  magOut += THREE.MathUtils.clamp((GUN.mag ? 0 : 1) - magOut, -1.5 * dt, 1.5 * dt);
+  const magIn = magOut < 0.01;
+  shakeT = Math.max(shakeT - 2 * dt, 0);
+  coverT += THREE.MathUtils.clamp((GUN.cover ? 1 : 0) - coverT, -2 * dt, 2 * dt);
+  stockT += THREE.MathUtils.clamp((GUN.stock ? 1 : 0) - stockT, -3 * dt, 3 * dt);
+  selCur += (SEL_A[GUN.sel] - selCur) * ease(18);
+  // trigger pull (about 0.12s); on SAFE the selector stops it at the start. The switch closes near the end of the pull.
+  fireT = THREE.MathUtils.clamp(fireT + (GUN.held && built ? 8 : -8) * dt, 0, GUN.sel === 0 ? 0.12 : 1);
+  const ph0 = ph;
+  if (fireT > 0.9) ph += dt * GUN.rpm / 60 * (slow ? 0.05 : 1);
+  if (fireT > 0.9 && magIn) windA += dt * 25;   // the sound switch trips and the box winds while the gun runs
+  for (let k = Math.floor(ph0 - SHOT_U) + 1; k <= Math.floor(ph - SHOT_U); k++) {
+    if (!magIn || !GUN.bbs || GUN.stall) continue;
+    GUN.bbs--;
+    if (GUN.bbs < FEED_LOW && ++GUN.run >= FEED_RUN) GUN.stall = true;
+    showMag();
+    const b = new THREE.Mesh(BB_GEO, bbIn.material);
+    b.position.set(-90, 0, 0); b.userData.v = slow ? 400 : 4000; root.add(b); flying.push(b);
+  }
+  const gbxOn = !isolated && catOn.gbx;
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const b = flying[i]; b.position.x += b.userData.v * dt; b.visible = gbxOn;
+    if (b.position.x > MUZ + 900) { root.remove(b); flying.splice(i, 1); }
+  }
+  // the sector turns counter-clockwise seen from the left, its teeth along the top running back under the rack
+  const u = ph - Math.floor(ph), aS = ph * 2 * Math.PI + 167 * D2R;
+  const pull = u < SHOT_U ? STROKE * THREE.MathUtils.clamp((u - PULL_U) / (SHOT_U - PULL_U), 0, 1) : 0;
+  const nozBack = 4 * Math.sin(Math.PI * THREE.MathUtils.clamp(u / PULL_U, 0, 1));
+  bbIn.visible = built && magIn && GUN.bbs > 0 && !GUN.stall && (u < SHOT_U || u > 0.9) && gbxOn;
+  const reset = m => { m.position.set(0, 0, 0); m.rotation.z = 0; m.scale.set(1, 1, 1); };
+  [...GEARS, ...TRIGGER, ...CYL, ...PISTON, SPRING, WIND].forEach(reset);
+  [0, 1, 2].forEach(i => turnAbout(GEARS[i], SECTOR, aS));
+  [3, 4].forEach(i => turnAbout(GEARS[i], SPUR, -aS * 44 / 15));
+  [5, 6, 7].forEach(i => turnAbout(GEARS[i], BEVEL, aS * 44 / 15 * 37 / 17));
+  turnAbout(TRIGGER[0], TRG_PV, -10 * D2R * fireT);
+  [7, 8, 9].forEach(i => TRIGGER[i].position.x = -nozBack);
+  [4, 5].forEach(i => CYL[i].position.x = -nozBack);
+  PISTON.forEach(m => m.position.x = -pull);
+  SPRING.scale.x = (SPRING_LEN - pull) / SPRING_LEN; SPRING.position.x = SPRING_BACK * (1 - SPRING.scale.x);
+  turnAbout(WIND, [-128, -95], windA);
+  const slide = 90 * stageT(magOut, 0, 0.55), drop = 140 * stageT(magOut, 0.5, 1), jig = 3 * Math.sin(now / 25) * shakeT;
+  for (const p of parts) {
+    const id = p.userData.id;
+    if (MAG_IDS.has(id)) { p.position.z -= slide - jig; p.position.y -= drop; p.position.x += jig * 0.5; }
+    if (id === 'selector') turnAbout(p, SEL_PV, selCur);
+    if (id === 'topCover') turnAbout(p, COVER_PV, COVER_A * stageT(coverT, 0.15, 1));
+    if (id === 'coverLatch') turnAbout(p, LATCH_PV, -8 * D2R * Math.sin(Math.PI * coverT));
+    if (id === 'stock') p.position.x -= STOCK_TRAVEL * stockT;
+    if (id === 'stockLatch') p.position.z += 1.5 * Math.sin(Math.PI * stockT);
+  }
+}
 
 // ---------- loop ----------
 const exv = document.getElementById('exv');
@@ -1332,10 +1478,11 @@ renderer.setAnimationLoop(() => {
   exCur += THREE.MathUtils.clamp(exTarget - exCur, -0.018, 0.018);
   exv.textContent = Math.round(exCur * 100) + '%';
   for (const p of parts) {
-    p.position.set(0, 0, 0);
+    p.position.set(0, 0, 0); p.rotation.z = 0;
     for (const [v, a, b] of p.userData.stages) p.position.addScaledVector(v, stageT(exCur, a, b));
     p.userData.label.visible = p.visible && (p === selected || (labelsCb.checked && exCur > 0.25));
   }
+  gunStep();
   if (camTween) {   // ease azimuth, elevation and distance together, so the camera swings round the target (never
     // through it) and the turn about the vertical happens along the way, not as a slow spin at the end near the poles
     const s0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
@@ -1361,7 +1508,7 @@ renderer.setAnimationLoop(() => {
 const EX_TGT = new THREE.Vector3(-80, 0, 0), EX_POS = fit(new THREE.Vector3(-500, 400, -2100), EX_TGT);
 const fromHash = () => { if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EX_POS.clone(), tgt: EX_TGT.clone() }; } };
 fromHash(); addEventListener('hashchange', fromHash);
-window.__st = { parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root };
+window.__st = { GUN, flying, parts, select, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root };
 </script>
 </body>
 </html>
