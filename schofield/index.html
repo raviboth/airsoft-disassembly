@@ -616,12 +616,25 @@ const GRIP_SCREW = [XB(1705), YB(1230)];
 // frame's grip core is the same shape 7mm slimmer, so only its front and back straps show between the panels.
 const gripLv = (dw, dx) => Array.from({ length: 20 }, (_, i) => { const py = 940 + i * (1490 - 940) / 19, t = i / 19;
   return { y: YB(py), xf: XB(edgeAt(GRIP_FRONT, py)) - dx, xb: XB(edgeAt(GRIP_BACK, py)) + dx, w: 30 + 5 * Math.sin(Math.PI / 2 * t) + dw }; });
-const gripLoft = (dw, dx) => cut(loft(gripLv(dw, dx), { n: 2.3, seg: 64, frontTaper: 0.8 }), [prof(PB(GRIPB), 60, 0)], INTERSECTION);
-const GRIP_WOOD = gripLoft(0, 1.2), GRIP_CORE = gripLoft(-7, 0), GRIP_CUT = gripLoft(-6.6, 0);   // wood, the frame's grip core inside it, and the core's cutter
+const gripLoft = (dw, dx, ft = 0.8) => cut(loft(gripLv(dw, dx), { n: 2.3, seg: 64, frontTaper: ft }), [prof(PB(GRIPB), 60, 0)], INTERSECTION);
+// The panels' top ends, where they meet the frame, are rounded over like the photos rather than left as a sawn-off face:
+// a sweep along that edge trims the corners, the panel's thickness at each point read off the lofted wood itself.
+function roundWoodTop(g) {
+  const P = g.attributes.position.array, c = new THREE.CatmullRomCurve3(PB([[1497, 1112], [1500, 1105], [1505, 1080], [1515, 1050], [1540, 1000], [1580, 975], [1630, 964], [1665, 970], [1690, 990], [1700, 1005]]).map(([x, y]) => new THREE.Vector3(x, y, 0)));
+  const half = (x, y) => { let m = 0; for (let i = 0; i < P.length; i += 3) if (Math.abs(P[i] - x) < 1.5 && Math.abs(P[i + 1] - y) < 1.5) m = Math.max(m, Math.abs(P[i + 2])); return m; };
+  const pts = c.getSpacedPoints(60).map((p, i, a) => { const q = a[Math.min(i + 1, a.length - 1)], o = a[Math.max(i - 1, 0)], t = q.clone().sub(o).normalize(); return [p.x, p.y, t.x, t.y]; });
+  const hs = pts.map(([x, y]) => half(x, y)), hm = hs.map((h, i) => Math.max(...hs.slice(Math.max(0, i - 2), i + 3)));
+  const sec = (t, x) => { const i = Math.round(t * (pts.length - 1)), h = Math.max(hm[i], 3), r = Math.min(2.6, h - 0.6);
+    const arc = s => Array.from({ length: 9 }, (_, k) => { const a = k / 8 * Math.PI / 2; return [-r + r * Math.sin(a), s * (h - r + r * Math.cos(a))]; });
+    return [[6, h + 6], [-r, h + 6], ...arc(1), ...arc(-1).reverse(), [-r, -h - 6], [6, -h - 6]]; };
+  return cut(g, [sweep(pts, sec, PB([[1690, 1250]])[0])]);
+}
+const GRIP_WOOD = roundWoodTop(gripLoft(0, 1.2)), GRIP_CORE = gripLoft(-7, 0, 1), GRIP_CUT = gripLoft(-6.6, 0, 1);   // the core's front strap keeps its width, to meet the frame   // wood, the frame's grip core inside it, and the core's cutter
 // the frame narrows behind the hammer to the grip's width: its plan outline
 const FR_REAR = 12;                        // frame half width at the tang, flush with the grip frame's back strap (estimate)
-const FR_HALF = x => x > -40 ? FR_Z : x > -58 ? FR_Z - (FR_Z - FR_REAR) * (-40 - x) / 18 : FR_REAR;
-const frPlan = d => prof([[70, FR_Z - d], [-40, FR_Z - d], [-58, FR_REAR - d], [-140, FR_REAR - d], [-140, -FR_REAR + d], [-58, -FR_REAR + d], [-40, -FR_Z + d], [70, -FR_Z + d]], 400, 0).rotateX(Math.PI / 2);
+const FR_HALF = x => { const t = Math.min(1, Math.max(0, (-38 - x) / 22)); return FR_Z - (FR_Z - FR_REAR) * t * t * (3 - 2 * t); };   // eased, no corners
+const frPlan = d => { const side = Array.from({ length: 23 }, (_, i) => -38 - i); return prof([[70, FR_Z - d], ...side.map(x => [x, FR_HALF(x) - d]), [-140, FR_REAR - d],
+  [-140, -FR_REAR + d], ...side.reverse().map(x => [x, -FR_HALF(x) + d]), [70, -FR_Z + d]], 400, 0).rotateX(Math.PI / 2); };
 const FR_PLAN = frPlan(0);
 const FR_OUT = PB([[1240, 758], [1300, 760], [1330, 780], [1347, 795], [1460, 840], [1510, 862], [1560, 892], [1610, 925], [1650, 955], [1668, 972],
   [1630, 964], [1580, 975], [1540, 1000], [1515, 1050], [1505, 1080], [1500, 1105], [1470, 1075], [1440, 1058], [1400, 1048], [1300, 1042], [1100, 1040],
@@ -630,9 +643,9 @@ const FR_IN = PB([[1246, 768], [1325, 787], [1460, 850], [1600, 925], [1530, 990
 // Behind the hammer the frame's top is rounded across, flowing into the back strap, as in Barra's quarter views. Cut
 // as a sweep along the traced top line: at each point the two top corners outside a radius r are trimmed away, r
 // growing from the small edge round at the latch to most of the half width at the tang.
-function sweep(path, sec) {
+function sweep(path, sec, up = 1) {
   const secs = path.map(([x], i) => sec(i / (path.length - 1), x)), M = secs[0].length;
-  const frames = path.map(([x, y, tx, ty]) => { const sg = tx > 0 ? 1 : -1; return [x, y, -ty * sg, tx * sg, tx, ty]; });   // origin, the u direction, the tangent
+  const frames = path.map(([x, y, tx, ty]) => { const sg = Array.isArray(up) ? (((x - up[0]) * -ty + (y - up[1]) * tx) > 0 ? 1 : -1) : (tx > 0 ? 1 : -1) * up; return [x, y, -ty * sg, tx * sg, tx, ty]; });   // origin, the u direction, the tangent
   const P = (i, j) => { const [x, y, ux, uy] = frames[i], [u, z] = secs[i][j]; return [x + ux * u, y + uy * u, z]; };
   // 2D outward normals of the section's edges; a vertex is smooth (shared normal) where its two edges turn less than 35 degrees
   const ar = secs[0].reduce((A, p, j) => { const q = secs[0][(j + 1) % M]; return A + p[0] * q[1] - q[0] * p[1]; }, 0) > 0 ? 1 : -1;
@@ -663,6 +676,17 @@ const topSec = d => (t, x) => { const r0 = Math.min(topR(x), FR_HALF(x) - 0.5), 
   const arc = s => Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI / 2; return [d - r + r * Math.sin(a), s * (h - r + r * Math.cos(a))]; });
   return [[d + 8, h + 8], [d - r, h + 8], ...arc(1), ...arc(-1).reverse(), [d - r, -h - 8], [d + 8, -h - 8]]; };
 const TOP_CUT = sweep(TOP_LINE, topSec(0)), TOP_CUT_IN = sweep(TOP_LINE, topSec(-2));
+// the frame's underside from the trigger guard back into the grip's front strap, rounded the same way so its corner
+// flows into the strap instead of standing out past it
+const BOT_LINE = (() => { const c = new THREE.CatmullRomCurve3(PB([[1330, 1044], [1400, 1048], [1440, 1058], [1470, 1075], [1500, 1105]]).map(([x, y]) => new THREE.Vector3(x, y, 0)));
+  const pts = c.getSpacedPoints(40).map((p, i, a) => { const q = a[Math.min(i + 1, a.length - 1)], o = a[Math.max(i - 1, 0)], t = q.clone().sub(o).normalize(); return [p.x, p.y, t.x, t.y]; });
+  const [x1, y1, tx1, ty1] = pts[pts.length - 1];
+  return [...pts, [x1 + tx1 * 10, y1 + ty1 * 10, tx1, ty1]]; })();
+const botR = x => 3.5 + 12 * Math.min(1, Math.max(0, (-26 - x) / 18)) ** 1.1;
+const botSec = d => (t, x) => { const r0 = Math.min(botR(x), FR_HALF(x) - 0.5), h = FR_HALF(x) + d, r = Math.max(0.3, r0 + d);
+  const arc = s => Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI / 2; return [d - r + r * Math.sin(a), s * (h - r + r * Math.cos(a))]; });
+  return [[d + 8, h + 8], [d - r, h + 8], ...arc(1), ...arc(-1).reverse(), [d - r, -h - 8], [d + 8, -h - 8]]; };
+const BOT_CUT = sweep(BOT_LINE, botSec(0), -1), BOT_CUT_IN = sweep(BOT_LINE, botSec(-2), -1);
 const TOP_CUT_PLATE = sweep(TOP_LINE, topSec(0.7));
 const SIDEPLATE = PB([[1262, 790], [1330, 805], [1400, 830], [1470, 858], [1530, 890], [1548, 925], [1540, 965], [1510, 995], [1460, 1015], [1400, 1024], [1330, 1018],
   [1290, 998], [1268, 960], [1256, 900], [1254, 830]]);
@@ -670,15 +694,17 @@ const SIDEPLATE = PB([[1262, 790], [1330, 805], [1400, 830], [1470, 858], [1530,
 const screwS = (s, x, y, r, o = 0) => { const z = s * (FR_HALF(x) + o), a = z - s * 0.2, b = z + s * 0.9;
   return [[ringZ(0, r, x, y, Math.min(a, b), Math.max(a, b), 20), 'steel'], [bx(x - r + 0.3, x + r - 0.3, y - 0.3, y + 0.3, Math.min(z + s * 0.6, z + s * 1.1), Math.max(z + s * 0.6, z + s * 1.1)), 'black']]; };
 const screwL = (x, y, r, o) => screwS(-1, x, y, r, o);
+// each hinge lug: round about the hinge pin, running back into the frame's lower rail
+const HINGE_LUG = [...Array.from({ length: 25 }, (_, i) => { const a = (100 - i * 190 / 24) * D2R; return [HINGE[0] + 11 * Math.cos(a), HINGE[1] + 11 * Math.sin(a)]; }),
+  [40, HINGE[1] - 11], [40, YB(990)]];
 part('frame', 'Frame', 'frm', [0, 0, 0],
   'Metal frame: the standing breech behind the cylinder, the hammer slot, the forked lugs at the front that carry the hinge, the tang behind the hammer, rounded across the top and narrowing into the back strap, and the grip frame, whose rounded front and back straps show between the grip panels. The CO2 capsule sits in the grip frame, open on the left; the valve lives in the frame behind the breech face. All-metal construction (Gunmart).',
-  [[cut(cut(cut(profR(FR_OUT, 2 * FR_Z, 3.5), [FR_PLAN], INTERSECTION), [TOP_CUT]), [cut(cut(prof(FR_IN, 2 * FR_Z - 4, 0), [frPlan(2)], INTERSECTION), [TOP_CUT_IN]),
+  [[cut(cut(cut(profR(FR_OUT, 2 * FR_Z, 3.5), [FR_PLAN], INTERSECTION), [TOP_CUT, BOT_CUT]), [cut(cut(prof(FR_IN, 2 * FR_Z - 4, 0), [frPlan(2)], INTERSECTION), [TOP_CUT_IN, BOT_CUT_IN]),
       bx(XB(1462), -18.3, YB(860), YB(780), -4, 4),                    // hammer slot
       bx(X(560), X(540), Y(420), Y(380), -3.5, 3.5),                  // trigger slot
       cyl(3.2, 6, 'x', -1, 0, 0, 16)]), 'blued'],                     // gas port in the breech face
    [cut(GRIP_CORE, [prof(inset(PB(GRIPB), 4.5), 24, 0).translate(0, 0, -5)]), 'blued'],   // grip frame, open on the left for the capsule
-   ...[-1, 1].map(s => [bx(40, HINGE[0], HINGE[1] - 11.6, HINGE[1] + 2, Math.min(s * 6.3, s * (FR_Z - 0.6)), Math.max(s * 6.3, s * (FR_Z - 0.6))), 'blued']),   // forked hinge lugs
-   ...[-1, 1].map(s => [ringZ(2.4, 11.6, ...HINGE, s * 6.3, s * (FR_Z - 0.6), 32), 'blued']),
+   ...[-1, 1].map(s => [profR(HINGE_LUG, FR_Z - 0.6 - 6.3, 0.8).translate(0, 0, s * (FR_Z - 0.6 + 6.3) / 2), 'blued']),   // forked hinge lugs
    ...[-1, 1].flatMap(s => [[1337, 1033], [1019, 1032]].flatMap(([px, py]) => screwS(s, XB(px), YB(py), 1.6)))], { shell: true });   // small frame screws below the sideplate and ahead of the trigger guard
 
 part('sideplate', 'Sideplate', 'frm', [0, 0, -55],
@@ -735,8 +761,10 @@ part('cylStop', 'Cylinder stop + spring', 'frm', [40, -80, 0],
   [[bx(4, 8, -36.4, -33.6, -1.4, 1.4), 'steel'], [spring(1.2, 0.3, 4, 4, 'y', 6, -40.5, 0), 'spring']]);
 
 part('triggerGuard', 'Trigger guard', 'frm', [0, -150, 0],
-  'Round guard screwed under the frame.',
-  [[profR(ell(X(528), Y(429), 21.4, 16.8), 6, 0.6, [ell(X(528), Y(429), 18.6, 14.2).reverse()]), 'blued']]);
+  'Round guard, a rounded bar bent into a loop, on a strap screwed along the underside of the frame.',
+  [[new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ell(X(528), Y(429) + 0.3, 20, 15.5, 48).map(([x, y]) => new THREE.Vector3(x, y, 0)), true), 120, 1.6, 12, true).scale(1, 1, 1.7), 'blued'],
+   [cut(profR(rr(-27, 25, YB(1042) - 1.9, YB(1042) + 0.3, 0.9), 9, 1.2), [bx(X(560) - 0.2, X(540) + 0.2, -60, -40, -3.7, 3.7)]), 'blued'],   // its strap along the frame's underside, slotted for the trigger
+   ...[-21, 19].map(x => [cyl(1.8, 0.8, 'y', x, YB(1042) - 1.9, 0, 16), 'steel'])]);
 
 // ================= CO2 AND VALVE =================
 part('valve', 'Valve + breech seal', 'gas', [-140, 95, 0],
