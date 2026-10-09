@@ -619,29 +619,72 @@ const gripLv = (dw, dx) => Array.from({ length: 20 }, (_, i) => { const py = 940
 const gripLoft = (dw, dx) => cut(loft(gripLv(dw, dx), { n: 2.3, seg: 64, frontTaper: 0.8 }), [prof(PB(GRIPB), 60, 0)], INTERSECTION);
 const GRIP_WOOD = gripLoft(0, 1.2), GRIP_CORE = gripLoft(-7, 0), GRIP_CUT = gripLoft(-6.6, 0);   // wood, the frame's grip core inside it, and the core's cutter
 // the frame narrows behind the hammer to the grip's width: its plan outline
-const FR_HALF = x => x > -40 ? FR_Z : x > -58 ? FR_Z - (FR_Z - 13) * (-40 - x) / 18 : 13;
-const frPlan = d => prof([[70, FR_Z - d], [-40, FR_Z - d], [-58, 13 - d], [-140, 13 - d], [-140, -13 + d], [-58, -13 + d], [-40, -FR_Z + d], [70, -FR_Z + d]], 400, 0).rotateX(Math.PI / 2);
+const FR_REAR = 12;                        // frame half width at the tang, flush with the grip frame's back strap (estimate)
+const FR_HALF = x => x > -40 ? FR_Z : x > -58 ? FR_Z - (FR_Z - FR_REAR) * (-40 - x) / 18 : FR_REAR;
+const frPlan = d => prof([[70, FR_Z - d], [-40, FR_Z - d], [-58, FR_REAR - d], [-140, FR_REAR - d], [-140, -FR_REAR + d], [-58, -FR_REAR + d], [-40, -FR_Z + d], [70, -FR_Z + d]], 400, 0).rotateX(Math.PI / 2);
 const FR_PLAN = frPlan(0);
 const FR_OUT = PB([[1240, 758], [1300, 760], [1330, 780], [1347, 795], [1460, 840], [1510, 862], [1560, 892], [1610, 925], [1650, 955], [1668, 972],
   [1630, 964], [1580, 975], [1540, 1000], [1515, 1050], [1505, 1080], [1500, 1105], [1470, 1075], [1440, 1058], [1400, 1048], [1300, 1042], [1100, 1040],
   [990, 1042], [941, 1032], [945, 990], [1240, 990]]);
 const FR_IN = PB([[1246, 768], [1325, 787], [1460, 850], [1600, 925], [1530, 990], [1495, 1075], [1430, 1050], [1246, 1033]]);
+// Behind the hammer the frame's top is rounded across, flowing into the back strap, as in Barra's quarter views. Cut
+// as a sweep along the traced top line: at each point the two top corners outside a radius r are trimmed away, r
+// growing from the small edge round at the latch to most of the half width at the tang.
+function sweep(path, sec) {
+  const secs = path.map(([x], i) => sec(i / (path.length - 1), x)), M = secs[0].length;
+  const frames = path.map(([x, y, tx, ty]) => { const sg = tx > 0 ? 1 : -1; return [x, y, -ty * sg, tx * sg, tx, ty]; });   // origin, the u direction, the tangent
+  const P = (i, j) => { const [x, y, ux, uy] = frames[i], [u, z] = secs[i][j]; return [x + ux * u, y + uy * u, z]; };
+  // 2D outward normals of the section's edges; a vertex is smooth (shared normal) where its two edges turn less than 35 degrees
+  const ar = secs[0].reduce((A, p, j) => { const q = secs[0][(j + 1) % M]; return A + p[0] * q[1] - q[0] * p[1]; }, 0) > 0 ? 1 : -1;
+  const N3 = (i, n) => { const [, , ux, uy] = frames[i]; return [ux * n[0], uy * n[0], n[1]]; };
+  const en = (sc, j) => { const p = sc[j], q = sc[(j + 1) % M], eu = q[0] - p[0], ez = q[1] - p[1], l = Math.hypot(eu, ez) || 1; return [ar * ez / l, -ar * eu / l]; };
+  const vn = (i, j, side) => { const sc = secs[i], a = en(sc, (j - 1 + M) % M), b = en(sc, j); if (a[0] * b[0] + a[1] * b[1] > Math.cos(35 * D2R)) { const m = [a[0] + b[0], a[1] + b[1]], l = Math.hypot(...m); return N3(i, [m[0] / l, m[1] / l]); } return N3(i, side); };
+  const pos = [], nor = [], tri = (a, b, c, na, nb, nc) => { pos.push(...a, ...b, ...c); nor.push(...na, ...nb, ...nc); };
+  for (let i = 0; i < path.length - 1; i++) for (let j = 0; j < M; j++) { const j1 = (j + 1) % M, e0 = en(secs[i], j), e1 = en(secs[i + 1], j);
+    const a = P(i, j), b = P(i, j1), c = P(i + 1, j1), d = P(i + 1, j), na = vn(i, j, e0), nb = vn(i, j1, e0), nc = vn(i + 1, j1, e1), nd = vn(i + 1, j, e1);
+    tri(a, b, c, na, nb, nc); tri(a, c, d, na, nc, nd); }
+  for (const [i0, sg] of [[0, -1], [path.length - 1, 1]]) { const [, , , , tx, ty] = frames[i0], n = [tx * sg, ty * sg, 0];
+    for (const [i, j, k] of THREE.ShapeUtils.triangulateShape(secs[i0].map(([u, z]) => new THREE.Vector2(u, z)), [])) tri(P(i0, i), P(i0, j), P(i0, k), n, n, n); }
+  // make every triangle wind to agree with its normal
+  for (let i = 0; i < pos.length; i += 9) { const v = [0, 3, 6].map(o => new THREE.Vector3(pos[i + o], pos[i + o + 1], pos[i + o + 2]));
+    const fn = v[1].clone().sub(v[0]).cross(v[2].clone().sub(v[0])), nn = new THREE.Vector3(nor[i] + nor[i + 3] + nor[i + 6], nor[i + 1] + nor[i + 4] + nor[i + 7], nor[i + 2] + nor[i + 5] + nor[i + 8]);
+    if (fn.dot(nn) < 0) for (const A of [pos, nor]) for (let k = 0; k < 3; k++) { const t = A[i + 3 + k]; A[i + 3 + k] = A[i + 6 + k]; A[i + 6 + k] = t; } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return g;
+}
+const TOP_LINE = (() => { const c = new THREE.CatmullRomCurve3(PB([[1330, 780], [1347, 795], [1460, 840], [1510, 862], [1560, 892], [1610, 925], [1650, 955], [1672, 978]]).map(([x, y]) => new THREE.Vector3(x, y, 0)));
+  const pts = c.getSpacedPoints(70).map((p, i, a) => { const q = a[Math.min(i + 1, a.length - 1)], o = a[Math.max(i - 1, 0)], t = q.clone().sub(o).normalize(); return [p.x, p.y, t.x, t.y]; });
+  const [x0, y0, tx0, ty0] = pts[0], [x1, y1, tx1, ty1] = pts[pts.length - 1];
+  return [[x0 - tx0 * 4, y0 - ty0 * 4, tx0, ty0], ...pts, [x1 + tx1 * 12, y1 + ty1 * 12, tx1, ty1]]; })();
+const topR = x => 3.5 + 6 * Math.min(1, Math.max(0, (-14 - x) / 26)) ** 0.8;
+// the corners outside radius r at half width h, both sides, as one closed section (u up from the line, z across). d
+// offsets the surface out (or in, when negative) round the same corner centres: the sideplate's face, the cavity's wall.
+const topSec = d => (t, x) => { const r0 = Math.min(topR(x), FR_HALF(x) - 0.5), h = FR_HALF(x) + d, r = Math.max(0.3, r0 + d);
+  const arc = s => Array.from({ length: 13 }, (_, i) => { const a = i / 12 * Math.PI / 2; return [d - r + r * Math.sin(a), s * (h - r + r * Math.cos(a))]; });
+  return [[d + 8, h + 8], [d - r, h + 8], ...arc(1), ...arc(-1).reverse(), [d - r, -h - 8], [d + 8, -h - 8]]; };
+const TOP_CUT = sweep(TOP_LINE, topSec(0)), TOP_CUT_IN = sweep(TOP_LINE, topSec(-2));
+const TOP_CUT_PLATE = sweep(TOP_LINE, topSec(0.7));
+const SIDEPLATE = PB([[1262, 790], [1330, 805], [1400, 830], [1470, 858], [1530, 890], [1548, 925], [1540, 965], [1510, 995], [1460, 1015], [1400, 1024], [1330, 1018],
+  [1290, 998], [1268, 960], [1256, 900], [1254, 830]]);
+// slotted screw head on the left (s = -1) or right (s = 1) side at (x, y), standing on a surface o mm out from the frame's side
+const screwS = (s, x, y, r, o = 0) => { const z = s * (FR_HALF(x) + o), a = z - s * 0.2, b = z + s * 0.9;
+  return [[ringZ(0, r, x, y, Math.min(a, b), Math.max(a, b), 20), 'steel'], [bx(x - r + 0.3, x + r - 0.3, y - 0.3, y + 0.3, Math.min(z + s * 0.6, z + s * 1.1), Math.max(z + s * 0.6, z + s * 1.1)), 'black']]; };
+const screwL = (x, y, r, o) => screwS(-1, x, y, r, o);
 part('frame', 'Frame', 'frm', [0, 0, 0],
-  'Metal frame: the standing breech behind the cylinder, the hammer slot, the forked lugs at the front that carry the hinge, and the grip frame, whose rounded front and back straps show between the grip panels. The CO2 capsule sits in the grip frame, open on the left; the valve lives in the frame behind the breech face. All-metal construction (Gunmart).',
-  [[cut(cut(profR(FR_OUT, 2 * FR_Z, 3.5), [FR_PLAN], INTERSECTION), [cut(prof(FR_IN, 2 * FR_Z - 4, 0), [frPlan(2)], INTERSECTION),
+  'Metal frame: the standing breech behind the cylinder, the hammer slot, the forked lugs at the front that carry the hinge, the tang behind the hammer, rounded across the top and narrowing into the back strap, and the grip frame, whose rounded front and back straps show between the grip panels. The CO2 capsule sits in the grip frame, open on the left; the valve lives in the frame behind the breech face. All-metal construction (Gunmart).',
+  [[cut(cut(cut(profR(FR_OUT, 2 * FR_Z, 3.5), [FR_PLAN], INTERSECTION), [TOP_CUT]), [cut(cut(prof(FR_IN, 2 * FR_Z - 4, 0), [frPlan(2)], INTERSECTION), [TOP_CUT_IN]),
       bx(XB(1462), -18.3, YB(860), YB(780), -4, 4),                    // hammer slot
       bx(X(560), X(540), Y(420), Y(380), -3.5, 3.5),                  // trigger slot
       cyl(3.2, 6, 'x', -1, 0, 0, 16)]), 'blued'],                     // gas port in the breech face
    [cut(GRIP_CORE, [prof(inset(PB(GRIPB), 4.5), 24, 0).translate(0, 0, -5)]), 'blued'],   // grip frame, open on the left for the capsule
    ...[-1, 1].map(s => [bx(40, HINGE[0], HINGE[1] - 11.6, HINGE[1] + 2, Math.min(s * 6.3, s * (FR_Z - 0.6)), Math.max(s * 6.3, s * (FR_Z - 0.6))), 'blued']),   // forked hinge lugs
-   ...[-1, 1].map(s => [ringZ(2.4, 11.6, ...HINGE, s * 6.3, s * (FR_Z - 0.6), 32), 'blued'])], { shell: true });
+   ...[-1, 1].map(s => [ringZ(2.4, 11.6, ...HINGE, s * 6.3, s * (FR_Z - 0.6), 32), 'blued']),
+   ...[-1, 1].flatMap(s => [[1337, 1033], [1019, 1032]].flatMap(([px, py]) => screwS(s, XB(px), YB(py), 1.6)))], { shell: true });   // small frame screws below the sideplate and ahead of the trigger guard
 
 part('sideplate', 'Sideplate', 'frm', [0, 0, -55],
-  'Plate on the left of the frame over the lockwork, held by two screws, its edge following the curve of the frame behind the cylinder.',
-  [[profR(PB([[1262, 790], [1330, 805], [1400, 830], [1470, 858], [1530, 890], [1548, 925], [1540, 965], [1510, 995], [1460, 1015], [1400, 1024], [1330, 1018],
-      [1290, 998], [1268, 960], [1256, 900], [1254, 830]]), 1.2, 0.4).translate(0, 0, -FR_Z - 0.3), 'blued'],
-   ...[[1337, 950], [1520, 940]].flatMap(([px, py]) => { const z = -FR_HALF(XB(px)); return [[ringZ(0, 2.7, XB(px), YB(py), z - 0.8, z - 1.7, 20), 'steel'],
-     [bx(XB(px) - 2.4, XB(px) + 2.4, YB(py) - 0.3, YB(py) + 0.3, z - 1.9, z - 1.4), 'black']]; })], { shell: true });
+  'Plate on the left of the frame over the lockwork, flush with the frame and held by two screws, its edge following the curve of the frame behind the cylinder.',
+  [[cut(cut(prof(SIDEPLATE, 2 * FR_Z + 4, 0), [frPlan(-0.7), bx(-80, 20, -60, 60, -FR_Z - 4, -FR_REAR + 1)], INTERSECTION), [frPlan(0.5), TOP_CUT_PLATE]), 'blued'],
+   ...[[1337, 950, 0.7], [1556, 933, 0]].flatMap(([px, py, o]) => screwL(XB(px), YB(py), 2.7, o))], { shell: true });
 
 // latch, traced: the round-topped thumb piece with its knurled top and rear sight notch, the neck, and the boss round
 // its pivot screw on the left of the frame
@@ -711,7 +754,7 @@ part('gasTube', 'Gas route', 'gas', [-150, 0, 0],
 
 part('co2Seat', 'Piercing seat', 'gas', [-150, -20, 0],
   'Block at the top of the grip frame with the piercing pin and seal that the capsule’s neck is screwed up against.',
-  [[alongDir(latheX([[0, -9], [7.5, -9], [7.5, 1], [5, 1], [5, -1.5], [0, -1.5]], 28), CO2_A, ...CO2_T), 'zinc'],
+  [[cut(alongDir(latheX([[0, -9], [7, -9], [7, 1], [5, 1], [5, -1.5], [0, -1.5]], 28), CO2_A, ...CO2_T), [TOP_CUT_IN]), 'zinc'],   // trimmed to the inside of the frame's tang
    [alongDir(latheX([[0, -2.5], [1, -2.5], [0.3, 0.4], [0, 0.4]], 12), CO2_A, ...CO2_T), 'steel']]);
 
 part('co2', 'CO2 capsule (12g)', 'gas', [-150, -40, 0],
