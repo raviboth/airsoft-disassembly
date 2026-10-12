@@ -1565,24 +1565,45 @@ function sideMount(x0, x1, yTop, zIn) {
     [bx(X(x1 - 4), X(x1 - 70), Y(119), Y(112), zo - mm(3), zo - mm(0.5)), 'steel'],   // lever, closed along the shoe
     [cyl(mm(3.2), mm(4), 'z', X(x1 - 70), Y(115.5), zo - mm(2.5), 14), 'steel']];
 }
-const KB_Y = OPT_Y + mm(12), KB_X = X(760);   // Kobra base bottom, rear end
-function kobraHood() {
-  const s = new THREE.Shape(), w = mm(24), h = mm(34), t = mm(3), r = mm(6);
+const KB_Y = OPT_Y + mm(5), KB_X = X(760);   // Kobra body bottom, rear end
+const kb = u => KB_X + mm(u);                    // mm forward of the rear face
+function kobraHood() {   // rear block seen end-on: full body height, rounded top corners, window open through above the body
+  const s = new THREE.Shape(), w = mm(25), h = mm(74), t = mm(4), r = mm(8), b = mm(30);
   s.moveTo(-w, 0); s.lineTo(w, 0); s.lineTo(w, h - r); s.absarc(w - r, h - r, r, 0, Math.PI / 2); s.lineTo(-w + r, h); s.absarc(-w + r, h - r, r, Math.PI / 2, Math.PI); s.closePath();
-  const ho = new THREE.Path(); ho.moveTo(-w + t, t); ho.lineTo(-w + t, h - t); ho.lineTo(w - t, h - t); ho.lineTo(w - t, t); ho.closePath(); s.holes.push(ho);
+  const ho = new THREE.Path(), ri = mm(4);
+  ho.moveTo(-w + t, b); ho.lineTo(w - t, b); ho.lineTo(w - t, h - t - ri); ho.absarc(w - t - ri, h - t - ri, ri, 0, Math.PI / 2); ho.lineTo(-w + t + ri, h - t); ho.absarc(-w + t + ri, h - t - ri, ri, Math.PI / 2, Math.PI); ho.closePath();
+  s.holes.push(ho);
   return s;
 }
+// mount plate on the left of the body: full-length upper band with the screw row, a big lightening window, then the
+// shoe that clamps the dovetail rail; the plate sits outside the cover skirt
+const KB_PZ0 = -mm(30), KB_PZ1 = -mm(24), KB_SIGHT = KB_Y + mm(51);
 part('kobra', 'Kobra EKP-1S-03 red dot + side mount', 'att', [], [0, 220, -150],
-  'Kobra EKP-1S-03 collimator (Axion, Russia): 1x, four selectable reticles (dot, T, V, V with dot), clamped to the side rail by its own mount and lever. Listed at 144 x 66 x 144mm and 410g with the mount. A rotary brightness switch sits on the right of the body and the battery cap on the left; the tilted glass in the front hood throws the dot back to the eye. The mount has to come off before the dust cover will. Body proportions here are estimated from photos.',
-  [...sideMount(640, 745, KB_Y, mm(16)),
-   [at(prof([[0, 0], [mm(112), 0], [mm(112), mm(14)], [mm(100), mm(18)], [mm(8), mm(18)], [0, mm(12)]], mm(36), 1.5), KB_X, KB_Y, 0), 'blk'],   // base body
-   [extrudeX(kobraHood(), KB_X + mm(40), KB_X + mm(104), 0.6).translate(0, KB_Y + mm(17), 0), 'blk'],                               // window hood
-   [new THREE.BoxGeometry(mm(1.4), mm(27), mm(41)).rotateZ(-0.35).translate(KB_X + mm(80), KB_Y + mm(34), 0), 'glass'],
-   [new THREE.SphereGeometry(mm(0.8), 10, 8).translate(KB_X + mm(79), KB_Y + mm(34), 0), 'dot'],
-   [new THREE.BoxGeometry(mm(1.4), mm(27), mm(41)).translate(KB_X + mm(42), KB_Y + mm(34), 0), 'glass'],          // rear window
-   [cyl(mm(8.5), mm(7), 'y', KB_X + mm(20), KB_Y + mm(21), mm(9), 24), 'dark'],                                // brightness switch
-   ...Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6; return [bx(-mm(0.6), mm(0.6), -mm(3.4), mm(3.4), mm(8.2), mm(9.3)).rotateY(a).translate(KB_X + mm(20), KB_Y + mm(21), mm(9)), 'dark']; }),
-   [cyl(mm(7), mm(5), 'z', KB_X + mm(24), KB_Y + mm(9), -mm(18) - mm(2.5), 20), 'dark']],                       // battery cap
+  'Kobra EKP-1S-03 collimator (Axion, Russia): 1x, four selectable reticles (T, dot-and-chevron, chevron, dot). The window hood sits at the rear, near the eye, with the tilted reflector inside it; the long body runs forward over the dust cover, with the battery under a screw cap at the front and the on/off and brightness switches on the right. Body about 144 x 50 x 74mm and 380g (CR2 version). The mount is a flat plate on the left side of the body, with a lightening window, that drops to a shoe on the side rail and locks with a lever; the plate is why the dust cover cannot come off with the sight fitted. Proportions here are traced from product photos.',
+  [[at(prof([[kb(10), Y(104)], [kb(136), Y(104)], [kb(136), KB_Y + mm(20)], [kb(130), KB_Y + mm(25)], [kb(16), KB_Y + mm(25)], [kb(10), KB_Y + mm(19)]], KB_PZ1 - KB_PZ0, 0.8,
+      [[[kb(30), Y(104) + mm(8)], [kb(116), Y(104) + mm(8)], [kb(116), KB_Y - mm(4)], [kb(30), KB_Y - mm(4)]]]), 0, 0, (KB_PZ0 + KB_PZ1) / 2), 'blk'],   // mount plate
+   [bx(kb(34), kb(112), Y(130), Y(102), -RZ - mm(11), -RZ - mm(3.3)), 'blk'],                                     // shoe on the rail
+   [bx(kb(34), kb(112), Y(122), Y(102), KB_PZ0, -RZ - mm(11)), 'blk'],                                            // shoe web to the plate
+   ...[40, 62, 84, 106].map(u => [cyl(mm(3.2), mm(1.2), 'z', kb(u), KB_Y + mm(9), KB_PZ0 - mm(0.5), 16), 'steel']),   // screw row on the upper band
+   ...[51, 73, 95].map(u => [bx(kb(u - 1.5), kb(u + 1.5), KB_Y + mm(4), KB_Y + mm(14), KB_PZ0 - mm(0.4), KB_PZ0 + mm(1)), 'dark']),   // ribs between the screws
+   ...[46, 100].map(u => [cyl(mm(2.6), mm(1.2), 'z', kb(u), Y(110), KB_PZ0 - mm(0.5), 14), 'steel']),             // lower screws
+   [cyl(mm(4), mm(3), 'z', kb(108), Y(116), KB_PZ0 - mm(1.5), 16), 'steel'],                                      // clamp lever pivot
+   [bx(kb(40), kb(110), Y(119), Y(113), KB_PZ0 - mm(3), KB_PZ0 - mm(0.5)), 'steel'],                               // lever, closed along the shoe
+   [cyl(mm(3.4), mm(4), 'z', kb(40), Y(116), KB_PZ0 - mm(2.5), 14), 'steel'],
+   [at(prof([[mm(40), 0], [mm(144), 0], [mm(144), mm(19)], [mm(136), mm(27)], [mm(40), mm(27)]], mm(48), 1.2), KB_X, KB_Y, 0), 'blk'],   // body
+   [bx(kb(48), kb(128), KB_Y + mm(27), KB_Y + mm(30), -mm(8), mm(8)), 'blk'],                                     // raised strip along the top
+   [extrudeX(kobraHood(), KB_X, kb(44), 0.8).translate(0, KB_Y, 0), 'blk'],                               // window hood
+   [new THREE.BoxGeometry(mm(1.4), mm(38), mm(41)).rotateZ(-0.38).translate(kb(26), KB_SIGHT, 0), 'glass'],       // tilted reflector
+   [new THREE.SphereGeometry(mm(0.8), 10, 8).translate(kb(27), KB_SIGHT, 0), 'dot'],
+   [new THREE.BoxGeometry(mm(1.2), mm(38), mm(41)).translate(kb(3), KB_SIGHT, 0), 'glass'],                       // rear window
+   [cyl(mm(9), mm(4), 'y', kb(124), KB_Y + mm(29), 0, 28), 'dark'],                                               // battery cap, front top
+   [bx(kb(119), kb(129), KB_Y + mm(30.6), KB_Y + mm(31.4), -mm(1), mm(1)), 'black'],                              // slot in the cap
+   ...Array.from({ length: 14 }, (_, i) => [bx(-mm(0.6), mm(0.6), -mm(2), mm(2), mm(8.6), mm(9.6)).rotateY(i * Math.PI / 7).translate(kb(124), KB_Y + mm(29), 0), 'dark']),
+   [cyl(mm(7), mm(4), 'z', kb(70), KB_Y + mm(14), mm(25.5), 24), 'dark'],                                        // on/off rotary, right side
+   [bx(kb(66), kb(84), KB_Y + mm(12), KB_Y + mm(16), mm(26), mm(29)), 'dark'],                                    // its lever
+   [bx(kb(90), kb(108), KB_Y + mm(9), KB_Y + mm(19), mm(24.5), mm(26.5)), 'dark'],                                // brightness rocker
+   [bx(kb(92), kb(98), KB_Y + mm(10), KB_Y + mm(18), mm(26), mm(27.5)), 'dark'],
+   [bx(kb(100), kb(106), KB_Y + mm(10), KB_Y + mm(18), mm(26), mm(27.5)), 'dark']],
   { att: ['optic', 'kobra'] });
 
 const PSO_Y = OPT_Y + mm(34), PSO_E = X(835);   // tube axis height, eyecup end
@@ -1779,7 +1800,7 @@ const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded 
 selector lever shape from <a href="https://www.apexgunparts.com/">Apex Gun Parts</a> AKM levers and the <a href="https://www.ehobbyasia.com/">ehobbyasia</a> VFC #03-48 lever photos,
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
 <a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>,
-<a href="https://en.wikipedia.org/wiki/PBS-1_silencer">PBS-1 (Wikipedia)</a>, <a href="https://airsoftstation.com/aabb-pbs-1-style-aluminum-mock-silencer-14mm-ccw/">AABB PBS-1 mock</a>, <a href="https://bearoptics.com/red-dot-scopes/kobra-ekp-1s-03-ak-saiga-side-mount/">Kobra EKP-1S-03</a>, <a href="https://www.dragunov.net/optic_pso1">PSO-1 (dragunov.net)</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
+<a href="https://en.wikipedia.org/wiki/PBS-1_silencer">PBS-1 (Wikipedia)</a>, <a href="https://airsoftstation.com/aabb-pbs-1-style-aluminum-mock-silencer-14mm-ccw/">AABB PBS-1 mock</a>, <a href="https://bearoptics.com/red-dot-scopes/kobra-ekp-1s-03-ak-saiga-side-mount/">Kobra EKP-1S-03</a>, <a href="https://toparsenal.net/products/kobra-ekp-1s-03-aa">Kobra side photo (Top Arsenal)</a>, <a href="http://thinlineweapons.com/AIA/bstkobra.html">Kobra controls (Tantal's Collector's Source)</a>, <a href="https://www.dragunov.net/optic_pso1">PSO-1 (dragunov.net)</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
   <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
