@@ -34,7 +34,7 @@
   .item.sel { background:#24365c; }
   .item.off { opacity:.35; }
   .item .pn { color:var(--dim); font-size:11px; white-space:nowrap; }
-  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; }
+  #ctrl { right:12px; top:134px; width:250px; padding:10px 14px 12px; max-height:calc(100vh - 146px); overflow-y:auto; }
   .ph { color:var(--dim); text-transform:uppercase; font-size:11px; letter-spacing:.08em; margin-bottom:2px; }
   #ctrl label { display:flex; align-items:center; justify-content:space-between; margin:6px 0; }
   #ctrl input[type=range] { width:100%; }
@@ -148,6 +148,11 @@
   <label><span>Auto-rotate</span><input id="spin" type="checkbox"></label>
   <label><span>Owner build (Kythera HPA)</span><input id="hpa" type="checkbox"></label>
   <label><span>Orthographic (O)</span><input id="ortho" type="checkbox"></label>
+  <div class="ph gun">Attachments</div>
+  <label>Muzzle</label>
+  <div class="row seg" id="muzSeg"><button data-v="brake">Slant brake</button><button data-v="pbs1">PBS-1</button></div>
+  <label>Optic</label>
+  <div class="row seg" id="optSeg"><button data-v="none">Iron sights</button><button data-v="kobra">Kobra</button><button data-v="pso1">PSO-1</button></div>
   <div class="ph gun">Gun</div>
   <div class="row"><button id="bFire" title="Hold to pull the trigger (Space)">Hold to fire (Space)</button></div>
   <label>Selector (S) <span id="selv">safe</span></label>
@@ -273,6 +278,9 @@ const MAT = {
   rubberblk: { color: 0x1c1d20, metalness: 0.0, roughness: 0.85 },
   green:  { color: 0x3d8a3a, metalness: 0.0,  roughness: 0.6 },
   fiber:  { color: 0x3fd24a, metalness: 0.0,  roughness: 0.3, emissive: 0x0d3a10 },
+  glass:  { color: 0x6fa8a0, metalness: 0.2,  roughness: 0.05, transparent: true, opacity: 0.35, depthWrite: false },
+  lens:   { color: 0x1a2a3a, metalness: 0.6,  roughness: 0.08 },
+  dot:    { color: 0xff2a1a, metalness: 0.0,  roughness: 0.4, emissive: 0xff2010, emissiveIntensity: 2 },
 };
 
 // ---------- geometry helpers (x = along gun, muzzle +; y = up; z = right side) ----------
@@ -570,6 +578,7 @@ const CATS = {
   gbx: 'Gearbox and motor (stock AEG)',
   stk: 'Grip, stock and power',
   mag: 'Magazine (hi-cap)',
+  att: 'Attachments',
   hpa: 'Owner build: Kythera HPA',
 };
 const parts = [];
@@ -580,7 +589,7 @@ const byNo = new Map();
 
 function part(id, name, cat, nos, explode, info, pieces, opts = {}) {
   const grp = new THREE.Group();
-  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, variant: opts.variant || null, tag: opts.tag || '' };
+  grp.userData = { id, name, cat, nos, info, explode: new THREE.Vector3(...explode), shell: !!opts.shell, variant: opts.variant || null, att: opts.att || null, tag: opts.tag || '' };
   for (const [geo, matKey] of pieces) {
     const mat = new THREE.MeshStandardMaterial({ ...MAT[matKey], side: THREE.DoubleSide });
     if (matKey === 'checker') { mat.bumpMap = CHECKER; mat.bumpScale = 2.5; }
@@ -707,7 +716,7 @@ part('brake', 'Slant muzzle brake + thread adaptor, screw', 'frt', ['37M', '35',
    [[clipFront(latheX([[4.5, X(63)], [10.3, X(63)], [10.3, X(60.5)], [9.7, X(60.5)], [9.7, X(41)], [9.2, X(41)], [9.2, X(24.5)], [4.5, X(24.5)], [4.5, X(63)]], 40),
      (y, z) => X(24.5 + Math.max(0, y * Math.cos(BRAKE_ROLL) + z * Math.sin(BRAKE_ROLL)) * 2.2)), 'blk'],
    [tube(5.2, 8.2, X(72), X(64), 24), 'blk'],
-   [cyl(1.2, 3, 'y', X(55), 10, 0, 8), 'dark']]);
+   [cyl(1.2, 3, 'y', X(55), 10, 0, 8), 'dark']], { att: ['muzzle', 'brake'] });
 function fsEars() {          // front view of the sight ears: a ring round the post, open at the top
   const s = new THREE.Shape(), cy = Y(52), ro = mm(8.5), ri = mm(6.6), g = 0.6;
   s.absarc(0, cy, ro, Math.PI / 2 + g, Math.PI * 2.5 - g, false);
@@ -1534,6 +1543,64 @@ part('feedLips', 'Magazine cover (feed plate) + bullet block, spring, screw', 'm
   
    [spring(mm(1.2), mm(0.25), mm(6), 6, 'x', X(629.5), Y(123.5), 0), 'spring']]);
 
+// ================= ATTACHMENTS =================
+// Picked in the View panel: one muzzle device (slant brake or PBS-1) and one optic (iron sights, Kobra or PSO-1).
+// Both optics clamp to the dovetail side rail (2) on the left of the receiver and reach over the dust cover.
+const PBS_R = X(63), PBS_F = PBS_R + mm(200);
+part('pbs1', 'PBS-1 style mock suppressor', 'att', [], [380, 0, 0],
+  'PBS-1 pattern mock silencer in place of the slant brake, on the same 14mm CCW thread (the CM048M brake unscrews after pressing in the detent). The real PBS-1 is 40mm across and 200mm long, about 0.73kg, and was paired with the subsonic US round; airsoft copies (AABB, 5KU) are aluminium shells of 155 to 210mm with a hollow core, so the BB passes clean through. Modeled at the real 200 x 40mm: a 28mm rear sleeve, a short cone and the 40mm main tube.',
+  [[latheX([[mm(4.6), PBS_R], [mm(14), PBS_R], [mm(14), PBS_R + mm(26)], [mm(20), PBS_R + mm(36)], [mm(20), PBS_R + mm(195)], [mm(18.5), PBS_R + mm(200)],
+     [mm(5.5), PBS_R + mm(200)], [mm(5.5), PBS_R + mm(186)], [mm(4.6), PBS_R + mm(186)], [mm(4.6), PBS_R]], 48), 'blk'],
+   ...[48, 52, 178].map(u => [tube(mm(19.9), mm(20.5), PBS_R + mm(u), PBS_R + mm(u + 1.6), 48), 'dark']),   // rolled bands on the tube
+   [tube(5.2, 8.2, X(72), X(64), 24), 'blk']], { att: ['muzzle', 'pbs1'] });
+
+// side-mount shoe on the dovetail rail, lever on its left face, riser up the left of the receiver to height yTop
+const OPT_Y = Y(56);                       // dust cover top
+function sideMount(x0, x1, yTop, zIn) {
+  const zr = -RZ - mm(3.3), zo = -RZ - mm(11);
+  return [[bx(X(x1), X(x0), Y(130), Y(98), zo, zr), 'blk'],                           // shoe gripping the rail
+    [bx(X(x1 - 18), X(x0 + 18), Y(98), yTop, zo, -RZ - mm(5)), 'blk'],                // riser, clear of the cover skirt
+    [bx(X(x1 - 18), X(x0 + 18), yTop - mm(6), yTop, zo, zIn), 'blk'],                           // bridge over the cover
+    [cyl(mm(4), mm(3), 'z', X(x1 - 8), Y(116), zo - mm(1.5), 16), 'steel'],           // clamp lever pivot
+    [bx(X(x1 - 4), X(x1 - 70), Y(119), Y(112), zo - mm(3), zo - mm(0.5)), 'steel'],   // lever, closed along the shoe
+    [cyl(mm(3.2), mm(4), 'z', X(x1 - 70), Y(115.5), zo - mm(2.5), 14), 'steel']];
+}
+const KB_Y = OPT_Y + mm(12), KB_X = X(760);   // Kobra base bottom, rear end
+function kobraHood() {
+  const s = new THREE.Shape(), w = mm(24), h = mm(34), t = mm(3), r = mm(6);
+  s.moveTo(-w, 0); s.lineTo(w, 0); s.lineTo(w, h - r); s.absarc(w - r, h - r, r, 0, Math.PI / 2); s.lineTo(-w + r, h); s.absarc(-w + r, h - r, r, Math.PI / 2, Math.PI); s.closePath();
+  const ho = new THREE.Path(); ho.moveTo(-w + t, t); ho.lineTo(-w + t, h - t); ho.lineTo(w - t, h - t); ho.lineTo(w - t, t); ho.closePath(); s.holes.push(ho);
+  return s;
+}
+part('kobra', 'Kobra EKP-1S-03 red dot + side mount', 'att', [], [0, 220, -150],
+  'Kobra EKP-1S-03 collimator (Axion, Russia): 1x, four selectable reticles (dot, T, V, V with dot), clamped to the side rail by its own mount and lever. Listed at 144 x 66 x 144mm and 410g with the mount. A rotary brightness switch sits on the right of the body and the battery cap on the left; the tilted glass in the front hood throws the dot back to the eye. The mount has to come off before the dust cover will. Body proportions here are estimated from photos.',
+  [...sideMount(640, 745, KB_Y, mm(16)),
+   [at(prof([[0, 0], [mm(112), 0], [mm(112), mm(14)], [mm(100), mm(18)], [mm(8), mm(18)], [0, mm(12)]], mm(36), 1.5), KB_X, KB_Y, 0), 'blk'],   // base body
+   [extrudeX(kobraHood(), KB_X + mm(40), KB_X + mm(104), 0.6).translate(0, KB_Y + mm(17), 0), 'blk'],                               // window hood
+   [new THREE.BoxGeometry(mm(1.4), mm(27), mm(41)).rotateZ(-0.35).translate(KB_X + mm(80), KB_Y + mm(34), 0), 'glass'],
+   [new THREE.SphereGeometry(mm(0.8), 10, 8).translate(KB_X + mm(79), KB_Y + mm(34), 0), 'dot'],
+   [new THREE.BoxGeometry(mm(1.4), mm(27), mm(41)).translate(KB_X + mm(42), KB_Y + mm(34), 0), 'glass'],          // rear window
+   [cyl(mm(8.5), mm(7), 'y', KB_X + mm(20), KB_Y + mm(21), mm(9), 24), 'dark'],                                // brightness switch
+   ...Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6; return [bx(-mm(0.6), mm(0.6), -mm(3.4), mm(3.4), mm(8.2), mm(9.3)).rotateY(a).translate(KB_X + mm(20), KB_Y + mm(21), mm(9)), 'dark']; }),
+   [cyl(mm(7), mm(5), 'z', KB_X + mm(24), KB_Y + mm(9), -mm(18) - mm(2.5), 20), 'dark']],                       // battery cap
+  { att: ['optic', 'kobra'] });
+
+const PSO_Y = OPT_Y + mm(34), PSO_E = X(835);   // tube axis height, eyecup end
+const psoAt = u => PSO_E + mm(u);
+part('pso1', 'PSO-1 4x24 scope + side mount', 'att', [], [0, 250, -170],
+  'PSO-1 (POSP 4x24): the Dragunov scope, which takes the same AK side rail. Fixed 4x, 24mm objective, 6 degree field, 375mm long, about 0.58kg, 68mm eye relief. The mount is part of the scope body: a long base under the tube clamps the rail with a lever. Elevation drum on top (graduated to 1000m), windage drum on the left, an illuminated rangefinder reticle with its battery cap on the left near the front, and a long rubber eyecup. Shown with its mount on this rail; drum and bell sizes are estimated.',
+  [...sideMount(625, 760, PSO_Y - mm(12), mm(8)),
+   [bx(psoAt(62), psoAt(173), PSO_Y - mm(14), PSO_Y - mm(8), -mm(10), mm(10)), 'blk'],                  // base under the tube
+   [latheX([[mm(14.5), psoAt(0)], [mm(17), psoAt(0)], [mm(17), psoAt(42)], [mm(14.5), psoAt(42)], [mm(14.5), psoAt(0)]], 32, PSO_Y), 'rubberblk'],   // eyecup
+   [latheX([[0, psoAt(40)], [mm(16), psoAt(40)], [mm(16), psoAt(80)], [mm(13), psoAt(92)], [mm(13), psoAt(290)], [mm(17), psoAt(310)], [mm(17), psoAt(375)],
+     [mm(15), psoAt(375)], [mm(15), psoAt(365)], [0, psoAt(365)]], 40, PSO_Y), 'blk'],
+   [cyl(mm(12), mm(0.5), 'x', psoAt(365.5), PSO_Y, 0, 32), 'lens'],
+   [cyl(mm(11), mm(0.5), 'x', psoAt(43), PSO_Y, 0, 32), 'lens'],
+   [cyl(mm(13), mm(16), 'y', psoAt(190), PSO_Y + mm(17), 0, 32), 'dark'],                                    // elevation drum
+   [cyl(mm(10), mm(14), 'z', psoAt(190), PSO_Y, -mm(19), 32), 'dark'],                                      // windage drum
+   [cyl(mm(6), mm(10), 'z', psoAt(262), PSO_Y, -mm(16), 20), 'dark']],                                      // reticle lamp battery cap
+  { att: ['optic', 'pso1'] });
+
 // ================= OWNER BUILD: POLARSTAR KYTHERA HPA =================
 const KY_X0 = GX(100), KY_X1 = KY_X0 - mm(115);
 part('kythera', 'Kythera V3 engine (front/rear cylinder, sleeve)', 'hpa', [], [-140, 450, 0],
@@ -1566,11 +1633,12 @@ const itemEls = new Map();
 const catOn = {};
 const catEls = {};
 let build = 'aeg';
+const ATT = { muzzle: 'brake', optic: 'none' };
 let isolated = null;
 function updateVis() {
   for (const p of parts) {
     const d = p.userData;
-    const ok = !d.variant || d.variant === build;
+    const ok = (!d.variant || d.variant === build) && (!d.att || ATT[d.att[0]] === d.att[1]);
     p.visible = isolated ? p === isolated : catOn[d.cat] && ok;
     itemEls.get(p).classList.toggle('off', !ok);
   }
@@ -1601,7 +1669,7 @@ for (const [key, label] of Object.entries(CATS)) {
     const it = document.createElement('div'); it.className = 'item';
     const d = p.userData;
     it.innerHTML = `<span>${d.name}</span><span class="pn">${d.nos.length ? '#' + d.nos[0] : d.tag}</span>`;
-    it.onclick = () => { select(p, true); if (MOBILE.matches) showPanel('side', false); };
+    it.onclick = () => { if (d.att) setAtt(...d.att); select(p, true); if (MOBILE.matches) showPanel('side', false); };
     it.onmouseenter = () => hover(p);
     it.onmouseleave = () => hover(null);
     list.append(it); itemEls.set(p, it);
@@ -1639,6 +1707,14 @@ find.onkeydown = e => {
 applyFilter();
 const hpaCb = document.getElementById('hpa');
 hpaCb.onchange = () => { build = hpaCb.checked ? 'hpa' : 'aeg'; updateVis(); if (!selected) showOverview(); };
+const attSegs = { muzzle: document.getElementById('muzSeg'), optic: document.getElementById('optSeg') };
+function setAtt(slot, v) {
+  ATT[slot] = v;
+  for (const b of attSegs[slot].children) b.classList.toggle('on', b.dataset.v === v);
+  if (slot === 'muzzle') MUZ = v === 'pbs1' ? PBS_F : X(24.5);
+  updateVis();
+}
+for (const [slot, el] of Object.entries(attSegs)) for (const b of el.children) b.onclick = () => setAtt(slot, b.dataset.v);
 updateVis();
 
 // ---------- explode ----------
@@ -1702,7 +1778,8 @@ const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded 
 <a href="https://get.vegaforce.com/downloads/AKM_AKMS_PARTS_LIST.pdf">VFC AKM/AKMS parts list</a> (the gun CYMA copies; AKM-xx cross-reference),
 selector lever shape from <a href="https://www.apexgunparts.com/">Apex Gun Parts</a> AKM levers and the <a href="https://www.ehobbyasia.com/">ehobbyasia</a> VFC #03-48 lever photos,
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
-<a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
+<a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>,
+<a href="https://en.wikipedia.org/wiki/PBS-1_silencer">PBS-1 (Wikipedia)</a>, <a href="https://airsoftstation.com/aabb-pbs-1-style-aluminum-mock-silencer-14mm-ccw/">AABB PBS-1 mock</a>, <a href="https://bearoptics.com/red-dot-scopes/kobra-ekp-1s-03-ak-saiga-side-mount/">Kobra EKP-1S-03</a>, <a href="https://www.dragunov.net/optic_pso1">PSO-1 (dragunov.net)</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
   <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
@@ -1718,6 +1795,7 @@ function showOverview() {
     <li>The Gun section of the View panel works the rifle. Hold to fire (Space) pulls the trigger. On Auto the gears run as long as it is held, about 13 shots a second (the manual gives 700 to 850 rounds a minute), and stop where they are when it is let go; on Semi the cut-off lets the sector gear make one turn per pull; on Safe the selector plate blocks the trigger. Each turn the sector gear's cam draws the nozzle back to feed a BB, then its teeth draw the piston back against the spring for half a turn and the last tooth lets it go, and with BBs in the mag one leaves the muzzle. Selector (S) steps safe, auto, semi, as the lever goes down. Drop mag (M) pushes the paddle catch and rocks the mag forward off its front lug; Load (R) fills it to 600. Cocking lever (K) pulls the dummy lever back and holds it, so the hop-up adjuster shows through the ejection port; on safe the selector blocks it. The owner HPA build fires semi only (the Kythera has no auto). Slow motion slows the cycle down.</li>
     <li>The Trigger slider steps one shot by hand: the trigger comes back and closes the switch, then the sector gear makes one turn.</li>
     <li>The Explode slider strips it in order: the mag drops (to 8%), the dust cover and recoil spring guide come off rearward (to 22%), the butt plate and battery come out the back (to 27%), the upper handguard lifts off (to 33%), the selector lever comes off (to 38%), the stock pulls back (to 47%), the grip drops with the motor (to 53%), the barrel pin goes and the front end slides forward with the hop-up (to 63%), and the gearbox lifts out (to 72%). Each group then spreads into its parts (to 88%), and last the receiver's own parts come off.</li>
+    <li>Attachments (View panel): swap the slant brake for a PBS-1 style suppressor on the same 14mm CCW thread, and fit a Kobra red dot or a PSO-1 4x24 scope to the side rail. Both optics clamp to the rail on their own side mounts and come off first when the Explode slider strips the gun.</li>
     <li>Owner build (tick "Owner build" in the controls): ZCI 455mm 6.02 barrel, R-hop, G&amp;G green bucking and a Polarstar Kythera V3 HPA engine in place of the AEG cylinder, gears and motor.</li>
   </ul>
   <p>${parts.length} modeled assemblies covering ${byNo.size} of ${MANUAL.length} manual part numbers. Showing the ${build === 'hpa' ? 'owner HPA build' : 'stock AEG'}. Drag to orbit, scroll to zoom, right-drag to pan. Double-click a part to zoom to it.</p>
@@ -1785,7 +1863,7 @@ function select(p, focus = false) {
     .map(([no, name, note]) => `<tr><td>#${no}</td><td>${name}</td><td>${note}</td></tr>`).join('');
   const note = d.nos.length ? '<p class="src">Names as printed in the CYMA manual.</p>' : '<p class="src">Not broken down in the CYMA manual (the gearbox is item 7); generic V3 / aftermarket name.</p>';
   const vfc = (VFC[d.id] || []).map(n => `AKM-${n} ${VFC_NAMES[n]}`).join(', ');
-  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}</div>
+  infoBody.innerHTML = `<h2>${d.name}</h2><div class="meta">${CATS[d.cat]}${d.variant === 'hpa' ? ' (owner build only)' : d.variant === 'aeg' ? ' (stock AEG only)' : ''}${d.att ? ' (chosen under Attachments in the View panel)' : ''}</div>
     <div class="acts"><button id="bZoom" title="F">Zoom to</button><button id="bIso" class="${isolated ? 'on' : ''}">${isolated ? 'Show all (Esc)' : 'Show only this'}</button></div><p>${d.info}</p>
     <table>${rows}</table>${note}${vfc ? `<p class="src">VFC AKM equivalent: ${vfc}.</p>` : ''}${SOURCES}`;
   infoBody.querySelector('#bZoom').onclick = () => focusOn(p);
@@ -1965,7 +2043,8 @@ showSel(); showMag();
 let fireT = 0, ph = 0, phStop = 0, pullDone = false, magOut = 0, catchT = 0, cockOff = 0, selCur = 0, plateCur = 0, lastT = performance.now();
 const MAG_PV = [X(558), Y(123)], CATCH_PV = [X(643), Y(166)];
 // BBs: one waits in the bucking while the mag has any, and each shot sends a loose one out of the muzzle
-const BB_GEO = new THREE.SphereGeometry(mm(2.97), 14, 10), BB_X = X(592 - 4 / S), MUZ = X(24.5), flying = [];
+const BB_GEO = new THREE.SphereGeometry(mm(2.97), 14, 10), BB_X = X(592 - 4 / S), flying = [];
+let MUZ = X(24.5);
 const bbIn = new THREE.Mesh(BB_GEO, new THREE.MeshStandardMaterial(MAT.white));
 bbIn.position.set(BB_X, 0, 0); root.add(bbIn);
 // Staged explode, in the CYMA AK strip order: the magazine drops, the dust cover and then the recoil spring guide lift
@@ -1981,7 +2060,8 @@ const GBX_IDS = new Set(['kythera', 'kyNozzle', 'kyMeter', 'kySear', 'selAdapter
 for (const p of parts) {
   const ex = p.userData.explode, cat = p.userData.cat, id = p.userData.id, rest = (...v) => v.reduce((a, b) => a.sub(b), ex.clone());
   const first = (g, a, b) => [[g, a, b], [rest(g), ...SPREAD]];
-  p.userData.stages = cat === 'mag' ? first(V(0, -60, 0), 0, 0.08)
+  p.userData.stages = cat === 'att' ? first(id === 'pbs1' ? V(90, 0, 0) : V(0, 40, -60), 0, 0.06)
+    : cat === 'mag' ? first(V(0, -60, 0), 0, 0.08)
     : id === 'dustCover' ? [[V(0, 25, 0), 0.06, 0.1], [V(-310, 20, 0), 0.1, 0.16]]          // lift the back, pull it off rearward
     : id === 'recoilGuide' ? [[V(0, 20, 0), 0.13, 0.16], [V(-300, 70, 0), 0.16, 0.22]]
     : id === 'buttPlate' ? first(V(-60, 0, 0), 0.16, 0.21)
@@ -2094,6 +2174,8 @@ renderer.setAnimationLoop(() => {
 const fromHash = () => {
   if (location.hash.includes('exploded')) { exTarget = 1; exSlider.value = 1; labelsCb.checked = true; camTween = { pos: EXP_POS.clone(), tgt: EXP_TGT.clone() }; }
   if (location.hash.includes('hpa')) { hpaCb.checked = true; hpaCb.onchange(); }
+  setAtt('muzzle', location.hash.includes('pbs1') ? 'pbs1' : 'brake');
+  setAtt('optic', location.hash.includes('kobra') ? 'kobra' : location.hash.includes('pso1') ? 'pso1' : 'none');
 };
 fromHash(); addEventListener('hashchange', fromHash);
 window.__cm = { TRIG, GUN, flying, parts, select, showList, THREE, scene, renderer, camera, controls, floor, grid, labelRenderer, root, S, OX, OY };
