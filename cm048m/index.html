@@ -1567,43 +1567,82 @@ function sideMount(x0, x1, yTop, zIn) {
 }
 const KB_Y = OPT_Y + mm(5), KB_X = X(760);   // Kobra body bottom, rear end
 const kb = u => KB_X + mm(u);                    // mm forward of the rear face
-function kobraHood() {   // rear block seen end-on: full body height, rounded top corners, window open through above the body
-  const s = new THREE.Shape(), w = mm(25), h = mm(74), t = mm(4), r = mm(8), b = mm(30);
-  s.moveTo(-w, 0); s.lineTo(w, 0); s.lineTo(w, h - r); s.absarc(w - r, h - r, r, 0, Math.PI / 2); s.lineTo(-w + r, h); s.absarc(-w + r, h - r, r, Math.PI / 2, Math.PI); s.closePath();
-  const ho = new THREE.Path(), ri = mm(4);
-  ho.moveTo(-w + t, b); ho.lineTo(w - t, b); ho.lineTo(w - t, h - t - ri); ho.absarc(w - t - ri, h - t - ri, ri, 0, Math.PI / 2); ho.lineTo(-w + t + ri, h - t); ho.absarc(-w + t + ri, h - t - ri, ri, Math.PI / 2, Math.PI); ho.closePath();
-  s.holes.push(ho);
-  return s;
+const KB_SIGHT = KB_Y + mm(37);                  // sight line through the hood
+// rounded rectangle in the extrudeX plane (shape x = gun z, shape y = height), mm in, model units out
+function kbRound(hw, y0, y1, rTop, rBot, cy = 0, path = new THREE.Shape()) {
+  const [w, b, t, rt, rb] = [hw, y0, y1, rTop, rBot].map(mm);
+  path.moveTo(-w + rb, b + cy); path.lineTo(w - rb, b + cy); path.absarc(w - rb, b + rb + cy, rb, -Math.PI / 2, 0);
+  path.lineTo(w, t - rt + cy); path.absarc(w - rt, t - rt + cy, rt, 0, Math.PI / 2);
+  path.lineTo(-w + rt, t + cy); path.absarc(-w + rt, t - rt + cy, rt, Math.PI / 2, Math.PI);
+  path.lineTo(-w, b + rb + cy); path.absarc(-w + rb, b + rb + cy, rb, Math.PI, Math.PI * 1.5);
+  return path;
 }
-// mount plate on the left of the body: full-length upper band with the screw row, a big lightening window, then the
-// shoe that clamps the dovetail rail; the plate sits outside the cover skirt
-const KB_PZ0 = -mm(30), KB_PZ1 = -mm(24), KB_SIGHT = KB_Y + mm(51);
+// rounded rectangle as a point list for prof(), in model units
+function kbRR(x0, x1, y0, y1, r, n = 5) {
+  const pts = [], c = [[x1 - r, y0 + r, -Math.PI / 2], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, Math.PI / 2], [x0 + r, y0 + r, Math.PI]];
+  for (const [cx, cy, a0] of c) for (let i = 0; i <= n; i++) { const a = a0 + i / n * Math.PI / 2; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return pts;
+}
+function kobraHood() {   // front hood: tall rounded block with a rounded window through it, rear face raked forward above the body
+  const s = kbRound(23, 0, 54, 16, 3);
+  s.holes.push(kbRound(15, -14, 14, 9, 9, mm(37), new THREE.Path()));
+  const g = extrudeX(s, kb(112), kb(136), mm(1.5)), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) if (p.getX(i) < kb(124)) p.setX(i, p.getX(i) + Math.max(0, p.getY(i) - mm(30)) * 0.45);
+  g.computeVertexNormals();
+  return g.translate(0, KB_Y, 0);
+}
+function kbRing(ro, ri) {   // annulus in the extrudeX plane, mm in
+  const o = new THREE.Shape().absarc(0, 0, mm(ro), 0, Math.PI * 2);
+  o.holes.push(new THREE.Path().absarc(0, 0, mm(ri), 0, Math.PI * 2, true));
+  return o;
+}
+function kbKnurl(r, len, axis, x, y, z, n) {   // knurled cap: core plus raised ribs round it
+  const out = [[cyl(r - mm(0.6), len, axis, x, y, z, 32), 'dark']];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, g = new THREE.BoxGeometry(mm(1.4), mm(1.4), len);
+    g.rotateZ(a); g.translate((r - mm(0.7)) * Math.cos(a), (r - mm(0.7)) * Math.sin(a), 0);
+    if (axis === 'y') g.rotateX(Math.PI / 2);
+    out.push([g.translate(x, y, z), 'dark']);
+  }
+  return out;
+}
+const kbScrew = (u, y, z, r = 1.6) => [[cyl(mm(r + 1.6), mm(1), 'z', kb(u), y, z, 20), 'blk'], [cyl(mm(r), mm(1.4), 'z', kb(u), y, z, 14), 'steel']];
+// mount plate on the left of the body: upper band with the screw row in round bosses, a big lightening window, then the
+// shoe that clamps the dovetail rail; the plate sits outside the cover skirt and stops short of the battery cap
+const KB_PZ0 = -mm(30), KB_PZ1 = -mm(24), KB_PZ = (KB_PZ0 + KB_PZ1) / 2;
 part('kobra', 'Kobra EKP-1S-03 red dot + side mount', 'att', [], [0, 220, -150],
-  'Kobra EKP-1S-03 collimator (Axion, Russia): 1x, four selectable reticles (T, dot-and-chevron, chevron, dot). The window hood sits at the rear, near the eye, with the tilted reflector inside it; the long body runs forward over the dust cover, with the battery under a screw cap at the front and the on/off and brightness switches on the right. Body about 144 x 50 x 74mm and 380g (CR2 version). The mount is a flat plate on the left side of the body, with a lightening window, that drops to a shoe on the side rail and locks with a lever; the plate is why the dust cover cannot come off with the sight fitted. Proportions here are traced from product photos.',
-  [[at(prof([[kb(10), Y(104)], [kb(136), Y(104)], [kb(136), KB_Y + mm(20)], [kb(130), KB_Y + mm(25)], [kb(16), KB_Y + mm(25)], [kb(10), KB_Y + mm(19)]], KB_PZ1 - KB_PZ0, 0.8,
-      [[[kb(30), Y(104) + mm(8)], [kb(116), Y(104) + mm(8)], [kb(116), KB_Y - mm(4)], [kb(30), KB_Y - mm(4)]]]), 0, 0, (KB_PZ0 + KB_PZ1) / 2), 'blk'],   // mount plate
-   [bx(kb(34), kb(112), Y(130), Y(102), -RZ - mm(11), -RZ - mm(3.3)), 'blk'],                                     // shoe on the rail
+  'Kobra EKP-1S-03 collimator (Axion, Russia): 1x, four selectable reticles (T, dot-and-chevron, chevron, dot). The long low body runs back toward the eye and the tall hood sits at the front, with a round lens shroud on its face and the tilted reflector inside; you look through the hood over the top of the body. On the right side: the knurled reticle dial at the rear, a screwed panel with the on/off and brightness switches, and a round adjuster cap on the hood; the battery goes in under a knurled screw cap on the left of the hood. Body about 144 x 50 x 74mm and 380g (CR2 version). The mount is a flat plate on the left side of the body, with a lightening window, that drops to a shoe on the side rail and locks with a lever; the plate is why the dust cover cannot come off with the sight fitted. Proportions here are traced from product photos.',
+  [[at(prof([...kbRR(kb(14), kb(114), Y(104), KB_Y + mm(25), mm(5))], KB_PZ1 - KB_PZ0, 0.8,
+      [kbRR(kb(30), kb(98), Y(104) + mm(8), KB_Y - mm(4), mm(5)).reverse()]), 0, 0, KB_PZ), 'blk'],   // mount plate
    [bx(kb(34), kb(112), Y(122), Y(102), KB_PZ0, -RZ - mm(11)), 'blk'],                                            // shoe web to the plate
-   ...[40, 62, 84, 106].map(u => [cyl(mm(3.2), mm(1.2), 'z', kb(u), KB_Y + mm(9), KB_PZ0 - mm(0.5), 16), 'steel']),   // screw row on the upper band
-   ...[51, 73, 95].map(u => [bx(kb(u - 1.5), kb(u + 1.5), KB_Y + mm(4), KB_Y + mm(14), KB_PZ0 - mm(0.4), KB_PZ0 + mm(1)), 'dark']),   // ribs between the screws
-   ...[46, 100].map(u => [cyl(mm(2.6), mm(1.2), 'z', kb(u), Y(110), KB_PZ0 - mm(0.5), 14), 'steel']),             // lower screws
+   ...[32, 54, 76, 98].flatMap(u => kbScrew(u, KB_Y + mm(10), KB_PZ0 - mm(0.5))),                                  // screw row in round bosses
+   ...[43, 65, 87].map(u => [bx(kb(u - 1.5), kb(u + 1.5), KB_Y + mm(4), KB_Y + mm(16), KB_PZ0 - mm(0.4), KB_PZ0 + mm(1)), 'dark']),   // ribs between the screws
+   ...[20, 106].flatMap(u => kbScrew(u, Y(110), KB_PZ0 - mm(0.5), 1.3)),                                            // lower screws
    [cyl(mm(4), mm(3), 'z', kb(108), Y(116), KB_PZ0 - mm(1.5), 16), 'steel'],                                      // clamp lever pivot
    [bx(kb(40), kb(110), Y(119), Y(113), KB_PZ0 - mm(3), KB_PZ0 - mm(0.5)), 'steel'],                               // lever, closed along the shoe
    [cyl(mm(3.4), mm(4), 'z', kb(40), Y(116), KB_PZ0 - mm(2.5), 14), 'steel'],
-   [at(prof([[mm(40), 0], [mm(144), 0], [mm(144), mm(19)], [mm(136), mm(27)], [mm(40), mm(27)]], mm(48), 1.2), KB_X, KB_Y, 0), 'blk'],   // body
-   [bx(kb(48), kb(128), KB_Y + mm(27), KB_Y + mm(30), -mm(8), mm(8)), 'blk'],                                     // raised strip along the top
-   [extrudeX(kobraHood(), KB_X, kb(44), 0.8).translate(0, KB_Y, 0), 'blk'],                               // window hood
-   [new THREE.BoxGeometry(mm(1.4), mm(38), mm(41)).rotateZ(-0.38).translate(kb(26), KB_SIGHT, 0), 'glass'],       // tilted reflector
-   [new THREE.SphereGeometry(mm(0.8), 10, 8).translate(kb(27), KB_SIGHT, 0), 'dot'],
-   [new THREE.BoxGeometry(mm(1.2), mm(38), mm(41)).translate(kb(3), KB_SIGHT, 0), 'glass'],                       // rear window
-   [cyl(mm(9), mm(4), 'y', kb(124), KB_Y + mm(29), 0, 28), 'dark'],                                               // battery cap, front top
-   [bx(kb(119), kb(129), KB_Y + mm(30.6), KB_Y + mm(31.4), -mm(1), mm(1)), 'black'],                              // slot in the cap
-   ...Array.from({ length: 14 }, (_, i) => [bx(-mm(0.6), mm(0.6), -mm(2), mm(2), mm(8.6), mm(9.6)).rotateY(i * Math.PI / 7).translate(kb(124), KB_Y + mm(29), 0), 'dark']),
-   [cyl(mm(7), mm(4), 'z', kb(70), KB_Y + mm(14), mm(25.5), 24), 'dark'],                                        // on/off rotary, right side
-   [bx(kb(66), kb(84), KB_Y + mm(12), KB_Y + mm(16), mm(26), mm(29)), 'dark'],                                    // its lever
-   [bx(kb(90), kb(108), KB_Y + mm(9), KB_Y + mm(19), mm(24.5), mm(26.5)), 'dark'],                                // brightness rocker
-   [bx(kb(92), kb(98), KB_Y + mm(10), KB_Y + mm(18), mm(26), mm(27.5)), 'dark'],
-   [bx(kb(100), kb(106), KB_Y + mm(10), KB_Y + mm(18), mm(26), mm(27.5)), 'dark']],
+   [extrudeX(kbRound(20, 0, 30, 6, 3), kb(0), kb(118), mm(1)).translate(0, KB_Y, 0), 'blk'],                       // body, rounded along its length
+   [extrudeX(kbRound(6, 29, 31.8, 1.2, 0.5), kb(24), kb(56), mm(0.5)).translate(0, KB_Y, 0), 'blk'],                    // raised rib on the rear top
+   [kobraHood(), 'blk'],                                                                                           // hood
+   [extrudeX(kbRing(18, 14.5), kb(134), kb(146), mm(1.2)).translate(0, KB_Y + mm(37), 0), 'blk'],                // round lens shroud on the hood face
+   [cyl(mm(14.5), mm(1), 'x', kb(141), KB_SIGHT, 0, 40), 'glass'],                                                // front lens
+   [new THREE.BoxGeometry(mm(1.4), mm(26), mm(29)).rotateZ(-0.38).translate(kb(127), KB_SIGHT, 0), 'glass'],      // tilted reflector
+   [new THREE.SphereGeometry(mm(0.8), 10, 8).translate(kb(126), KB_SIGHT, 0), 'dot'],
+   [cyl(mm(5), mm(3), 'y', kb(129), KB_Y + mm(55), 0, 24), 'dark'],                                              // elevation cap on top of the hood
+   [cyl(mm(5.6), mm(1), 'y', kb(129), KB_Y + mm(54), 0, 24), 'dark'],
+   ...kbKnurl(mm(10), mm(12), 'z', kb(126), KB_Y + mm(22), -mm(29), 18),                                         // battery cap, left of the hood
+   [cyl(mm(10.6), mm(2), 'z', kb(126), KB_Y + mm(22), -mm(23.5), 32), 'dark'],
+   [cyl(mm(10), mm(3), 'z', kb(126), KB_Y + mm(22), mm(24.5), 32), 'dark'],                                       // windage cap, right of the hood
+   [cyl(mm(8.5), mm(1), 'z', kb(126), KB_Y + mm(22), mm(26.2), 32), 'dark'],
+   ...kbKnurl(mm(10), mm(4), 'z', kb(16), KB_Y + mm(15), mm(22), 22),                                            // reticle dial, right rear
+   [cyl(mm(4), mm(1.2), 'z', kb(16), KB_Y + mm(15), mm(24.4), 20), 'steel'],
+   [bx(kb(13), kb(19), KB_Y + mm(14.4), KB_Y + mm(15.6), mm(24.6), mm(25.2)), 'black'],
+   [at(prof(kbRR(kb(32), kb(108), KB_Y + mm(5), KB_Y + mm(25), mm(3)), mm(1.4), 0.3), 0, 0, mm(20.9)), 'dark'],   // switch panel, right side
+   ...[[36, 9], [36, 21], [104, 9], [104, 21]].flatMap(([u, h]) => kbScrew(u, KB_Y + mm(h), mm(21.9), 1.1).slice(1)),
+   [at(prof(kbRR(kb(44), kb(60), KB_Y + mm(17), KB_Y + mm(21), mm(2)), mm(2.4), 0.3), 0, 0, mm(22.6)), 'dark'],    // brightness rocker
+   [cyl(mm(2.4), mm(2.4), 'z', kb(72), KB_Y + mm(17), mm(22.6), 16), 'dark'],                                     // reticle button
+   [cyl(mm(5), mm(2.4), 'z', kb(93), KB_Y + mm(15), mm(22.6), 24), 'dark'],                                       // on/off rotary
+   [bx(kb(91), kb(103), KB_Y + mm(13.5), KB_Y + mm(16.5), mm(23.4), mm(25.4)), 'dark']],   // its wing
   { att: ['optic', 'kobra'] });
 
 const PSO_Y = OPT_Y + mm(34), PSO_E = X(835);   // tube axis height, eyecup end
@@ -1800,7 +1839,7 @@ const SOURCES = `<p class="src">Sources: CYMA CM.048 / CM.048M manual (exploded 
 selector lever shape from <a href="https://www.apexgunparts.com/">Apex Gun Parts</a> AKM levers and the <a href="https://www.ehobbyasia.com/">ehobbyasia</a> VFC #03-48 lever photos,
 <a href="http://airsofttech.dk/Guides.cshtml?Page=GearboxV3_Page1">airsofttech.dk V3 guide</a>,
 <a href="https://www.polarstarairsoft.com/">Polarstar Kythera manual</a>,
-<a href="https://en.wikipedia.org/wiki/PBS-1_silencer">PBS-1 (Wikipedia)</a>, <a href="https://airsoftstation.com/aabb-pbs-1-style-aluminum-mock-silencer-14mm-ccw/">AABB PBS-1 mock</a>, <a href="https://bearoptics.com/red-dot-scopes/kobra-ekp-1s-03-ak-saiga-side-mount/">Kobra EKP-1S-03</a>, <a href="https://toparsenal.net/products/kobra-ekp-1s-03-aa">Kobra side photo (Top Arsenal)</a>, <a href="http://thinlineweapons.com/AIA/bstkobra.html">Kobra controls (Tantal's Collector's Source)</a>, <a href="https://www.dragunov.net/optic_pso1">PSO-1 (dragunov.net)</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
+<a href="https://en.wikipedia.org/wiki/PBS-1_silencer">PBS-1 (Wikipedia)</a>, <a href="https://airsoftstation.com/aabb-pbs-1-style-aluminum-mock-silencer-14mm-ccw/">AABB PBS-1 mock</a>, <a href="https://bearoptics.com/red-dot-scopes/kobra-ekp-1s-03-ak-saiga-side-mount/">Kobra EKP-1S-03</a>, <a href="https://toparsenal.net/products/kobra-ekp-1s-03-aa">Kobra side photo (Top Arsenal)</a>, <a href="http://thinlineweapons.com/AIA/bstkobra.html">Kobra controls (Tantal's Collector's Source)</a>, <a href="https://smallarmsreview.com/the-russian-kobra/">Kobra right side and on-gun photos (Small Arms Review)</a>, <a href="https://hical.ca/product/kobra-ekp-1s-03-red-dot-sight-type-81-mount-included/">Kobra on an AK (High Caliber Services)</a>, <a href="https://www.dragunov.net/optic_pso1">PSO-1 (dragunov.net)</a>. Shapes and positions are approximate, traced from product photos, not measured.</p>`;
 function showOverview() {
   infoBody.innerHTML = `<h2>CYMA CM.048M (AKM, full metal, real wood)</h2>
   <div class="meta">AEG, Version 3 gearbox. Semi and full auto.</div>
